@@ -6,6 +6,16 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- **Add tile → From your dashboards** lists the cards on your dashboards; a
+  tap copies one into a card tile, sized from its place in a sections view.
+
+### Changed
+
+- **Paste a card's YAML** moved from Widgets to the top of From your
+  dashboards.
+
 ## [0.2.0] - 2026-11-07
 
 ### Added

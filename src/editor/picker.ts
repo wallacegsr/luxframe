@@ -1,8 +1,9 @@
-import { LitElement, html, nothing } from 'lit';
+import { LitElement, html, nothing, type PropertyValues } from 'lit';
 import { define } from '../define';
 import { areaName, domainOf, resolve } from '../entity';
 import { stateIcon } from '../icon';
 import type { GridTileConfig, HomeAssistant } from '../types';
+import { dashboardCards, type FoundCard } from './dashboard-cards';
 import { isUseful, pickable, tileFor } from './layout';
 import { editorStyles } from './sheet';
 
@@ -14,33 +15,52 @@ const WIDGETS: Array<{ label: string; sub: string; tile: GridTileConfig }> = [
   { label: 'Now playing', sub: 'Whichever speaker is playing', tile: { type: 'now-playing' } },
   { label: 'Photos', sub: 'A slideshow from the media folder', tile: { type: 'photo' } },
   { label: 'Sunrise and sunset', sub: 'When the sun next rises or sets', tile: { type: 'sun' } },
-  { label: 'Home Assistant card', sub: 'Any card, pasted as YAML', tile: { type: 'card', card: {} } },
 ];
 
 /** Shown first; the rest of Home Assistant follows under "Everything else". */
 const LIMIT = 200;
 
+/** Dashboard cards shown before "Show all", unless searching. */
+const FEW_CARDS = 5;
+
 /**
- * Choosing what a tile shows: a clock, or any entity, searchable by name, id
- * or area. Thermostats and weather entities become their own tile kinds.
- * Fires `pick` with the tile.
+ * Choosing what a tile shows: a card from one of the user's dashboards, a
+ * clock, or any entity, searchable by name, id or area. Thermostats and
+ * weather entities become their own tile kinds. Fires `pick` with the tile.
  */
 export class LuxFramePicker extends LitElement {
   static properties = {
     hass: { attribute: false },
     entitiesOnly: { type: Boolean, attribute: 'entities-only' },
     _query: { state: true },
+    _found: { state: true },
+    _allCards: { state: true },
   };
 
   declare hass?: HomeAssistant;
   /** Leave out the clocks, for choosing an entity rather than a tile. */
   declare entitiesOnly: boolean;
   declare _query: string;
+  /** Cards on the user's dashboards; undefined while they're being read. */
+  declare _found?: FoundCard[];
+  declare _allCards: boolean;
+
+  private _looking = false;
 
   constructor() {
     super();
     this._query = '';
     this.entitiesOnly = false;
+    this._allCards = false;
+  }
+
+  protected willUpdate(changed: PropertyValues): void {
+    if (changed.has('hass') && this.hass && !this.entitiesOnly && !this._looking) {
+      this._looking = true;
+      dashboardCards(this.hass)
+        .catch(() => [])
+        .then((found) => (this._found = found));
+    }
   }
 
   protected firstUpdated(): void {
@@ -70,6 +90,56 @@ export class LuxFramePicker extends LitElement {
           a.area.localeCompare(b.area) ||
           a.name.localeCompare(b.name),
       );
+  }
+
+  private _matchingCards(q: string): FoundCard[] {
+    if (this.entitiesOnly) return [];
+    return (this._found ?? []).filter(
+      (f) =>
+        !q ||
+        [f.name, f.shows ?? '', f.where, String(f.card.type)].some((text) => text.toLowerCase().includes(q)),
+    );
+  }
+
+  private _renderCards(q: string) {
+    if (this.entitiesOnly) return nothing;
+    const paste = !q || 'paste yaml home assistant card'.includes(q);
+    const matching = this._matchingCards(q);
+    const shown = q || this._allCards ? matching : matching.slice(0, FEW_CARDS);
+    if (!paste && !matching.length && this._found) return nothing;
+
+    return html`<h3>From your dashboards</h3>
+      <ul class="list">
+        ${paste
+          ? html`<li>
+              <button class="item" @click=${() => this._pick({ type: 'card', card: {} })}>
+                <span class="icon"><span class="glyph">+</span></span>
+                <span class="text"><span class="name">Paste a card’s YAML</span>
+                  <div class="sub">Any Home Assistant card</div></span>
+              </button>
+            </li>`
+          : nothing}
+        ${shown.map(
+          (f) => html`<li>
+            <button class="item" @click=${() => this._pick({ type: 'card', size: f.size, card: f.card })}>
+              <span class="icon">
+                ${f.entity && this.hass?.states[f.entity]
+                  ? stateIcon(this.hass, this.hass.states[f.entity], undefined, f.name)
+                  : html`<span class="glyph">${f.name.charAt(0)}</span>`}
+              </span>
+              <span class="text"><span class="name">${f.name}</span>
+                <div class="sub">${[f.shows, f.where].filter(Boolean).join(' · ')}</div></span>
+            </button>
+          </li>`,
+        )}
+      </ul>
+      ${!this._found
+        ? html`<p class="muted">Looking through your dashboards…</p>`
+        : shown.length < matching.length
+          ? html`<button class="chip" @click=${() => (this._allCards = true)}>
+              Show all ${matching.length} cards
+            </button>`
+          : nothing}`;
   }
 
   protected render() {
@@ -104,6 +174,7 @@ export class LuxFramePicker extends LitElement {
         .value=${this._query}
         @input=${(e: Event) => (this._query = (e.target as HTMLInputElement).value)}
       />
+      ${this._renderCards(q)}
       ${widgets.length
         ? html`<h3>Widgets</h3>
             <ul class="list">
@@ -138,7 +209,7 @@ export class LuxFramePicker extends LitElement {
       ${rest.length && q
         ? html`<h3>Everything else</h3><ul class="list">${rest.slice(0, LIMIT).map(row)}</ul>`
         : nothing}
-      ${!rest.length && !useful.length && !widgets.length && !rooms.length
+      ${!rest.length && !useful.length && !widgets.length && !rooms.length && !this._matchingCards(q).length
         ? html`<p class="muted">Nothing matches “${this._query}”.</p>`
         : nothing}
       ${rest.length && !q

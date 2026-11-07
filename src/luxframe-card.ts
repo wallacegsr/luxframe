@@ -503,9 +503,9 @@ export class LuxFrameCard extends LitElement {
     const tiles = [...(this._gridAt(sheet.page)?.tiles ?? [])];
     if (sheet.kind === 'add') {
       tiles.push(tile);
-      // A card tile starts empty, so go straight to pasting its YAML.
+      // An empty card tile is for pasting YAML, so go straight to that.
       this._sheet =
-        typeof tile !== 'string' && tile.type === 'card'
+        typeof tile !== 'string' && tile.type === 'card' && !tile.card?.type
           ? { kind: 'tile', page: sheet.page, index: tiles.length - 1 }
           : undefined;
     } else {

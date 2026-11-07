@@ -140,9 +140,16 @@ LuxFrame's colors. Cards that draw their own background, such as a picture,
 keep it. `glass: false` leaves the card looking as it does on other
 dashboards. A card taller than its tile scrolls inside it.
 
-On the tablet, **Add tile → Home Assistant card** opens a box for the card's
-YAML. In Home Assistant, open the card's editor and choose **Show code editor**
-to copy it.
+On the tablet, **Add tile → From your dashboards** lists the cards on your
+other dashboards, with the dashboard and view each is on. A tap copies the
+card into a new tile, sized from its place in a sections view (a card 4 or more
+rows tall starts medium, or large at full width). The copy doesn't follow later
+changes to the original. Dashboards Home Assistant generates itself, and ones
+only admins may open when you aren't one, aren't listed.
+
+**Paste a card's YAML**, at the top of the same list, takes any card. In Home
+Assistant, open the card's editor and choose **Show code editor** to copy it.
+Layout keys such as `grid_options` can stay; LuxFrame ignores them.
 
 Holding a card still starts editing after a second, unless the card opens a
 dialog of its own first.
@@ -193,8 +200,9 @@ at the top.
 - **Tap** a tile to set its size (Small, Wide, Medium, Large), rename it,
   change what it shows, move it earlier or later, or remove it.
 - **−** on a tile's corner removes it. **+ Add tile**, or the dashed tile at
-  the end, adds one: a clock, or any entity, searchable by name or room.
-  Thermostats and weather entities get their own tile kinds.
+  the end, adds one: a card from one of your dashboards, a widget such as a
+  clock, a room, or any entity, searchable by name or room. Thermostats and
+  weather entities get their own tile kinds.
 - **Customize** sets the page's title, columns and rows; shows, hides,
   reorders, adds and deletes pages; adds a page for each room in Home
   Assistant that doesn't have one; and sets the theme, wallpaper and glass

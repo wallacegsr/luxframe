@@ -166,6 +166,39 @@ const card = document.createElement('luxframe-card') as LuxFrameCard;
 card.setConfig(config);
 const hass = createMockHass((next) => (card.hass = next));
 
+// Another dashboard, as Add tile → From your dashboards finds it.
+const OTHER_DASHBOARD = {
+  views: [
+    {
+      title: 'Default',
+      type: 'sections',
+      sections: [
+        {
+          type: 'grid',
+          cards: [
+            { type: 'heading', heading: 'Weather' },
+            {
+              type: 'custom:clock-weather-card',
+              entity: 'weather.home',
+              sections: { forecast_list: { count: 7 } },
+              grid_options: { rows: 7 },
+            },
+            { type: 'thermostat', entity: 'climate.living_room', grid_options: { columns: 12, rows: 6 } },
+            { type: 'tile', entity: 'light.living_room' },
+          ],
+        },
+      ],
+    },
+    {
+      path: 'laundry',
+      cards: [
+        { type: 'vertical-stack', cards: [{ type: 'tile', entity: 'light.reading' }, { type: 'markdown', title: 'Notes' }] },
+        { type: 'tile', entity: 'light.living_room' },
+      ],
+    },
+  ],
+};
+
 // A stand-in for the dashboard LuxFrame lives in, so Done can save to it.
 // ?guest signs in as a non-admin; ?yaml makes the dashboard refuse saves.
 let dashboard: { views: Array<{ type: string; cards: LuxFrameConfig[] }> } = {
@@ -175,6 +208,20 @@ hass.user = { name: 'Dev', is_admin: !params.has('guest') };
 hass.callWS = (async (message: Record<string, any>) => {
   console.log('callWS', message.type, message.url_path);
   await new Promise((r) => setTimeout(r, 300));
+  if (message.type === 'lovelace/dashboards/list') {
+    return [
+      { url_path: 'dashboard-home', title: 'Home', mode: 'storage' },
+      { url_path: 'dashboard-admin', title: 'Admin', mode: 'storage', require_admin: true },
+      { url_path: 'dashboard-auto', title: 'Generated', mode: 'storage' },
+    ];
+  }
+  if (message.type === 'lovelace/config' && message.url_path === 'dashboard-home') return OTHER_DASHBOARD;
+  if (message.type === 'lovelace/config' && message.url_path === 'dashboard-admin') {
+    return { views: [{ title: 'Secret', cards: [{ type: 'markdown', content: 'Admins only' }] }] };
+  }
+  if (message.type === 'lovelace/config' && message.url_path === 'dashboard-auto') {
+    throw new Error('No config found.');
+  }
   if (message.type === 'lovelace/config') return structuredClone(dashboard);
   if (message.type === 'lovelace/config/save') {
     if (params.has('yaml')) throw new Error('Not supported');
