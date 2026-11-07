@@ -14,12 +14,15 @@ the page dots, or the arrow keys.
 
 ### HACS (custom repository)
 
-1. HACS → ⋮ → **Custom repositories** → add this repo's URL as type **Dashboard**.
+1. HACS → ⋮ → **Custom repositories** → add `https://github.com/wallacegsr/luxframe`
+   as type **Dashboard**.
 2. Install **LuxFrame** and reload the browser.
 
 ### Manual
 
-1. Download `luxframe.js` from the latest release and copy it to `config/www/`.
+1. Download `luxframe.js` from the
+   [latest release](https://github.com/wallacegsr/luxframe/releases/latest) and
+   copy it to `config/www/`.
 2. Settings → Dashboards → ⋮ → **Resources** → add `/local/luxframe.js` as a
    JavaScript module.
 
