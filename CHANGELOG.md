@@ -6,6 +6,12 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Holding still for a second on a clock, weather, calendar, cameras, photos or
+  night page, or on a room or scenes page around its tiles, starts editing, so
+  Customize can be reached from every page.
+
 ## [0.3.0] - 2026-11-07
 
 ### Added

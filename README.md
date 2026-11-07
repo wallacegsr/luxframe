@@ -167,7 +167,8 @@ spins faster the higher its speed.
 - **Drag up or down** on a dimmable light, a shade or a fan to set its level.
   A full tile height covers 0–100%.
 - **Hold** for a second to start [editing](#editing-on-the-tablet) on a grid
-  page. On room and scenes pages, holding opens the details.
+  page. On room and scenes pages, holding a tile opens its details; holding the
+  page around the tiles starts editing.
 - Locks, and garage, door and gate covers, never act on one tap. The icon opens
   their details instead.
 - On the thermostat, **▼ / ▲** change the target. Several quick taps go to
@@ -194,7 +195,10 @@ dialog for history, settings and attributes.
 ### Editing on the tablet
 
 Hold any tile on a grid page for a second. The tiles wiggle, and a bar appears
-at the top.
+at the top. On every other page (clock, weather, calendar, cameras, photos,
+night), hold anywhere for a second; on room and scenes pages, hold the page
+around the tiles. There the bar has Customize, Cancel and Done, with no Add
+tile.
 
 - **Drag** a tile to move it. The others make room.
 - **Tap** a tile to set its size (Small, Wide, Medium, Large), rename it,

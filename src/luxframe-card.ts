@@ -17,6 +17,15 @@ import { tokens } from './theme';
 import { averageColor, backgroundUrl } from './tint';
 import type { GridPageConfig, GridTileConfig, HomeAssistant, LuxFrameConfig, PageConfig } from './types';
 
+const PAGE_HOLD_MS = 1000;
+const PAGE_HOLD_TOLERANCE = 10;
+/**
+ * What a press on a page shouldn't start editing from: things with a hold or
+ * drag of their own. A button only has a tap, so holding one starts editing
+ * and the tap is dropped.
+ */
+const HOLDS_OWN = 'luxframe-tile, input, select, textarea, [role="slider"]';
+
 const DEFAULT_HOME_AFTER = 120;
 const PAGE_TYPES = ['clock', 'room', 'scenes', 'grid', 'weather', 'calendar', 'cameras', 'photos', 'night'];
 const TOAST_MS = 4500;
@@ -402,6 +411,57 @@ export class LuxFrameCard extends LitElement {
     writeBrightness(level);
   }
 
+  // ---- Holding a page to start editing ----------------------------------------
+  //
+  // A grid page starts editing itself when a tile or its background is held.
+  // Every other page (clock, weather, calendar…) has nothing of its own to
+  // hold, so holding still anywhere on it for a second starts editing too,
+  // camera stills and buttons included. A tile or slider keeps its own hold:
+  // holding a tile on a room page still opens its details.
+
+  private _pageHold?: { x: number; y: number; timer: number };
+  /** The release after a hold that started editing isn't also a tap. */
+  private _swallowClick = false;
+
+  private _pageDown = (e: PointerEvent): void => {
+    this._pageUp();
+    this._swallowClick = false;
+    if (this._editing || e.button !== 0 || !this._config) return;
+    const own = e
+      .composedPath()
+      .some((el) => el instanceof Element && (el.localName === 'luxframe-grid' || el.matches(HOLDS_OWN)));
+    if (own) return;
+    this._pageHold = {
+      x: e.clientX,
+      y: e.clientY,
+      timer: window.setTimeout(() => {
+        this._pageHold = undefined;
+        this._swallowClick = true;
+        this._startEditing();
+      }, PAGE_HOLD_MS),
+    };
+  };
+
+  private _pageMove = (e: PointerEvent): void => {
+    const hold = this._pageHold;
+    if (hold && Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > PAGE_HOLD_TOLERANCE) this._pageUp();
+  };
+
+  private _pageUp = (): void => {
+    if (this._pageHold) window.clearTimeout(this._pageHold.timer);
+    this._pageHold = undefined;
+  };
+
+  private _pageClick = {
+    capture: true,
+    handleEvent: (e: Event): void => {
+      if (!this._swallowClick) return;
+      this._swallowClick = false;
+      e.preventDefault();
+      e.stopPropagation();
+    },
+  };
+
   // ---- Editing on the tablet ------------------------------------------------
 
   private _startEditing = (): void => {
@@ -660,7 +720,17 @@ export class LuxFrameCard extends LitElement {
 
     return html`
       <div class="frame" style=${style} tabindex="0">
-        <div class="track" @scroll=${this._onScroll} @scrollend=${this._onScrollEnd}>
+        <div
+          class="track"
+          @scroll=${this._onScroll}
+          @scrollend=${this._onScrollEnd}
+          @pointerdown=${this._pageDown}
+          @pointermove=${this._pageMove}
+          @pointerup=${this._pageUp}
+          @pointercancel=${this._pageUp}
+          @click=${this._pageClick}
+          @contextmenu=${(e: Event) => this._pageHold && e.preventDefault()}
+        >
           ${visible.map(
             ({ page, i }, n) => html`
               <section class="page" aria-label="Page ${n + 1} of ${visible.length}">
