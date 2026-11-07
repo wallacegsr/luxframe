@@ -1,6 +1,7 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { define } from '../define';
-import type { GridPageConfig, HomeAssistant, LuxFrameConfig, PageConfig } from '../types';
+import { resolve } from '../entity';
+import type { GridPageConfig, HomeAssistant, LuxFrameConfig, PageConfig, QuickPanelConfig } from '../types';
 import { pageLabel, suggestPages } from './layout';
 import { editorStyles } from './sheet';
 
@@ -156,6 +157,52 @@ export class LuxFrameCustomize extends LitElement {
     `;
   }
 
+  private _setQuick(changes: Partial<QuickPanelConfig>): void {
+    const next: Record<string, unknown> = { ...(this.config!.quick_panel || {}), ...changes };
+    for (const [key, value] of Object.entries(next)) {
+      if (value === undefined || (Array.isArray(value) && !value.length)) delete next[key];
+    }
+    this._set({ quick_panel: Object.keys(next).length ? (next as QuickPanelConfig) : undefined });
+  }
+
+  private _renderQuick() {
+    const quick = this.config!.quick_panel;
+    if (quick === false) return nothing;
+    const pinned = quick?.pinned ?? [];
+    const players = Object.keys(this.hass?.states ?? {}).filter((id) => id.startsWith('media_player.'));
+    return html`
+      <h3>Quick panel</h3>
+      <p class="muted">Pull down from the top edge. Up to four pinned tiles.</p>
+      <ul class="list">
+        ${pinned.map(
+          (id, i) => html`<li class="item page">
+            <span class="text"><span class="name">${resolve(this.hass, id).name}</span></span>
+            <button class="mini" aria-label="Unpin ${resolve(this.hass, id).name}"
+              @click=${() => this._setQuick({ pinned: pinned.filter((_, n) => n !== i) })}>✕</button>
+          </li>`,
+        )}
+      </ul>
+      <div class="row add">
+        <button class="chip" ?disabled=${pinned.length >= 4}
+          @click=${() => this.dispatchEvent(new CustomEvent('pin'))}>Pin a device</button>
+      </div>
+      ${players.length
+        ? html`<div class="row players" role="group" aria-label="Speaker">
+            <span>Speaker</span>
+            <button class="chip ${quick?.media_player ? '' : 'on'}" aria-pressed=${!quick?.media_player}
+              @click=${() => this._setQuick({ media_player: undefined })}>Whatever's playing</button>
+            ${players.map(
+              (id) => html`<button class="chip ${quick?.media_player === id ? 'on' : ''}"
+                aria-pressed=${quick?.media_player === id}
+                @click=${() => this._setQuick({ media_player: id })}>
+                ${this.hass?.states[id]?.attributes.friendly_name ?? resolve(this.hass, id).name}
+              </button>`,
+            )}
+          </div>`
+        : nothing}
+    `;
+  }
+
   private _renderLook() {
     const config = this.config!;
     const theme = config.theme ?? 'auto';
@@ -199,7 +246,7 @@ export class LuxFrameCustomize extends LitElement {
 
   protected render() {
     if (!this.config) return nothing;
-    return html`${this._renderThisPage()} ${this._renderPages()} ${this._renderLook()}`;
+    return html`${this._renderThisPage()} ${this._renderPages()} ${this._renderQuick()} ${this._renderLook()}`;
   }
 
   static styles = [
@@ -257,6 +304,15 @@ export class LuxFrameCustomize extends LitElement {
 
       .tint span {
         flex: 1;
+      }
+
+      .players {
+        margin-top: 14px;
+        font-size: 17px;
+      }
+
+      .players span {
+        width: 100%;
       }
 
       input[type='color'] {

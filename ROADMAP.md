@@ -51,7 +51,7 @@ artwork or face names.
   Without admin rights the edit is kept on that tablet and LuxFrame says so.
 - Suggested layouts built from Home Assistant's areas.
 
-## Phase 4: quick panel and Assist
+## Phase 4: quick panel and Assist (done)
 
 - Pull down from the top edge: now playing, a screen-dim slider (Kiosk
   Satellite brightness when present, otherwise a dimming overlay), speaker

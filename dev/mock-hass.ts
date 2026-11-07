@@ -67,7 +67,33 @@ const initial: HassEntity[] = [
   entity('scene.dinner', 'scening', { friendly_name: 'Dinner' }),
   entity('scene.goodnight', 'scening', { friendly_name: 'Good night' }),
   entity('script.leave_home', 'off', { friendly_name: 'Leave home' }),
+  entity('media_player.living_room', 'playing', {
+    friendly_name: 'Living Room Speaker',
+    media_title: 'Slow Harbour',
+    media_artist: 'The Lanterns',
+    media_album_name: 'Low Tide',
+    entity_picture: './cover.svg',
+    volume_level: 0.35,
+    supported_features: 1 | 4 | 16 | 32 | 16384,
+  }),
+  entity('media_player.kitchen_speaker', 'idle', {
+    friendly_name: 'Kitchen Speaker',
+    volume_level: 0.2,
+    supported_features: 1 | 4 | 16384,
+  }),
 ];
+
+const TRACKS = [
+  { media_title: 'Slow Harbour', media_artist: 'The Lanterns', media_album_name: 'Low Tide' },
+  { media_title: 'Paper Moons', media_artist: 'Ida Fell', media_album_name: 'Northbound' },
+  { media_title: 'Copper Sky', media_artist: 'The Lanterns', media_album_name: 'Low Tide' },
+];
+
+/** The integration behind each entity, where it matters. */
+const PLATFORM: Record<string, string> = {
+  'media_player.living_room': 'music_assistant',
+  'media_player.kitchen_speaker': 'cast',
+};
 
 const areas = {
   living_room: { area_id: 'living_room', name: 'Living Room' },
@@ -92,6 +118,8 @@ const AREA_OF: Record<string, string> = {
   'light.kitchen': 'kitchen',
   'light.island': 'kitchen',
   'switch.coffee': 'kitchen',
+  'media_player.living_room': 'living_room',
+  'media_player.kitchen_speaker': 'kitchen',
 };
 
 function hueToRgb(hue: number): number[] {
@@ -113,7 +141,10 @@ const FLIP: Record<string, string> = {
 export function createMockHass(onChange: (hass: HomeAssistant) => void): HomeAssistant {
   const states: Record<string, HassEntity> = Object.fromEntries(initial.map((s) => [s.entity_id, s]));
   const entities: Record<string, HassEntityRegistryEntry> = Object.fromEntries(
-    initial.map((s) => [s.entity_id, { entity_id: s.entity_id, area_id: AREA_OF[s.entity_id] ?? null }]),
+    initial.map((s) => [
+      s.entity_id,
+      { entity_id: s.entity_id, area_id: AREA_OF[s.entity_id] ?? null, platform: PLATFORM[s.entity_id] ?? 'demo' },
+    ]),
   );
 
   const update = (id: string, state: string, attributes: Record<string, any>) => {
@@ -128,6 +159,7 @@ export function createMockHass(onChange: (hass: HomeAssistant) => void): HomeAss
     areas,
     devices: {},
     locale: { language: navigator.language, time_format: 'language' },
+    language: 'en',
     themes: { darkMode: new URLSearchParams(location.search).has('dark') },
     config: { unit_system: { temperature: '°C' } },
     async callService(domain, service, data) {
@@ -198,6 +230,14 @@ export function createMockHass(onChange: (hass: HomeAssistant) => void): HomeAss
         update(id, mode, { hvac_action: mode === 'off' ? 'off' : mode === 'cool' ? 'cooling' : 'heating' });
       } else if (kind === 'lock.lock' || kind === 'lock.unlock') {
         update(id, service === 'lock' ? 'locked' : 'unlocked', {});
+      } else if (kind === 'media_player.media_play_pause') {
+        update(id, current.state === 'playing' ? 'paused' : 'playing', {});
+      } else if (kind === 'media_player.media_next_track' || kind === 'media_player.media_previous_track') {
+        const at = TRACKS.findIndex((t) => t.media_title === current.attributes.media_title);
+        const step = service === 'media_next_track' ? 1 : TRACKS.length - 1;
+        update(id, 'playing', TRACKS[(Math.max(0, at) + step) % TRACKS.length]);
+      } else if (kind === 'media_player.volume_set') {
+        update(id, current.state, { volume_level: data!.volume_level });
       } else if (service === 'turn_on' || service === 'turn_off') {
         update(id, service === 'turn_on' ? 'on' : 'off', {});
       }

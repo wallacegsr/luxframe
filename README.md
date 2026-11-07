@@ -160,6 +160,42 @@ Where Done saves:
   LuxFrame says so. When the dashboard's config changes, the tablet goes back
   to it. **Customize → Use the dashboard's layout** does that by hand.
 
+### Quick panel and Assist
+
+**Pull down from the top edge**, or tap the small handle there, for the quick
+panel:
+
+- **Now playing**: artwork, title and artist, previous / play-pause / next,
+  and volume. It follows whichever speaker is playing, Music Assistant's
+  players first, unless you set `media_player`. Buttons the speaker can't use
+  are dimmed.
+- **Screen brightness**: in Kiosk Satellite this moves the tablet's backlight.
+  Anywhere else LuxFrame dims itself with a dark veil, remembered per tablet.
+- **Pinned tiles**: up to four, e.g. a light, a lock and a scene. They work
+  like any tile.
+- **Ask Home Assistant**.
+
+Swipe the panel back up, tap below it, or press Escape to put it away.
+
+**Hold the top edge** for a second to go straight to **Ask Home Assistant**:
+type a request ("turn off the kitchen lights") and read the answer. It uses
+Assist (`conversation/process`), so follow-ups like "and the hallway" carry
+on the same conversation. Voice stays with Kiosk Satellite or Voice Satellite.
+
+```yaml
+quick_panel:
+  media_player: media_player.living_room   # optional
+  pinned:
+    - light.porch
+    - lock.front_door
+    - scene.movie
+assist:
+  agent_id: conversation.home_assistant   # optional; true/false also work
+```
+
+The pinned tiles and the speaker can also be set on the tablet, under
+**Customize → Quick panel**.
+
 ### Card options
 
 | Option       | Default                                    | Notes                                               |
@@ -170,6 +206,8 @@ Where Done saves:
 | `tint`       | the background image's average color       | The color the glass picks up, e.g. `"#e07a2c"`.      |
 | `home_after` | `120`                                      | Seconds without a touch before going back to page 1. |
 | `height`     | `calc(100dvh - var(--header-height, 0px))` | Becomes `100dvh` when Kiosk Satellite hides HA's header. |
+| `quick_panel` | on, nothing pinned                        | `media_player`, `pinned`; `false` turns the panel off. |
+| `assist`     | `true`                                     | `false` hides Ask; `{agent_id}` picks the conversation agent. |
 
 ## Theming
 
@@ -228,7 +266,8 @@ finds `window.kioskSatellite`, it:
 
 - follows the app's Home Assistant light/dark setting, live;
 - goes back to page 1 when the screen turns on or the screensaver ends;
-- fills the whole screen when the app hides HA's header.
+- fills the whole screen when the app hides HA's header;
+- moves the tablet's backlight from the quick panel's brightness slider.
 
 Outside Kiosk Satellite none of this runs and the card behaves normally.
 

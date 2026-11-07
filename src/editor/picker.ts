@@ -22,15 +22,19 @@ const LIMIT = 200;
 export class LuxFramePicker extends LitElement {
   static properties = {
     hass: { attribute: false },
+    entitiesOnly: { type: Boolean, attribute: 'entities-only' },
     _query: { state: true },
   };
 
   declare hass?: HomeAssistant;
+  /** Leave out the clocks, for choosing an entity rather than a tile. */
+  declare entitiesOnly: boolean;
   declare _query: string;
 
   constructor() {
     super();
     this._query = '';
+    this.entitiesOnly = false;
   }
 
   protected firstUpdated(): void {
@@ -64,7 +68,7 @@ export class LuxFramePicker extends LitElement {
 
   protected render() {
     const q = this._query.trim().toLowerCase();
-    const widgets = WIDGETS.filter((w) => !q || w.label.toLowerCase().includes(q));
+    const widgets = this.entitiesOnly ? [] : WIDGETS.filter((w) => !q || w.label.toLowerCase().includes(q));
     const entities = this._entities();
     const useful = entities.filter(({ s }) => isUseful(s.entity_id));
     const rest = entities.filter(({ s }) => !isUseful(s.entity_id));

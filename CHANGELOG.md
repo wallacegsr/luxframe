@@ -50,3 +50,13 @@ All notable changes to LuxFrame are recorded here. The format follows
   built from the thermostat, lights, fans, shades, locks, switches, media and
   scenes in it.
 - `hidden: true` on a page keeps it out of the frame.
+- Quick panel, pulled down from the top edge or opened from its handle: now
+  playing with previous / play-pause / next and volume (following whichever
+  speaker is playing, Music Assistant first, or `media_player`), screen
+  brightness, up to four pinned tiles, and Ask Home Assistant. Set it with
+  `quick_panel` or under Customize.
+- Screen brightness moves the backlight in Kiosk Satellite; elsewhere a dark
+  veil dims the frame, remembered per tablet.
+- Ask Home Assistant: hold the top edge, or tap Ask in the quick panel, and
+  type a request to Assist. Follow-ups carry on the same conversation.
+  `assist: false` hides it, and `assist: {agent_id}` picks the agent.

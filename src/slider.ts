@@ -4,7 +4,8 @@ import { define } from './define';
 /**
  * A large touch slider. Vertical, it's a tall glass pill that fills from the
  * bottom, like a dimmer. Horizontal, it's a track with a round thumb, used for
- * hue and white temperature.
+ * hue and white temperature. Horizontal and `filled`, it's a wide pill that
+ * fills from the left, for volume and screen brightness.
  *
  * Fires `input` (detail: value) while dragging and `change` on release. Touch
  * and drag go straight to the value under the finger.
@@ -16,6 +17,7 @@ export class LuxFrameSlider extends LitElement {
     max: { type: Number },
     step: { type: Number },
     vertical: { type: Boolean, reflect: true },
+    filled: { type: Boolean, reflect: true },
     disabled: { type: Boolean, reflect: true },
     label: {},
     valueText: { attribute: false },
@@ -26,6 +28,7 @@ export class LuxFrameSlider extends LitElement {
   declare max: number;
   declare step: number;
   declare vertical: boolean;
+  declare filled: boolean;
   declare disabled: boolean;
   declare label: string;
   /** What a screen reader says for the value, e.g. "71%". */
@@ -40,6 +43,7 @@ export class LuxFrameSlider extends LitElement {
     this.max = 100;
     this.step = 1;
     this.vertical = false;
+    this.filled = false;
     this.disabled = false;
     this.label = '';
   }
@@ -125,7 +129,9 @@ export class LuxFrameSlider extends LitElement {
       >
         ${this.vertical
           ? html`<div class="fill" style="height: ${percent}"></div>`
-          : html`<div class="thumb" style="left: ${percent}"></div>`}
+          : this.filled
+            ? html`<div class="fill" style="width: ${percent}"></div>`
+            : html`<div class="thumb" style="left: ${percent}"></div>`}
       </div>
     `;
   }
@@ -169,6 +175,23 @@ export class LuxFrameSlider extends LitElement {
       inset: auto 0 0 0;
       background: var(--slider-fill, var(--lf-surface-active));
       transition: height 120ms ease-out;
+    }
+
+    /* Horizontal and filled: a wide pill filling from the left. */
+    :host([filled]:not([vertical])) {
+      height: 56px;
+    }
+
+    :host([filled]:not([vertical])) .track {
+      overflow: hidden;
+      border-radius: 18px;
+      background: var(--slider-track, rgb(255 255 255 / 14%));
+      box-shadow: none;
+    }
+
+    :host([filled]:not([vertical])) .fill {
+      inset: 0 auto 0 0;
+      transition: width 120ms ease-out;
     }
 
     /* Horizontal: a colored track with a thumb. */

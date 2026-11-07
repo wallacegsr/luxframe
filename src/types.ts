@@ -15,6 +15,8 @@ export interface HassEntityRegistryEntry {
   device_id?: string | null;
   hidden?: boolean;
   entity_category?: string | null;
+  /** The integration that made it, e.g. `music_assistant`. */
+  platform?: string;
 }
 
 export interface HassDevice {
@@ -44,6 +46,7 @@ export interface HomeAssistant {
   /** Sends a websocket command; used to read and save the dashboard. */
   callWS?<T>(message: Record<string, unknown>): Promise<T>;
   user?: { name?: string; is_admin: boolean };
+  language?: string;
 }
 
 export type EntityRef = string | { entity: string; name?: string; icon?: string };
@@ -135,6 +138,17 @@ export interface LuxFrameConfig {
   home_after?: number;
   /** CSS height of the frame. Defaults to the viewport minus HA's header. */
   height?: string;
+  /** The panel pulled down from the top edge, or `false` for none. */
+  quick_panel?: QuickPanelConfig | false;
+  /** Asking Home Assistant by typing; an `agent_id` picks the conversation agent. */
+  assist?: boolean | { agent_id?: string };
+}
+
+export interface QuickPanelConfig {
+  /** Defaults to whichever speaker is playing, Music Assistant's first. */
+  media_player?: string;
+  /** Up to four entities shown as small tiles: a light, a lock, a scene. */
+  pinned?: string[];
 }
 
 /** Every page element receives these two properties from the frame. */

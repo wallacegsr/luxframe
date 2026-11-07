@@ -8,19 +8,26 @@ import { normalizeTile, tileLabel } from './editor/layout';
 import { clearLocal, describe, loadLocal, save, stableJson } from './editor/store';
 import { openMoreInfo } from './entity';
 import { kiosk, onKiosk, type KioskTheme } from './kiosk';
+import './quick/assist';
+import './quick/panel';
+import { readBrightness, veilOpacity, writeBrightness } from './screen';
 import { tokens } from './theme';
 import { averageColor, backgroundUrl } from './tint';
 import type { GridPageConfig, GridTileConfig, HomeAssistant, LuxFrameConfig, PageConfig } from './types';
 
 const DEFAULT_HOME_AFTER = 120;
 const TOAST_MS = 4500;
+/** A pull from the top edge this far opens the quick panel. */
+const PULL_OPEN = 60;
+const EDGE_HOLD_MS = 1000;
 
 /** An editor sheet open over the frame; `page` indexes `config.pages`. */
 type Sheet =
   | { kind: 'tile'; page: number; index: number }
   | { kind: 'add'; page: number }
   | { kind: 'replace'; page: number; index: number }
-  | { kind: 'customize' };
+  | { kind: 'customize' }
+  | { kind: 'pin' };
 
 /**
  * The frame: a full-height, horizontally swipeable row of pages with dots.
@@ -44,6 +51,10 @@ export class LuxFrameCard extends LitElement {
     _saving: { state: true },
     _local: { state: true },
     _toast: { state: true },
+    _quick: { state: true },
+    _pull: { state: true },
+    _assist: { state: true },
+    _brightness: { state: true },
   };
 
   declare hass?: HomeAssistant;
@@ -61,7 +72,14 @@ export class LuxFrameCard extends LitElement {
   /** Showing this tablet's own saved layout instead of the dashboard's. */
   declare _local: boolean;
   declare _toast?: string;
+  /** The quick panel is out; `_pull` is how much of it is still above the top while pulled. */
+  declare _quick: boolean;
+  declare _pull: number;
+  declare _assist: boolean;
+  /** Screen brightness 10–100. */
+  declare _brightness: number;
 
+  private _edge?: { y: number; id: number; timer: number; pulling: boolean; height: number; dy: number };
   /** The config as the dashboard has it; edits are saved against this. */
   private _base?: LuxFrameConfig;
   private _toastTimer?: number;
@@ -79,6 +97,10 @@ export class LuxFrameCard extends LitElement {
     this._editing = false;
     this._saving = false;
     this._local = false;
+    this._quick = false;
+    this._pull = 0;
+    this._assist = false;
+    this._brightness = 100;
   }
 
   static getStubConfig(): LuxFrameConfig {
@@ -122,6 +144,7 @@ export class LuxFrameCard extends LitElement {
     this.addEventListener('luxframe-open-detail', this._onOpenDetail);
     this.addEventListener('luxframe-edit-start', this._startEditing);
     if (kiosk) this._connectKiosk();
+    readBrightness().then((level) => (this._brightness = level));
     this._resetIdle();
   }
 
@@ -229,6 +252,8 @@ export class LuxFrameCard extends LitElement {
   private _goHome(smooth = true): void {
     if (this._editing) return;
     this._detail = undefined;
+    this._quick = false;
+    this._assist = false;
     this.goTo(0, smooth);
   }
 
@@ -254,7 +279,7 @@ export class LuxFrameCard extends LitElement {
   }
 
   private _onKey = (e: KeyboardEvent): void => {
-    if (this._detail || this._sheet) return;
+    if (this._detail || this._sheet || this._quick || this._assist) return;
     if (e.composedPath()[0] instanceof HTMLInputElement) return;
     if (e.key === 'ArrowRight') this.goTo(this._index + 1);
     else if (e.key === 'ArrowLeft') this.goTo(this._index - 1);
@@ -262,6 +287,90 @@ export class LuxFrameCard extends LitElement {
     e.preventDefault();
     this._resetIdle();
   };
+
+  // ---- Quick panel and Assist ----------------------------------------------
+
+  private get _quickConfig() {
+    const config = this._shown?.quick_panel;
+    return config === false ? undefined : (config ?? {});
+  }
+
+  private get _assistEnabled(): boolean {
+    return this._shown?.assist !== false;
+  }
+
+  private get _panelHeight(): number {
+    const panel = this.renderRoot
+      .querySelector('luxframe-quick-panel')
+      ?.shadowRoot?.querySelector('.panel') as HTMLElement | null | undefined;
+    return panel?.offsetHeight || 360;
+  }
+
+  // The strip along the top edge: pull down for the panel, tap for it too,
+  // hold for Assist.
+  private _edgeDown(e: PointerEvent): void {
+    if (e.button !== 0 || this._editing) return;
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      // Pointer already gone.
+    }
+    this._edge = {
+      y: e.clientY,
+      id: e.pointerId,
+      pulling: false,
+      height: 0,
+      dy: 0,
+      timer: window.setTimeout(() => {
+        if (!this._edge || this._edge.pulling) return;
+        this._edge = undefined;
+        if (this._assistEnabled) this._openAssist();
+      }, EDGE_HOLD_MS),
+    };
+  }
+
+  private _edgeMove(e: PointerEvent): void {
+    const edge = this._edge;
+    if (!edge || e.pointerId !== edge.id) return;
+    edge.dy = Math.max(0, e.clientY - edge.y);
+    if (!edge.pulling) {
+      if (edge.dy < 10) return;
+      window.clearTimeout(edge.timer);
+      edge.pulling = true;
+      this._pull = 2000; // fully hidden until its height is known
+      this._quick = true;
+      return;
+    }
+    edge.height ||= this._panelHeight;
+    this._pull = Math.max(0, edge.height - edge.dy);
+  }
+
+  private _edgeUp(e: PointerEvent): void {
+    const edge = this._edge;
+    if (!edge || e.pointerId !== edge.id) return;
+    window.clearTimeout(edge.timer);
+    this._edge = undefined;
+    if (!edge.pulling) {
+      // A tap on the edge opens it too.
+      this._pull = 0;
+      this._quick = true;
+    } else if (edge.dy >= PULL_OPEN) {
+      this._pull = 0;
+    } else {
+      this._quick = false;
+      this._pull = 0;
+    }
+  }
+
+  private _openAssist(): void {
+    this._quick = false;
+    this._assist = true;
+  }
+
+  private _setBrightness(level: number): void {
+    this._brightness = level;
+    writeBrightness(level);
+  }
 
   // ---- Editing on the tablet ------------------------------------------------
 
@@ -351,6 +460,15 @@ export class LuxFrameCard extends LitElement {
 
   private _picked(tile: GridTileConfig | string): void {
     const sheet = this._sheet;
+    if (sheet?.kind === 'pin' && this._draft) {
+      const entity = typeof tile === 'string' ? tile : 'entity' in tile ? tile.entity : undefined;
+      const quick = this._draft.quick_panel || {};
+      if (entity && !quick.pinned?.includes(entity)) {
+        this._draft = { ...this._draft, quick_panel: { ...quick, pinned: [...(quick.pinned ?? []), entity] } };
+      }
+      this._sheet = { kind: 'customize' };
+      return;
+    }
     if (!sheet || (sheet.kind !== 'add' && sheet.kind !== 'replace')) return;
     const tiles = [...(this._gridAt(sheet.page)?.tiles ?? [])];
     if (sheet.kind === 'add') {
@@ -403,7 +521,15 @@ export class LuxFrameCard extends LitElement {
           ?local=${this._local}
           @change=${(e: CustomEvent) => (this._draft = e.detail.config)}
           @reset=${this._useDashboardLayout}
+          @pin=${() => (this._sheet = { kind: 'pin' })}
         ></luxframe-customize>
+      </luxframe-sheet>`;
+    }
+    if (sheet.kind === 'pin') {
+      return html`<luxframe-sheet heading="Pin to the quick panel"
+        @close=${() => (this._sheet = { kind: 'customize' })}>
+        <luxframe-picker .hass=${this.hass} entities-only
+          @pick=${(e: CustomEvent) => this._picked(e.detail.tile)}></luxframe-picker>
       </luxframe-sheet>`;
     }
     if (sheet.kind === 'add' || sheet.kind === 'replace') {
@@ -523,8 +649,47 @@ export class LuxFrameCard extends LitElement {
               @more=${this._onMore}
             ></luxframe-detail>`
           : nothing}
+        ${this._quickConfig && !this._editing
+          ? html`<div
+              class="edge"
+              role="button"
+              tabindex="0"
+              aria-label="Quick controls. Pull down, or hold to ask Home Assistant."
+              @pointerdown=${this._edgeDown}
+              @pointermove=${this._edgeMove}
+              @pointerup=${this._edgeUp}
+              @pointercancel=${this._edgeUp}
+              @keydown=${(e: KeyboardEvent) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  this._quick = true;
+                }
+              }}
+            ><span class="handle"></span></div>`
+          : nothing}
+        ${this._quick && this._quickConfig
+          ? html`<luxframe-quick-panel
+              .hass=${this.hass}
+              .config=${this._quickConfig}
+              .brightness=${this._brightness}
+              .offset=${this._pull}
+              ?assist=${this._assistEnabled}
+              @close=${() => (this._quick = false)}
+              @brightness=${(e: CustomEvent<number>) => this._setBrightness(e.detail)}
+              @ask=${this._openAssist}
+            ></luxframe-quick-panel>`
+          : nothing}
+        ${this._assist
+          ? html`<luxframe-sheet heading="Ask Home Assistant" wide @close=${() => (this._assist = false)}>
+              <luxframe-assist
+                .hass=${this.hass}
+                .agentId=${typeof this._shown?.assist === 'object' ? this._shown.assist.agent_id : undefined}
+              ></luxframe-assist>
+            </luxframe-sheet>`
+          : nothing}
         ${this._editing ? this._renderEditBar() : nothing} ${this._renderSheet()}
         ${this._toast ? html`<div class="toast" role="status">${this._toast}</div>` : nothing}
+        <div class="veil" style="opacity: ${veilOpacity(this._brightness)}"></div>
       </div>
     `;
   }
@@ -600,6 +765,43 @@ export class LuxFrameCard extends LitElement {
       .dot.on::after {
         background: var(--lf-text);
         transform: scale(1.15);
+      }
+
+      .edge {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 4;
+        height: 28px;
+        display: flex;
+        justify-content: center;
+        touch-action: none;
+        outline: none;
+        cursor: grab;
+      }
+
+      .handle {
+        width: 44px;
+        height: 5px;
+        margin-top: 8px;
+        border-radius: 3px;
+        background: var(--lf-faint);
+        opacity: 0.7;
+      }
+
+      .edge:focus-visible .handle {
+        outline: 3px solid var(--lf-accent);
+        outline-offset: 3px;
+      }
+
+      .veil {
+        position: absolute;
+        inset: 0;
+        z-index: 50;
+        background: #000;
+        pointer-events: none;
+        transition: opacity 150ms;
       }
 
       .editbar {

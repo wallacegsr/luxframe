@@ -30,6 +30,7 @@ const config: LuxFrameConfig = {
   theme: (params.get('theme') as LuxFrameConfig['theme']) ?? 'auto',
   // ?wall puts a sample wallpaper behind the pages; the glass tints to match it.
   background: params.has('wall') ? "center / cover no-repeat url('./wallpaper.svg')" : undefined,
+  quick_panel: { pinned: ['light.porch', 'lock.front_door', 'scene.movie'] },
   pages: [
     {
       type: 'grid',
@@ -108,10 +109,31 @@ hass.callWS = (async (message: Record<string, any>) => {
     setTimeout(() => card.setConfig(dashboard.views[0].cards[0]), 200);
     return null;
   }
+  if (message.type === 'conversation/process') return converse(message.text, message.conversation_id);
   throw new Error(`Unknown command ${message.type}`);
 }) as typeof hass.callWS;
 card.hass = hass;
 document.body.append(card);
+
+// Just enough of Assist to try the sheet: "turn on/off <name>" works on
+// lights and switches; anything else gets HA's "didn't understand" answer.
+async function converse(text: string, conversationId?: string) {
+  const match = /turn (on|off) (?:the )?(.+)/i.exec(text);
+  const target = match
+    ? Object.values(hass.states).find(
+        (s) =>
+          /^(light|switch)\./.test(s.entity_id) &&
+          String(s.attributes.friendly_name ?? '').toLowerCase().includes(match[2].replace(/ lights?$/i, '').toLowerCase()),
+      )
+    : undefined;
+  const reply = (speech: string, type = 'action_done') => ({
+    conversation_id: conversationId ?? 'dev-conversation',
+    response: { response_type: type, speech: { plain: { speech } } },
+  });
+  if (!match || !target) return reply("Sorry, I couldn't understand that", 'error');
+  await hass.callService('homeassistant', match[1] === 'on' ? 'turn_on' : 'turn_off', { entity_id: target.entity_id });
+  return reply(`Turned ${match[1]} the ${target.attributes.friendly_name}`);
+}
 
 document.addEventListener('hass-more-info', (e) => {
   console.log('more-info', (e as CustomEvent).detail.entityId);

@@ -18,6 +18,9 @@ interface KioskSatellite {
   version: string;
   getTheme(): Promise<KioskTheme | null>;
   getKioskState(): Promise<KioskState | null>;
+  /** The screen's backlight, 0–1. Missing on old versions. */
+  getBrightness?(): Promise<number | null>;
+  setBrightness?(level: number): Promise<boolean>;
 }
 
 declare global {
