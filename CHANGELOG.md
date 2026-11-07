@@ -6,6 +6,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-07
+
 ### Added
 
 - Tiles can be any size: `size: 3x2` is three columns by two rows, up to the
@@ -123,7 +125,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/wallacegsr/luxframe/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/wallacegsr/luxframe/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/wallacegsr/luxframe/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/wallacegsr/luxframe/compare/v0.1.0...v0.2.0
