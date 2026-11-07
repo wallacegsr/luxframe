@@ -178,8 +178,8 @@ export class LuxFrameDetail extends LitElement {
       position: absolute;
       inset: 0;
       background: color-mix(in srgb, var(--lf-tint, #000) 30%, rgb(0 0 0 / 38%));
-      -webkit-backdrop-filter: blur(30px) saturate(140%);
-      backdrop-filter: blur(30px) saturate(140%);
+      -webkit-backdrop-filter: var(--lf-blur-strong);
+      backdrop-filter: var(--lf-blur-strong);
       animation: fade 200ms ease-out;
     }
 

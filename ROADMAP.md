@@ -60,7 +60,7 @@ artwork or face names.
   panel, then type a request (`conversation/process`). Voice stays with Kiosk
   Satellite and Voice Satellite.
 
-## Phase 5: more tiles and pages
+## Phase 5: more tiles and pages (done)
 
 - Tiles: calendar (up next, month), now playing (following one speaker, Music
   Assistant first, with buttons dimmed when the speaker can't do them),

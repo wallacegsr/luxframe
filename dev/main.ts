@@ -34,6 +34,21 @@ const config: LuxFrameConfig = {
   pages: [
     {
       type: 'grid',
+      title: 'At a glance',
+      tiles: [
+        { type: 'calendar' },
+        { type: 'now-playing' },
+        { type: 'sun' },
+        { type: 'room', area: 'living_room' },
+        { type: 'todo', entity: 'todo.shopping' },
+        { type: 'camera', entity: 'camera.front_door' },
+        { type: 'calendar', view: 'month' },
+        { type: 'room', area: 'bedroom' },
+        { type: 'photo', folder: 'photos', interval: 8 },
+      ],
+    },
+    {
+      type: 'grid',
       tiles: [
         { type: 'thermostat', entity: 'climate.living_room' },
         { type: 'analog-clock' },
@@ -81,6 +96,11 @@ const config: LuxFrameConfig = {
       title: 'Kitchen',
       entities: ['light.kitchen', 'light.island', 'switch.coffee', 'cover.garage'],
     },
+    { type: 'weather' },
+    { type: 'calendar' },
+    { type: 'cameras' },
+    { type: 'photos', folder: 'photos', interval: 8 },
+    { type: 'night', weather: 'weather.home' },
     {
       type: 'scenes',
       scenes: ['scene.morning', 'scene.dinner', 'scene.movie', 'scene.goodnight', 'script.leave_home'],
@@ -110,8 +130,89 @@ hass.callWS = (async (message: Record<string, any>) => {
     return null;
   }
   if (message.type === 'conversation/process') return converse(message.text, message.conversation_id);
+  if (message.type === 'todo/item/list') return { items: todo.filter((item) => item.status === 'needs_action') };
+  if (message.type === 'media_source/browse_media') {
+    if (!String(message.media_content_id).endsWith('/photos')) return { children: [] };
+    return {
+      children: [1, 2, 3].map((n) => ({
+        media_content_id: `media-source://media_source/local/photos/${n}.svg`,
+        media_class: 'image',
+        media_content_type: 'image/svg+xml',
+      })),
+    };
+  }
+  if (message.type === 'media_source/resolve_media') {
+    return { url: `./photos/${String(message.media_content_id).split('/').pop()}` };
+  }
   throw new Error(`Unknown command ${message.type}`);
 }) as typeof hass.callWS;
+// To-do items, calendar events and forecasts, made up around today.
+const todo = [
+  { uid: '1', summary: 'Oat milk', status: 'needs_action' },
+  { uid: '2', summary: 'Lemons', status: 'needs_action' },
+  { uid: '3', summary: 'Coffee beans', status: 'needs_action' },
+];
+const originalCall = hass.callService.bind(hass);
+hass.callService = async (domain, service, data) => {
+  if (domain === 'todo' && service === 'update_item') {
+    const item = todo.find((t) => t.uid === data?.item);
+    if (item) item.status = String(data?.status);
+  }
+  return originalCall(domain, service, data);
+};
+
+const at = (days: number, hour: number, minute = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  d.setHours(hour, minute, 0, 0);
+  return d.toISOString();
+};
+const day = (days: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+};
+const EVENTS: Record<string, Array<Record<string, unknown>>> = {
+  'calendar.family': [
+    { summary: 'Swimming lessons', start: { dateTime: at(0, 17, 30) }, end: { dateTime: at(0, 18, 30) }, location: 'Leisure centre' },
+    { summary: "Grandma's birthday", start: { date: day(2) }, end: { date: day(3) } },
+    { summary: 'Bins out', start: { dateTime: at(3, 19) }, end: { dateTime: at(3, 19, 15) } },
+    { summary: 'Dinner with the Okafors', start: { dateTime: at(5, 19, 30) }, end: { dateTime: at(5, 22) } },
+  ],
+  'calendar.work': [
+    { summary: 'Design review', start: { dateTime: at(1, 10) }, end: { dateTime: at(1, 11) } },
+    { summary: 'Team offsite', start: { date: day(8) }, end: { date: day(10) } },
+  ],
+};
+hass.callApi = (async (_method: string, path: string) => {
+  const match = /^calendars\/([^?]+)\?start=([^&]+)&end=(.+)$/.exec(path);
+  if (!match) throw new Error(`Unknown API ${path}`);
+  const [start, end] = [new Date(decodeURIComponent(match[2])), new Date(decodeURIComponent(match[3]))];
+  const date = (v: any) => new Date(v.dateTime ?? `${v.date}T00:00:00`);
+  return (EVENTS[match[1]] ?? []).filter((e: any) => date(e.end) > start && date(e.start) < end);
+}) as typeof hass.callApi;
+
+const CONDITIONS = ['sunny', 'partlycloudy', 'cloudy', 'rainy', 'partlycloudy', 'sunny', 'pouring'];
+hass.connection = {
+  async subscribeMessage<T>(callback: (message: T) => void, message: Record<string, unknown>) {
+    const hourly = message.forecast_type === 'hourly';
+    const forecast = Array.from({ length: hourly ? 24 : 7 }, (_, i) => {
+      const t = new Date();
+      if (hourly) t.setHours(t.getHours() + i, 0, 0, 0);
+      else t.setDate(t.getDate() + i);
+      return {
+        datetime: t.toISOString(),
+        condition: CONDITIONS[(i + (hourly ? 1 : 0)) % CONDITIONS.length],
+        temperature: hourly ? 18 - Math.abs(i - 4) * 0.6 : 16 + ((i * 3) % 7),
+        templow: hourly ? undefined : 8 + ((i * 2) % 5),
+        precipitation_probability: [0, 10, 40, 80, 20, 0, 90][i % 7],
+      };
+    });
+    setTimeout(() => callback({ forecast } as T), 100);
+    return () => undefined;
+  },
+};
+
 card.hass = hass;
 document.body.append(card);
 

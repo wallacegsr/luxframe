@@ -1,6 +1,7 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { define } from '../define';
-import { openDetail, stateLabel } from '../entity';
+import { conditionLabel } from '../data';
+import { openDetail } from '../entity';
 import { glass, tileBase } from '../theme';
 import type { HomeAssistant, TileSize, WeatherTileConfig } from '../types';
 
@@ -55,7 +56,7 @@ export class LuxFrameWeatherTile extends LitElement {
           ${icon}
           <span class="temp">${typeof a.temperature === 'number' ? Math.round(a.temperature) : '–'}°</span>
         </div>
-        <div class="condition">${stateLabel(this.hass, stateObj)}</div>
+        <div class="condition">${conditionLabel(this.hass, stateObj)}</div>
         ${roomy && details.length ? html`<div class="muted">${details.join(' · ')}</div>` : nothing}
       </div>
     `;

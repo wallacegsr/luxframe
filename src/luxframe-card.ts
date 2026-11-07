@@ -11,11 +11,14 @@ import { kiosk, onKiosk, type KioskTheme } from './kiosk';
 import './quick/assist';
 import './quick/panel';
 import { readBrightness, veilOpacity, writeBrightness } from './screen';
+import { detectFlat } from './perf';
+import type { GotoTarget } from './tiles/goto';
 import { tokens } from './theme';
 import { averageColor, backgroundUrl } from './tint';
 import type { GridPageConfig, GridTileConfig, HomeAssistant, LuxFrameConfig, PageConfig } from './types';
 
 const DEFAULT_HOME_AFTER = 120;
+const PAGE_TYPES = ['clock', 'room', 'scenes', 'grid', 'weather', 'calendar', 'cameras', 'photos', 'night'];
 const TOAST_MS = 4500;
 /** A pull from the top edge this far opens the quick panel. */
 const PULL_OPEN = 60;
@@ -55,6 +58,7 @@ export class LuxFrameCard extends LitElement {
     _pull: { state: true },
     _assist: { state: true },
     _brightness: { state: true },
+    _slow: { state: true },
   };
 
   declare hass?: HomeAssistant;
@@ -78,6 +82,8 @@ export class LuxFrameCard extends LitElement {
   declare _assist: boolean;
   /** Screen brightness 10–100. */
   declare _brightness: number;
+  /** This device can't blur, or blurs too slowly: `style: auto` goes flat. */
+  declare _slow: boolean;
 
   private _edge?: { y: number; id: number; timer: number; pulling: boolean; height: number; dy: number };
   /** The config as the dashboard has it; edits are saved against this. */
@@ -101,6 +107,7 @@ export class LuxFrameCard extends LitElement {
     this._pull = 0;
     this._assist = false;
     this._brightness = 100;
+    this._slow = false;
   }
 
   static getStubConfig(): LuxFrameConfig {
@@ -115,12 +122,15 @@ export class LuxFrameCard extends LitElement {
       throw new Error('LuxFrame needs at least one entry under `pages`.');
     }
     config.pages.forEach((page, i) => {
-      if (!page || !['clock', 'room', 'scenes', 'grid'].includes(page.type)) {
+      if (!page || !PAGE_TYPES.includes(page.type)) {
         throw new Error(`Page ${i + 1} has an unknown type "${page?.type}".`);
       }
     });
     if (config.theme && !['auto', 'light', 'dark', 'ha'].includes(config.theme)) {
       throw new Error(`Unknown theme "${config.theme}". Use auto, light, dark or ha.`);
+    }
+    if (config.style && !['auto', 'glass', 'flat'].includes(config.style)) {
+      throw new Error(`Unknown style "${config.style}". Use auto, glass or flat.`);
     }
     this._base = config;
     const local = loadLocal(config);
@@ -143,6 +153,8 @@ export class LuxFrameCard extends LitElement {
     this.addEventListener('keydown', this._onKey);
     this.addEventListener('luxframe-open-detail', this._onOpenDetail);
     this.addEventListener('luxframe-edit-start', this._startEditing);
+    this.addEventListener('luxframe-goto', this._onGoto);
+    detectFlat((slow) => (this._slow = slow));
     if (kiosk) this._connectKiosk();
     readBrightness().then((level) => (this._brightness = level));
     this._resetIdle();
@@ -155,6 +167,7 @@ export class LuxFrameCard extends LitElement {
     this.removeEventListener('keydown', this._onKey);
     this.removeEventListener('luxframe-open-detail', this._onOpenDetail);
     this.removeEventListener('luxframe-edit-start', this._startEditing);
+    this.removeEventListener('luxframe-goto', this._onGoto);
     window.clearTimeout(this._toastTimer);
     this._unsubs.forEach((off) => off());
     this._unsubs = [];
@@ -171,6 +184,8 @@ export class LuxFrameCard extends LitElement {
   protected updated(changed: PropertyValues): void {
     this.toggleAttribute('dark', this._isDark);
     this.toggleAttribute('ha-theme', this._shown?.theme === 'ha');
+    const style = this._shown?.style ?? 'auto';
+    this.toggleAttribute('flat', style === 'flat' || (style === 'auto' && this._slow));
     if (changed.has('_config') || changed.has('_draft')) {
       this.goTo(Math.min(this._index, this._pages.length - 1), false);
       this._applyTint();
@@ -271,6 +286,21 @@ export class LuxFrameCard extends LitElement {
     e.stopPropagation();
     if (this._editing) return;
     this._detail = (e as CustomEvent<{ entityId: string }>).detail.entityId;
+  };
+
+  /** A tile asking for a page: the first visible one of that type or title. */
+  private _onGoto = (e: Event): void => {
+    if (this._editing) return;
+    const { type, title } = (e as CustomEvent<GotoTarget>).detail;
+    const index = this._visible.findIndex(
+      ({ page }) =>
+        (!type || page.type === type) &&
+        (!title || ('title' in page && page.title?.toLowerCase() === title.toLowerCase())),
+    );
+    if (index < 0) return;
+    e.preventDefault();
+    this._quick = false;
+    this.goTo(index);
   };
 
   private _onMore(e: CustomEvent<{ entityId: string }>): void {
@@ -591,6 +621,16 @@ export class LuxFrameCard extends LitElement {
         return html`<luxframe-room .hass=${this.hass} .config=${page}></luxframe-room>`;
       case 'scenes':
         return html`<luxframe-scenes .hass=${this.hass} .config=${page}></luxframe-scenes>`;
+      case 'weather':
+        return html`<luxframe-weather-page .hass=${this.hass} .config=${page}></luxframe-weather-page>`;
+      case 'calendar':
+        return html`<luxframe-calendar-page .hass=${this.hass} .config=${page}></luxframe-calendar-page>`;
+      case 'cameras':
+        return html`<luxframe-cameras-page .hass=${this.hass} .config=${page}></luxframe-cameras-page>`;
+      case 'photos':
+        return html`<luxframe-photos-page .hass=${this.hass} .config=${page}></luxframe-photos-page>`;
+      case 'night':
+        return html`<luxframe-night-page .hass=${this.hass} .config=${page}></luxframe-night-page>`;
       case 'grid':
         return html`<luxframe-grid
           .hass=${this.hass}

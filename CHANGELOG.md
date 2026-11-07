@@ -60,3 +60,17 @@ All notable changes to LuxFrame are recorded here. The format follows
 - Ask Home Assistant: hold the top edge, or tap Ask in the quick panel, and
   type a request to Assist. Follow-ups carry on the same conversation.
   `assist: false` hides it, and `assist: {agent_id}` picks the agent.
+- Tiles: calendar (up next, or the month with busy days marked), now
+  playing, camera stills, a photo slideshow from a media folder, sunrise and
+  sunset, to-do lists you can tick off, and rooms (temperature and lights,
+  with the icon switching the room's lights). Calendar and room tiles open
+  their pages.
+- Pages: weather (now, 12 hours, the week), a calendar agenda, cameras,
+  full-screen photos with the time, and a dim night clock that drifts to
+  spare the screen.
+- Plain messages when something is missing, such as "No calendar" or "No
+  photos in local/holiday".
+- `style`: `glass`, `flat` (solid tiles, no blur), or `auto`, which goes flat
+  on devices that can't blur or blur too slowly.
+- The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
+  Calendar, Cameras, Photos, Night, Clock).

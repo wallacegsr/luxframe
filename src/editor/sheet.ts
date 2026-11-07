@@ -90,9 +90,9 @@ export class LuxFrameSheet extends LitElement {
       width: min(520px, 100%);
       max-height: min(720px, 100%);
       border-radius: calc(var(--lf-radius) + 6px);
-      background: color-mix(in srgb, var(--lf-tint, #000) 55%, rgb(20 20 20 / 70%));
-      -webkit-backdrop-filter: blur(40px) saturate(150%);
-      backdrop-filter: blur(40px) saturate(150%);
+      background: var(--lf-sheet);
+      -webkit-backdrop-filter: var(--lf-blur-strong);
+      backdrop-filter: var(--lf-blur-strong);
       box-shadow: 0 24px 60px rgb(0 0 0 / 35%);
       animation: pop 200ms ease-out;
       overflow: hidden;

@@ -27,6 +27,12 @@ export const tokens = css`
     );
     --lf-surface-active: var(--luxframe-surface-active, rgb(255 255 255 / 92%));
     --lf-blur: var(--luxframe-blur, blur(20px) saturate(140%));
+    /* Sheets and panels over the pages blur harder and sit on a darker glass. */
+    --lf-blur-strong: var(--luxframe-blur-strong, blur(40px) saturate(150%));
+    --lf-sheet: var(
+      --luxframe-sheet,
+      color-mix(in srgb, var(--lf-tint, #000) 45%, rgb(20 20 20 / 62%))
+    );
     --lf-shadow: var(
       --luxframe-shadow,
       inset 0.5px 0.5px 1px rgb(255 255 255 / 40%),
@@ -69,6 +75,19 @@ export const tokens = css`
       color-mix(in srgb, var(--lf-tint) 30%, rgb(255 255 255 / 7%))
     );
     --lf-surface-active: var(--luxframe-surface-active, rgb(255 255 255 / 86%));
+  }
+
+  /* style: flat, or a device too slow to blur: solid tiles, no blur. */
+  :host([flat]) {
+    --lf-blur: var(--luxframe-blur, none);
+    --lf-blur-strong: var(--luxframe-blur-strong, none);
+    --lf-surface: var(--luxframe-surface, color-mix(in srgb, var(--lf-tint) 62%, rgb(70 66 62)));
+    --lf-sheet: var(--luxframe-sheet, color-mix(in srgb, var(--lf-tint) 32%, rgb(24 24 24)));
+  }
+
+  :host([dark][flat]) {
+    --lf-surface: var(--luxframe-surface, color-mix(in srgb, var(--lf-tint) 32%, rgb(34 34 38)));
+    --lf-sheet: var(--luxframe-sheet, color-mix(in srgb, var(--lf-tint) 22%, rgb(16 16 18)));
   }
 
   /* theme: ha borrows the active Home Assistant theme's own variables. */

@@ -47,6 +47,12 @@ export interface HomeAssistant {
   callWS?<T>(message: Record<string, unknown>): Promise<T>;
   user?: { name?: string; is_admin: boolean };
   language?: string;
+  /** REST calls against Home Assistant's API, e.g. calendar events. */
+  callApi?<T>(method: 'GET' | 'POST', path: string, data?: Record<string, unknown>): Promise<T>;
+  /** The websocket, for subscriptions such as weather forecasts. */
+  connection?: {
+    subscribeMessage<T>(callback: (message: T) => void, message: Record<string, unknown>): Promise<() => void>;
+  };
 }
 
 export type EntityRef = string | { entity: string; name?: string; icon?: string };
@@ -101,11 +107,64 @@ export interface ClockTileConfig extends GridTileBase {
   type: 'clock' | 'analog-clock';
 }
 
+export interface CalendarTileConfig extends GridTileBase {
+  type: 'calendar';
+  /** Calendars to show; all of them when left out. */
+  entities?: string[];
+  /** Coming events (default), or this month with marked days. */
+  view?: 'upcoming' | 'month';
+}
+
+export interface NowPlayingTileConfig extends GridTileBase {
+  type: 'now-playing';
+  /** Defaults to whichever speaker is playing, Music Assistant's first. */
+  entity?: string;
+}
+
+export interface CameraTileConfig extends GridTileBase {
+  type: 'camera';
+  entity: string;
+}
+
+export interface PhotoTileConfig extends GridTileBase {
+  type: 'photo';
+  /** A media source folder; default `media-source://media_source/local`. */
+  folder?: string;
+  /** Seconds per photo. Default 30. */
+  interval?: number;
+}
+
+export interface SunTileConfig extends GridTileBase {
+  type: 'sun';
+  /** Default `sun.sun`. */
+  entity?: string;
+}
+
+export interface TodoTileConfig extends GridTileBase {
+  type: 'todo';
+  entity: string;
+}
+
+export interface RoomTileConfig extends GridTileBase {
+  type: 'room';
+  /** An area id or name. */
+  area: string;
+}
+
 export type GridTileConfig =
   | EntityTileConfig
   | ThermostatTileConfig
   | WeatherTileConfig
-  | ClockTileConfig;
+  | ClockTileConfig
+  | CalendarTileConfig
+  | NowPlayingTileConfig
+  | CameraTileConfig
+  | PhotoTileConfig
+  | SunTileConfig
+  | TodoTileConfig
+  | RoomTileConfig;
+
+export type GridTileType = NonNullable<GridTileConfig['type']>;
 
 export interface GridPageConfig {
   type: 'grid';
@@ -120,7 +179,53 @@ export interface GridPageConfig {
   tiles: Array<GridTileConfig | string>;
 }
 
-export type PageConfig = (ClockPageConfig | RoomPageConfig | ScenesPageConfig | GridPageConfig) & {
+export interface WeatherPageConfig {
+  type: 'weather';
+  /** Defaults to the first weather entity. */
+  entity?: string;
+}
+
+export interface CalendarPageConfig {
+  type: 'calendar';
+  title?: string;
+  /** Calendars to show; all of them when left out. */
+  entities?: string[];
+  /** How many days ahead. Default 7. */
+  days?: number;
+}
+
+export interface CamerasPageConfig {
+  type: 'cameras';
+  title?: string;
+  /** Cameras to show; all of them when left out. */
+  entities?: string[];
+}
+
+export interface PhotosPageConfig {
+  type: 'photos';
+  folder?: string;
+  interval?: number;
+  /** Show the time over the photos. Default true. */
+  clock?: boolean;
+}
+
+export interface NightPageConfig {
+  type: 'night';
+  /** A weather entity for the temperature under the clock. */
+  weather?: string;
+}
+
+export type PageConfig = (
+  | ClockPageConfig
+  | RoomPageConfig
+  | ScenesPageConfig
+  | GridPageConfig
+  | WeatherPageConfig
+  | CalendarPageConfig
+  | CamerasPageConfig
+  | PhotosPageConfig
+  | NightPageConfig
+) & {
   /** Kept in the config but left out of the frame. */
   hidden?: boolean;
 };
@@ -142,6 +247,8 @@ export interface LuxFrameConfig {
   quick_panel?: QuickPanelConfig | false;
   /** Asking Home Assistant by typing; an `agent_id` picks the conversation agent. */
   assist?: boolean | { agent_id?: string };
+  /** `glass` blurs; `flat` uses solid tiles; `auto` (default) goes flat on slow devices. */
+  style?: 'auto' | 'glass' | 'flat';
 }
 
 export interface QuickPanelConfig {

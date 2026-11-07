@@ -18,6 +18,19 @@ export function tileLabel(hass: HomeAssistant | undefined, raw: GridTileConfig |
       return 'Analog clock';
     case 'weather':
       return 'entity' in tile && tile.entity ? resolve(hass, tile.entity).name : 'Weather';
+    case 'calendar':
+      return tile.type === 'calendar' && tile.view === 'month' ? 'Month' : 'Up next';
+    case 'now-playing':
+      return 'Now playing';
+    case 'photo':
+      return 'Photos';
+    case 'sun':
+      return 'Sunrise and sunset';
+    case 'room':
+      return tile.type === 'room' ? (hass?.areas?.[tile.area]?.name ?? tile.area) : 'Room';
+    case 'camera':
+    case 'todo':
+      return resolve(hass, (tile as { entity: string }).entity).name;
     default: {
       const { entity, name } = tile as { entity: string; name?: string };
       return name ?? resolve(hass, entity).name;
@@ -27,9 +40,22 @@ export function tileLabel(hass: HomeAssistant | undefined, raw: GridTileConfig |
 
 export function pageLabel(page: PageConfig, index: number): string {
   if ('title' in page && page.title) return page.title;
-  const kind = { clock: 'Clock', room: 'Room', scenes: 'Scenes', grid: 'Tiles' }[page.type];
+  const kind = PAGE_KINDS.find((k) => k.type === page.type)?.label ?? page.type;
   return `${kind} · page ${index + 1}`;
 }
+
+/** Pages that can be added on the tablet, blank or with their defaults. */
+export const PAGE_KINDS: Array<{ type: PageConfig['type']; label: string; blank?: PageConfig }> = [
+  { type: 'grid', label: 'Tiles', blank: { type: 'grid', tiles: [] } },
+  { type: 'weather', label: 'Weather', blank: { type: 'weather' } },
+  { type: 'calendar', label: 'Calendar', blank: { type: 'calendar' } },
+  { type: 'cameras', label: 'Cameras', blank: { type: 'cameras' } },
+  { type: 'photos', label: 'Photos', blank: { type: 'photos' } },
+  { type: 'night', label: 'Night', blank: { type: 'night' } },
+  { type: 'clock', label: 'Clock', blank: { type: 'clock' } },
+  { type: 'room', label: 'Room' },
+  { type: 'scenes', label: 'Scenes' },
+];
 
 /** The tile an entity gets when it's picked: a thermostat for climate, and so on. */
 export function tileFor(entityId: string): GridTileConfig | string {
@@ -38,6 +64,16 @@ export function tileFor(entityId: string): GridTileConfig | string {
       return { type: 'thermostat', entity: entityId };
     case 'weather':
       return { type: 'weather', entity: entityId };
+    case 'calendar':
+      return { type: 'calendar', entities: [entityId] };
+    case 'camera':
+      return { type: 'camera', entity: entityId };
+    case 'todo':
+      return { type: 'todo', entity: entityId };
+    case 'media_player':
+      return { type: 'now-playing', entity: entityId };
+    case 'sun':
+      return { type: 'sun', entity: entityId };
     default:
       return entityId;
   }
@@ -52,8 +88,10 @@ export function pickable(hass: HomeAssistant | undefined): HassEntity[] {
   });
 }
 
+const ALSO_TILES = ['weather', 'calendar', 'camera', 'todo', 'sun'];
+
 export function isUseful(entityId: string): boolean {
-  return USEFUL.includes(domainOf(entityId)) || domainOf(entityId) === 'weather';
+  return USEFUL.includes(domainOf(entityId)) || ALSO_TILES.includes(domainOf(entityId));
 }
 
 /**
@@ -89,7 +127,8 @@ export function suggestPages(hass: HomeAssistant | undefined, existing: PageConf
     const tiles: Array<GridTileConfig | string> = [];
     for (const s of entities) {
       const tile = tileFor(s.entity_id);
-      const cells = typeof tile === 'object' && tile.type === 'thermostat' ? 4 : 1;
+      const kind = typeof tile === 'object' ? tile.type : 'entity';
+      const cells = kind === 'thermostat' ? 4 : kind === 'now-playing' ? 2 : 1;
       if (cells > room) continue;
       tiles.push(tile);
       room -= cells;

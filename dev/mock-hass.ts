@@ -13,6 +13,8 @@ const DIMMABLE = { supported_color_modes: ['brightness'] };
 
 const initial: HassEntity[] = [
   entity('weather.home', 'partlycloudy', {
+    friendly_name: 'Home',
+    supported_features: 3,
     temperature: 18.4,
     temperature_unit: '°C',
     humidity: 62,
@@ -57,7 +59,8 @@ const initial: HassEntity[] = [
   }),
   entity('cover.garage', 'closed', { friendly_name: 'Garage', device_class: 'garage' }),
   entity('lock.front_door', 'locked', { friendly_name: 'Front Door' }),
-  entity('sensor.living_temperature', '21.5', { unit_of_measurement: '°C' }),
+  entity('sensor.living_temperature', '21.5', { unit_of_measurement: '°C', device_class: 'temperature' }),
+  entity('sensor.bedroom_temperature', '19.8', { unit_of_measurement: '°C', device_class: 'temperature' }),
   entity('sensor.living_humidity', '44', { unit_of_measurement: '%' }),
   entity('light.kitchen', 'off', { friendly_name: 'Kitchen', ...DIMMABLE }),
   entity('light.island', 'on', { friendly_name: 'Island pendants', brightness: 255, ...DIMMABLE }),
@@ -75,6 +78,15 @@ const initial: HassEntity[] = [
     entity_picture: './cover.svg',
     volume_level: 0.35,
     supported_features: 1 | 4 | 16 | 32 | 16384,
+  }),
+  entity('calendar.family', 'off', { friendly_name: 'Family' }),
+  entity('calendar.work', 'off', { friendly_name: 'Work' }),
+  entity('camera.front_door', 'idle', { friendly_name: 'Front Door Camera', entity_picture: './camera.svg' }),
+  entity('todo.shopping', '3', { friendly_name: 'Shopping', supported_features: 15 }),
+  entity('sun.sun', 'above_horizon', {
+    friendly_name: 'Sun',
+    next_rising: new Date(Date.now() + 14 * 3600_000).toISOString(),
+    next_setting: new Date(Date.now() + 3 * 3600_000).toISOString(),
   }),
   entity('media_player.kitchen_speaker', 'idle', {
     friendly_name: 'Kitchen Speaker',
@@ -120,6 +132,9 @@ const AREA_OF: Record<string, string> = {
   'switch.coffee': 'kitchen',
   'media_player.living_room': 'living_room',
   'media_player.kitchen_speaker': 'kitchen',
+  'sensor.living_temperature': 'living_room',
+  'sensor.bedroom_temperature': 'bedroom',
+  'camera.front_door': 'entry',
 };
 
 function hueToRgb(hue: number): number[] {
@@ -164,6 +179,11 @@ export function createMockHass(onChange: (hass: HomeAssistant) => void): HomeAss
     config: { unit_system: { temperature: '°C' } },
     async callService(domain, service, data) {
       console.log('callService', domain, service, data);
+      // Home Assistant takes a list of entities too; act on each.
+      if (Array.isArray(data?.entity_id)) {
+        await Promise.all(data.entity_id.map((one: string) => hass.callService(domain, service, { ...data, entity_id: one })));
+        return undefined;
+      }
       const id = data?.entity_id as string | undefined;
       const current = id ? states[id] : undefined;
       if (!id || !current) return undefined;
@@ -230,6 +250,9 @@ export function createMockHass(onChange: (hass: HomeAssistant) => void): HomeAss
         update(id, mode, { hvac_action: mode === 'off' ? 'off' : mode === 'cool' ? 'cooling' : 'heating' });
       } else if (kind === 'lock.lock' || kind === 'lock.unlock') {
         update(id, service === 'lock' ? 'locked' : 'unlocked', {});
+      } else if (kind === 'todo.update_item') {
+        // The list itself lives in dev/main.ts; the count is the entity's state.
+        update(id, String(Math.max(0, Number(current.state) - 1)), {});
       } else if (kind === 'media_player.media_play_pause') {
         update(id, current.state === 'playing' ? 'paused' : 'playing', {});
       } else if (kind === 'media_player.media_next_track' || kind === 'media_player.media_previous_track') {

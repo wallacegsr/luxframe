@@ -1,8 +1,7 @@
-import { LitElement, css, html, nothing, svg } from 'lit';
+import { LitElement, css, html, nothing } from 'lit';
 import { define } from '../define';
-import { resolve } from '../entity';
-import { MEDIA, pickPlayer, supports } from '../media';
-import { Pending, near } from '../pending';
+import { icon } from '../icons';
+import '../now-playing';
 import { MIN_BRIGHTNESS } from '../screen';
 import type { HomeAssistant, QuickPanelConfig } from '../types';
 
@@ -10,20 +9,6 @@ const CLOSE_DISTANCE = 80;
 const CLOSE_MS = 200;
 const MAX_PINNED = 4;
 const CONTROLS = 'button, luxframe-slider, luxframe-tile, [data-no-swipe]';
-
-const ICONS = {
-  previous: svg`<path d="M7 6v12M19 6l-9 6 9 6z" />`,
-  next: svg`<path d="M17 6v12M5 6l9 6-9 6z" />`,
-  play: svg`<path d="M8 5l12 7-12 7z" />`,
-  pause: svg`<path d="M8 5v14M16 5v14" />`,
-  speaker: svg`<path d="M4 9h4l5-4v14l-5-4H4zM16 9a4 4 0 0 1 0 6" />`,
-  sun: svg`<circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />`,
-  ask: svg`<path d="M4 5h16v11H9l-5 4z" />`,
-};
-
-const icon = (name: keyof typeof ICONS, size = 26) => html`<svg
-  viewBox="0 0 24 24" width=${size} height=${size} aria-hidden="true" fill="none"
-  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`;
 
 /**
  * The panel pulled down from the top edge: what's playing and its volume, the
@@ -56,7 +41,6 @@ export class LuxFrameQuickPanel extends LitElement {
   /** Opened by a tap rather than pulled: it drops in by itself. */
   declare _drop: boolean;
 
-  private _volume = new Pending<number>(this);
   private _swipe?: { y: number; id: number; active: boolean };
 
   constructor() {
@@ -127,67 +111,9 @@ export class LuxFrameQuickPanel extends LitElement {
     else this._dy = 0;
   }
 
-  private _media(service: string, data: Record<string, unknown> = {}): void {
-    const player = pickPlayer(this.hass, this.config?.media_player);
-    if (player) this.hass?.callService('media_player', service, { entity_id: player.entity_id, ...data });
-  }
-
   private _renderMedia() {
-    const player = pickPlayer(this.hass, this.config?.media_player);
-    if (!player) {
-      return html`<div class="card media empty">
-        <div class="muted">No speakers</div>
-      </div>`;
-    }
-    const a = player.attributes;
-    const playing = player.state === 'playing';
-    const active = playing || player.state === 'paused';
-    const title = active ? (a.media_title ?? 'Playing') : 'Nothing playing';
-    const artist = active ? [a.media_artist, a.media_album_name].filter(Boolean).join(' · ') : '';
-    // The full name: "Speaker" alone says nothing once the room is dropped.
-    const name = a.friendly_name ?? resolve(this.hass, player.entity_id).name;
-    const reported = typeof a.volume_level === 'number' ? Math.round(a.volume_level * 100) : undefined;
-    const volume = this._volume.get(reported, near(1)) ?? reported ?? 0;
-    const canPlayPause = playing ? supports(player, MEDIA.PAUSE) : supports(player, MEDIA.PLAY);
-    const unavailable = player.state === 'unavailable' || player.state === 'off';
-
-    return html`
-      <div class="card media">
-        <div class="now">
-          <div class="art" style=${a.entity_picture && active ? `background-image: url("${a.entity_picture}")` : ''}>
-            ${a.entity_picture && active ? nothing : icon('speaker', 30)}
-          </div>
-          <div class="track-info">
-            <div class="title">${title}</div>
-            ${artist ? html`<div class="muted line">${artist}</div>` : nothing}
-            <div class="muted line small">${name}</div>
-          </div>
-        </div>
-        <div class="transport" role="group" aria-label="Playback">
-          <button class="round" aria-label="Previous" ?disabled=${!active || !supports(player, MEDIA.PREVIOUS)}
-            @click=${() => this._media('media_previous_track')}>${icon('previous')}</button>
-          <button class="round big" aria-label=${playing ? 'Pause' : 'Play'} ?disabled=${unavailable || !canPlayPause}
-            @click=${() => this._media('media_play_pause')}>${icon(playing ? 'pause' : 'play', 30)}</button>
-          <button class="round" aria-label="Next" ?disabled=${!active || !supports(player, MEDIA.NEXT)}
-            @click=${() => this._media('media_next_track')}>${icon('next')}</button>
-        </div>
-        <div class="labelled">
-          ${icon('speaker', 22)}
-          <luxframe-slider
-            filled
-            label="Volume"
-            .value=${volume}
-            .valueText=${`${volume}%`}
-            ?disabled=${unavailable || !supports(player, MEDIA.VOLUME_SET)}
-            @input=${(e: CustomEvent<number>) => this._volume.hold(e.detail)}
-            @change=${(e: CustomEvent<number>) => {
-              this._volume.release(e.detail);
-              this._media('volume_set', { volume_level: e.detail / 100 });
-            }}
-          ></luxframe-slider>
-        </div>
-      </div>
-    `;
+    return html`<luxframe-now-playing class="card media" .hass=${this.hass} .entity=${this.config?.media_player}>
+    </luxframe-now-playing>`;
   }
 
   private _renderSide() {
@@ -287,9 +213,9 @@ export class LuxFrameQuickPanel extends LitElement {
       padding: var(--lf-pad) var(--lf-pad) 10px;
       overflow-y: auto;
       border-radius: 0 0 calc(var(--lf-radius) + 10px) calc(var(--lf-radius) + 10px);
-      background: color-mix(in srgb, var(--lf-tint, #000) 45%, rgb(20 20 20 / 62%));
-      -webkit-backdrop-filter: blur(40px) saturate(150%);
-      backdrop-filter: blur(40px) saturate(150%);
+      background: var(--lf-sheet);
+      -webkit-backdrop-filter: var(--lf-blur-strong);
+      backdrop-filter: var(--lf-blur-strong);
       box-shadow: 0 20px 50px rgb(0 0 0 / 30%);
       transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
       touch-action: pan-x;
@@ -330,64 +256,17 @@ export class LuxFrameQuickPanel extends LitElement {
       background: rgb(255 255 255 / 10%);
     }
 
-    .media.empty {
-      justify-content: center;
-      align-items: center;
-      min-height: 120px;
-      font-size: 18px;
-    }
 
-    .now {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      min-width: 0;
-    }
 
-    .art {
-      flex: none;
-      display: grid;
-      place-items: center;
-      width: 88px;
-      height: 88px;
-      border-radius: 14px;
-      background: rgb(255 255 255 / 14%) center / cover no-repeat;
-      color: var(--lf-muted);
-    }
 
-    .track-info {
-      min-width: 0;
-    }
 
-    .title {
-      font-size: 20px;
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
 
-    .line {
-      font-size: 16px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
 
-    .small {
-      font-size: 14px;
-    }
 
     .muted {
       color: var(--lf-muted);
     }
 
-    .transport {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 22px;
-    }
 
     button {
       font: inherit;
@@ -407,22 +286,7 @@ export class LuxFrameQuickPanel extends LitElement {
       outline-offset: 2px;
     }
 
-    .round {
-      display: grid;
-      place-items: center;
-      width: 52px;
-      height: 52px;
-      padding: 0;
-      border-radius: 50%;
-      background: rgb(255 255 255 / 12%);
-    }
 
-    .round.big {
-      width: 64px;
-      height: 64px;
-      color: var(--lf-text-active);
-      background: var(--lf-surface-active);
-    }
 
     .labelled {
       display: flex;

@@ -55,3 +55,12 @@ export function formatDate(
 ): string {
   return new Intl.DateTimeFormat(hass?.locale?.language, options).format(date);
 }
+
+/** "9:30 AM" or "09:30": event times keep AM/PM, unlike the wall clock. */
+export function formatClock(hass: HomeAssistant | undefined, date: Date): string {
+  return new Intl.DateTimeFormat(hass?.locale?.language, {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: hour12(hass),
+  }).format(date);
+}

@@ -71,6 +71,11 @@ views:
 | `clock`  | `weather` (a `weather.*` entity), `greeting` (default `true`)                |
 | `room`   | `title`, `entities` (ids or `{entity, name, icon}`), `sensors` (shown as chips) |
 | `scenes` | `title` (default "Scenes"), `scenes` (scene or script ids, or objects)       |
+| `weather` | `entity` (default: your first weather entity). Now, the next 12 hours and the week. |
+| `calendar` | `entities` (default: every calendar), `days` (default 7), `title`. An agenda by day. |
+| `cameras` | `entities` (default: every camera), `title`. Stills every 10 s; tap one to stream it. |
+| `photos` | `folder` (a media folder, default the whole local media folder), `interval` (seconds, default 30), `clock` (default `true`) |
+| `night`  | `weather` (optional, for the temperature). A dim clock on black that drifts a little each minute. |
 
 Any page can have `hidden: true` to keep it in the config but out of the frame.
 
@@ -97,6 +102,18 @@ Each tile takes a `size`:
 | `weather`      | `entity` (default: your first weather entity) | `s`      |
 | `clock`        |                                           | `s`          |
 | `analog-clock` | Drawn on the background, with no glass    | `s`          |
+| `calendar`     | `entities` (default: every calendar), `view`: `upcoming` or `month`. A tap opens the calendar page. | `m` |
+| `now-playing`  | `entity` (default: whichever speaker is playing, Music Assistant first) | `w` |
+| `camera`       | `entity`. A tap streams it in Home Assistant's dialog. | `m` |
+| `photo`        | `folder`, `interval` (seconds, default 30) | `m`         |
+| `sun`          | `entity` (default `sun.sun`). Next sunrise or sunset; an arc on bigger tiles. | `s` |
+| `todo`         | `entity` (a `todo.*`). Tap a circle to tick an item off. | `m` |
+| `room`         | `area` (id or name). Temperature and lights; the icon switches the room's lights, the rest opens the page with the room's name. | `s` |
+
+When something a tile or page needs isn't there, it says so plainly: "No
+weather", "No calendar", "No camera", "No photos in local/holiday".
+Picking a calendar, camera, to-do list, speaker or the sun on the tablet gives
+it its own tile kind, and **Add tile → Rooms** adds a room tile.
 
 Entity tiles show the icon, the name and the entity's area. If an entity's
 name starts with its area ("Bedroom Bedside Lamp"), the area part is dropped.
@@ -208,6 +225,7 @@ The pinned tiles and the speaker can also be set on the tablet, under
 | `height`     | `calc(100dvh - var(--header-height, 0px))` | Becomes `100dvh` when Kiosk Satellite hides HA's header. |
 | `quick_panel` | on, nothing pinned                        | `media_player`, `pinned`; `false` turns the panel off. |
 | `assist`     | `true`                                     | `false` hides Ask; `{agent_id}` picks the conversation agent. |
+| `style`      | `auto`                                     | `glass`, or `flat` for solid tiles with no blur. `auto` goes flat on a device that can't blur, or blurs below 30 frames a second (checked once per tablet). |
 
 ## Theming
 

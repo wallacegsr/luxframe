@@ -3,7 +3,7 @@ import { define } from '../define';
 import { resolve } from '../entity';
 import { sizeOf } from '../pages/grid';
 import type { GridTileConfig, HomeAssistant, TileSize } from '../types';
-import { normalizeTile } from './layout';
+import { normalizeTile, tileLabel } from './layout';
 import { editorStyles } from './sheet';
 
 const SIZES: Array<{ size: TileSize; label: string; w: number; h: number }> = [
@@ -87,7 +87,7 @@ export class LuxFrameTileEditor extends LitElement {
 
       <h3>Shows</h3>
       <div class="row">
-        <span class="shows">${entity ? fallbackName : kind === 'weather' ? 'Weather' : 'Clock'}</span>
+        <span class="shows">${entity ? fallbackName : tileLabel(this.hass, tile)}</span>
         <button class="chip" @click=${() => this._fire('replace')}>Change…</button>
       </div>
 

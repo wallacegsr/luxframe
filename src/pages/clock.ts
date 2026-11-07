@@ -1,6 +1,6 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { define } from '../define';
-import { stateLabel } from '../entity';
+import { conditionLabel } from '../data';
 import { glass, pageStyles } from '../theme';
 import { formatDate, formatTime, onMinute } from '../time';
 import type { ClockPageConfig, HomeAssistant } from '../types';
@@ -54,7 +54,7 @@ export class LuxFrameClock extends LitElement {
     return html`
       <div class="weather glass">
         ${temp !== undefined ? html`<span class="temp">${Math.round(temp)}${unit}</span>` : nothing}
-        <span class="condition">${stateLabel(this.hass, weather)}</span>
+        <span class="condition">${conditionLabel(this.hass, weather)}</span>
       </div>
     `;
   }

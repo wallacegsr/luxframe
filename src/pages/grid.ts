@@ -1,9 +1,10 @@
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
+import { html as staticHtml, literal, type StaticValue } from 'lit/static-html.js';
 import { define } from '../define';
 import { normalizeTile, tileLabel } from '../editor/layout';
 import { pageStyles } from '../theme';
-import type { GridPageConfig, GridTileConfig, HomeAssistant, TileSize } from '../types';
+import type { GridPageConfig, GridTileConfig, GridTileType, HomeAssistant, TileSize } from '../types';
 
 /** Columns × rows each size covers, before clamping to the grid's width. */
 export const SPANS: Record<TileSize, [number, number]> = {
@@ -13,12 +14,32 @@ export const SPANS: Record<TileSize, [number, number]> = {
   l: [4, 2],
 };
 
-const DEFAULT_SIZE: Record<NonNullable<GridTileConfig['type']>, TileSize> = {
+const DEFAULT_SIZE: Record<GridTileType, TileSize> = {
   entity: 's',
   thermostat: 'm',
   weather: 's',
   clock: 's',
   'analog-clock': 's',
+  calendar: 'm',
+  'now-playing': 'w',
+  camera: 'm',
+  photo: 'm',
+  sun: 's',
+  todo: 'm',
+  room: 's',
+};
+
+/** Tile kinds that are a plain element taking hass, config and size. */
+const TILE_TAGS: Partial<Record<GridTileType, StaticValue>> = {
+  thermostat: literal`luxframe-thermostat-tile`,
+  weather: literal`luxframe-weather-tile`,
+  calendar: literal`luxframe-calendar-tile`,
+  'now-playing': literal`luxframe-now-playing-tile`,
+  camera: literal`luxframe-camera-tile`,
+  photo: literal`luxframe-photo-tile`,
+  sun: literal`luxframe-sun-tile`,
+  todo: literal`luxframe-todo-tile`,
+  room: literal`luxframe-room-tile`,
 };
 
 export function sizeOf(tile: GridTileConfig): TileSize {
@@ -228,13 +249,9 @@ export class LuxFrameGrid extends LitElement {
   // ---- Rendering -----------------------------------------------------------
 
   private _renderTile(tile: GridTileConfig, size: TileSize) {
+    const tag = TILE_TAGS[tile.type ?? 'entity'];
+    if (tag) return staticHtml`<${tag} .hass=${this.hass} .config=${tile} size=${size}></${tag}>`;
     switch (tile.type ?? 'entity') {
-      case 'thermostat':
-        return html`<luxframe-thermostat-tile .hass=${this.hass} .config=${tile} size=${size}>
-        </luxframe-thermostat-tile>`;
-      case 'weather':
-        return html`<luxframe-weather-tile .hass=${this.hass} .config=${tile} size=${size}>
-        </luxframe-weather-tile>`;
       case 'clock':
         return html`<luxframe-clock-tile .hass=${this.hass} size=${size}></luxframe-clock-tile>`;
       case 'analog-clock':

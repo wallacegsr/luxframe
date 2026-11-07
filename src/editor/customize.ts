@@ -2,7 +2,7 @@ import { LitElement, css, html, nothing } from 'lit';
 import { define } from '../define';
 import { resolve } from '../entity';
 import type { GridPageConfig, HomeAssistant, LuxFrameConfig, PageConfig, QuickPanelConfig } from '../types';
-import { pageLabel, suggestPages } from './layout';
+import { PAGE_KINDS, pageLabel, suggestPages } from './layout';
 import { editorStyles } from './sheet';
 
 const THEMES: Array<{ value: NonNullable<LuxFrameConfig['theme']>; label: string }> = [
@@ -132,7 +132,7 @@ export class LuxFrameCustomize extends LitElement {
               @click=${() => this._movePage(i, -1)}>↑</button>
             <button class="mini" aria-label="Move ${pageLabel(page, i)} later" ?disabled=${i === pages.length - 1}
               @click=${() => this._movePage(i, 1)}>↓</button>
-            ${page.type === 'grid'
+            ${page.type !== 'room' && page.type !== 'scenes'
               ? html`<button class="mini" aria-label="Delete ${pageLabel(page, i)}"
                   ?disabled=${pages.length <= 1 || (!page.hidden && shown <= 1)}
                   @click=${() => this._removePage(i)}>✕</button>`
@@ -140,10 +140,15 @@ export class LuxFrameCustomize extends LitElement {
           </li>`,
         )}
       </ul>
+      <div class="row add" role="group" aria-label="Add a page">
+        <span class="label">Add a page</span>
+        ${PAGE_KINDS.filter((k) => k.blank).map(
+          (k) => html`<button class="chip" @click=${() => this._setPages([...pages, structuredClone(k.blank!)])}>
+            + ${k.label}
+          </button>`,
+        )}
+      </div>
       <div class="row add">
-        <button class="chip" @click=${() => this._setPages([...pages, { type: 'grid', tiles: [] }])}>
-          Add a page
-        </button>
         <button
           class="chip"
           ?disabled=${!suggestions.length}
@@ -291,6 +296,12 @@ export class LuxFrameCustomize extends LitElement {
 
       .add {
         margin-top: 10px;
+      }
+
+      .add .label {
+        width: 100%;
+        font-size: 15px;
+        color: var(--lf-muted);
       }
 
       .field {
