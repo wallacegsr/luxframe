@@ -6,6 +6,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-07
+
 ### Added
 
 - `luxframe-card`: a full-height frame of pages you swipe between, with page
@@ -74,3 +76,6 @@ All notable changes to LuxFrame are recorded here. The format follows
   on devices that can't blur or blur too slowly.
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
+
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/wallacegsr/luxframe/releases/tag/v0.1.0
