@@ -1,0 +1,42 @@
+# Changelog
+
+All notable changes to LuxFrame are recorded here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
+[Semantic Versioning](https://semver.org/).
+
+## [Unreleased]
+
+### Added
+
+- `luxframe-card`: a full-height frame of pages you swipe between, with page
+  dots, arrow keys and an idle return to page 1.
+- Grid pages: `rows` × `columns` of tiles sized `s`, `w`, `m` or `l`, filling
+  the screen. In portrait, `portrait_rows` keeps tiles close to square.
+- Grid tiles: entity, thermostat (large target, ▼/▲, current temperature and
+  area), weather, digital clock, and an analog clock drawn on the background.
+- Clock, room and scenes pages.
+- Entity tiles: icon centered over the name and the area, with the area
+  dropped from the front of the name. Tap the icon to toggle, tap the name for
+  details, drag up or down to set a light's, shade's or fan's level, and hold
+  for details. A running fan's icon spins at its speed. Locks and garage, door
+  and gate covers only open their details.
+- A dragged level stays on screen until the device reports it, for up to 5
+  seconds, so fading bulbs don't jump back. Quick thermostat taps go to Home
+  Assistant as one change.
+- A frosted-glass default look inspired by visionOS: translucent blurred tiles
+  on a soft gradient, white text, and bright tiles for things that are on, in
+  light and dark variants.
+- `background` option for your own wallpaper behind the pages, and `tint` for
+  the glass color, which otherwise comes from the wallpaper's average color.
+- Theming through Home Assistant: any HA theme can set `luxframe-*` variables,
+  and `theme: ha` borrows the active HA theme's colors, corners, blur and font.
+- Kiosk Satellite bridge: follows its theme, goes back to page 1 on wake, and
+  fills the screen when HA's header is hidden.
+- Version and commit stamped into the bundle and shown on the clock page.
+- HACS metadata and a tag-triggered release workflow.
+- Detail pages in LuxFrame's glass look for lights (brightness, white and
+  color swatches, hue and warmth), fans (speed, presets, oscillation), shades
+  (position, open, stop, close), thermostats (target or range, modes), locks
+  and everything else. Unlocking and opening a garage, door or gate ask for a
+  second tap. Close with ✕, a swipe down or Escape; ⋯ opens Home Assistant's
+  own dialog.

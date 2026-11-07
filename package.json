@@ -1,0 +1,20 @@
+{
+  "name": "luxframe",
+  "version": "0.1.0",
+  "description": "A calm, swipeable wall-tablet dashboard for Home Assistant.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "lit": "^3.3.3"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.6"
+  }
+}
