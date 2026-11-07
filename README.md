@@ -97,6 +97,11 @@ Each tile takes a `size`:
 | `w`  | 2 × 1 (wide)   |
 | `m`  | 2 × 2          |
 | `l`  | 4 × 2 (large)  |
+| `3x2` | Any columns × rows: up to the grid's columns wide and 8 rows tall |
+
+A tile wider than the grid is cut to the grid's width. A tile in a custom size
+lays itself out like the nearest preset: one row tall is wide, two or more rows
+are medium (large from four columns), and one column is small however tall.
 
 | Tile type      | Options                                   | Default size |
 | -------------- | ----------------------------------------- | ------------ |
@@ -201,8 +206,11 @@ around the tiles. There the bar has Customize, Cancel and Done, with no Add
 tile.
 
 - **Drag** a tile to move it. The others make room.
-- **Tap** a tile to set its size (Small, Wide, Medium, Large), rename it,
-  change what it shows, move it earlier or later, or remove it.
+- **Drag the corner handle** (bottom right) to resize a tile a whole column or
+  row at a time. Its size shows in the middle while you drag.
+- **Tap** a tile to set its size (Small, Wide, Medium, Large, or any width and
+  height), rename it, change what it shows, move it earlier or later, or
+  remove it.
 - **−** on a tile's corner removes it. **+ Add tile**, or the dashed tile at
   the end, adds one: a card from one of your dashboards, a widget such as a
   clock, a room, or any entity, searchable by name or room. Thermostats and

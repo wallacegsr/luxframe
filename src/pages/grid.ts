@@ -4,31 +4,8 @@ import { html as staticHtml, literal, type StaticValue } from 'lit/static-html.j
 import { define } from '../define';
 import { normalizeTile, tileLabel } from '../editor/layout';
 import { pageStyles } from '../theme';
+import { MAX_ROWS, shapeOf, sizeFor, spanOf } from '../sizes';
 import type { GridPageConfig, GridTileConfig, GridTileType, HomeAssistant, TileSize } from '../types';
-
-/** Columns × rows each size covers, before clamping to the grid's width. */
-export const SPANS: Record<TileSize, [number, number]> = {
-  s: [1, 1],
-  w: [2, 1],
-  m: [2, 2],
-  l: [4, 2],
-};
-
-const DEFAULT_SIZE: Record<GridTileType, TileSize> = {
-  entity: 's',
-  thermostat: 'm',
-  weather: 's',
-  clock: 's',
-  'analog-clock': 's',
-  calendar: 'm',
-  'now-playing': 'w',
-  camera: 'm',
-  photo: 'm',
-  sun: 's',
-  todo: 'm',
-  room: 's',
-  card: 'm',
-};
 
 /** Tile kinds that are a plain element taking hass, config and size. */
 const TILE_TAGS: Partial<Record<GridTileType, StaticValue>> = {
@@ -43,10 +20,6 @@ const TILE_TAGS: Partial<Record<GridTileType, StaticValue>> = {
   room: literal`luxframe-room-tile`,
   card: literal`luxframe-card-tile`,
 };
-
-export function sizeOf(tile: GridTileConfig): TileSize {
-  return tile.size ?? DEFAULT_SIZE[tile.type ?? 'entity'] ?? 's';
-}
 
 const HOLD_MS = 1000;
 const MOVE_TOLERANCE = 10;
@@ -66,14 +39,33 @@ interface Drag {
   keys: number[];
 }
 
+interface Resize {
+  pointerId: number;
+  index: number;
+  x: number;
+  y: number;
+  /** The cell's size in pixels when picked up. */
+  width: number;
+  height: number;
+  /** One column or row plus the gap after it. */
+  colPitch: number;
+  rowPitch: number;
+  gap: [number, number];
+  columns: number;
+  from: [number, number];
+  w: number;
+  h: number;
+}
+
 /**
  * A fixed grid of mixed-size tiles, `rows` × `columns` to a screen. Every row
  * is the same height, so a page of tiles fills the tablet edge to edge; tiles
  * beyond the last row scroll.
  *
  * Holding anywhere on the grid for a second fires `luxframe-edit-start`.
- * While `editing`, tiles wiggle and stop working: drag one to move it, tap it
- * to edit it (`luxframe-tile-edit`), or tap − to remove it. Changes go out as
+ * While `editing`, tiles wiggle and stop working: drag one to move it, drag
+ * its corner handle to resize it a whole column or row at a time, tap it to
+ * edit it (`luxframe-tile-edit`), or tap − to remove it. Changes go out as
  * `luxframe-tiles-change` with the new list; the frame owns the config.
  */
 export class LuxFrameGrid extends LitElement {
@@ -82,12 +74,14 @@ export class LuxFrameGrid extends LitElement {
     config: { attribute: false },
     editing: { type: Boolean, reflect: true },
     _drag: { state: true },
+    _resize: { state: true },
   };
 
   declare hass?: HomeAssistant;
   declare config?: GridPageConfig;
   declare editing: boolean;
   declare _drag?: Drag;
+  declare _resize?: Resize;
 
   private _portrait = window.matchMedia('(orientation: portrait)');
   private _onRotate = () => this.requestUpdate();
@@ -217,6 +211,67 @@ export class LuxFrameGrid extends LitElement {
     this._drag = undefined;
   }
 
+  // ---- Resizing tiles while editing ---------------------------------------
+
+  private _resizeDown(index: number, e: PointerEvent): void {
+    e.stopPropagation();
+    if (e.button !== 0 || this._drag || this._resize || !this.config) return;
+    const grid = this.renderRoot.querySelector('.cells') as HTMLElement | null;
+    const cell = (e.currentTarget as HTMLElement).closest('.cell') as HTMLElement | null;
+    if (!grid || !cell) return;
+    const columns = this._columns();
+    const [w, h] = spanOf(normalizeTile(this.config.tiles[index]), columns);
+    const style = getComputedStyle(grid);
+    const gapX = parseFloat(style.columnGap) || 0;
+    const gapY = parseFloat(style.rowGap) || 0;
+    const rect = cell.getBoundingClientRect();
+    this._resize = {
+      pointerId: e.pointerId,
+      index,
+      x: e.clientX,
+      y: e.clientY,
+      width: rect.width,
+      height: rect.height,
+      colPitch: (rect.width - (w - 1) * gapX) / w + gapX,
+      rowPitch: (rect.height - (h - 1) * gapY) / h + gapY,
+      gap: [gapX, gapY],
+      columns,
+      from: [w, h],
+      w,
+      h,
+    };
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      // The pointer is already gone; the resize ends on its own.
+    }
+  }
+
+  private _resizeMove(e: PointerEvent): void {
+    const r = this._resize;
+    if (!r || e.pointerId !== r.pointerId) return;
+    // n cells and the n − 1 gaps between them are n pitches less one gap.
+    const fit = (size: number, gap: number, pitch: number, max: number) =>
+      Math.min(max, Math.max(1, Math.round((size + gap) / pitch)));
+    const w = fit(r.width + e.clientX - r.x, r.gap[0], r.colPitch, r.columns);
+    const h = fit(r.height + e.clientY - r.y, r.gap[1], r.rowPitch, MAX_ROWS);
+    if (w !== r.w || h !== r.h) this._resize = { ...r, w, h };
+  }
+
+  private _resizeUp(e: PointerEvent): void {
+    const r = this._resize;
+    if (!r || e.pointerId !== r.pointerId) return;
+    this._resize = undefined;
+    if (!this.config || (r.w === r.from[0] && r.h === r.from[1])) return;
+    const tiles = [...this.config.tiles];
+    tiles[r.index] = { ...normalizeTile(tiles[r.index]), size: sizeFor(r.w, r.h) };
+    this._emit('luxframe-tiles-change', { tiles });
+  }
+
+  private _resizeCancel(): void {
+    this._resize = undefined;
+  }
+
   private _remove(index: number, e: Event): void {
     e.stopPropagation();
     const tiles = [...(this.config?.tiles ?? [])];
@@ -231,7 +286,10 @@ export class LuxFrameGrid extends LitElement {
   }
 
   protected updated(changed: PropertyValues): void {
-    if (changed.has('editing') && !this.editing) this._drag = undefined;
+    if (changed.has('editing') && !this.editing) {
+      this._drag = undefined;
+      this._resize = undefined;
+    }
     const drag = this._drag?.active ? this._drag : undefined;
     const grid = this.renderRoot.querySelector('.cells') as HTMLElement | null;
     if (!grid) return;
@@ -267,7 +325,12 @@ export class LuxFrameGrid extends LitElement {
     }
   }
 
-  private _renderEditControls(index: number, label: string) {
+  private _columns(): number {
+    return Math.max(1, this.config?.columns ?? 4);
+  }
+
+  private _renderEditControls(index: number, label: string, span: [number, number]) {
+    const resizing = this._resize?.index === index;
     return html`
       <div
         class="shield"
@@ -291,12 +354,28 @@ export class LuxFrameGrid extends LitElement {
           <path d="M6 12h12" stroke="currentColor" stroke-width="3" stroke-linecap="round" />
         </svg>
       </button>
+      <div
+        class="resize"
+        role="presentation"
+        title="Drag to resize"
+        @pointerdown=${(e: PointerEvent) => this._resizeDown(index, e)}
+        @pointermove=${this._resizeMove}
+        @pointerup=${this._resizeUp}
+        @pointercancel=${this._resizeCancel}
+        @contextmenu=${(e: Event) => e.preventDefault()}
+      >
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path d="M9 19h10V9M19 19L9 9" fill="none" stroke="currentColor" stroke-width="2.6"
+            stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+      ${resizing ? html`<div class="dims" aria-live="polite">${span[0]} × ${span[1]}</div>` : nothing}
     `;
   }
 
   protected render() {
     if (!this.config) return nothing;
-    const columns = Math.max(1, this.config.columns ?? 4);
+    const columns = this._columns();
     const landscapeRows = this.config.rows ?? 3;
     // A tablet stood upright has room for more rows; without them every tile
     // would stretch tall.
@@ -305,6 +384,7 @@ export class LuxFrameGrid extends LitElement {
       this._portrait.matches ? (this.config.portrait_rows ?? landscapeRows + 2) : landscapeRows,
     );
     const drag = this._drag;
+    const resize = this._resize;
     const tiles = drag?.tiles ?? this.config.tiles ?? [];
     const keys = drag?.keys ?? tiles.map((_, i) => i);
     const items = tiles.map((raw, index) => ({ raw, index, key: keys[index] }));
@@ -326,17 +406,18 @@ export class LuxFrameGrid extends LitElement {
           (item) => item.key,
           ({ raw, index }) => {
             const tile = normalizeTile(raw);
-            const size = sizeOf(tile);
-            const [spanX, spanY] = SPANS[size] ?? SPANS.s;
+            const resizing = resize?.index === index;
+            const span: [number, number] = resizing ? [resize.w, resize.h] : spanOf(tile, columns);
+            const shape = resizing ? shapeOf({ ...tile, size: sizeFor(...span) }, ...span) : shapeOf(tile, ...span);
             const lifted = drag?.active && drag.index === index;
             return html`
               <div
-                class="cell ${lifted ? 'dragging' : ''}"
+                class="cell ${lifted ? 'dragging' : ''} ${resizing ? 'resizing' : ''}"
                 data-index=${index}
-                style="grid-column: span ${Math.min(spanX, columns)}; grid-row: span ${spanY}; --i: ${index}"
+                style="grid-column: span ${span[0]}; grid-row: span ${span[1]}; --i: ${index}"
               >
-                ${this._renderTile(tile, size)}
-                ${this.editing ? this._renderEditControls(index, tileLabel(this.hass, tile)) : nothing}
+                ${this._renderTile(tile, shape)}
+                ${this.editing ? this._renderEditControls(index, tileLabel(this.hass, tile), span) : nothing}
               </div>
             `;
           },
@@ -404,6 +485,14 @@ export class LuxFrameGrid extends LitElement {
         filter: drop-shadow(0 18px 30px rgb(0 0 0 / 30%));
       }
 
+      .cell.resizing {
+        z-index: 2;
+        animation: none !important;
+        outline: 2px dashed var(--lf-text);
+        outline-offset: 3px;
+        border-radius: var(--lf-radius);
+      }
+
       .shield {
         position: absolute;
         inset: 0;
@@ -440,8 +529,49 @@ export class LuxFrameGrid extends LitElement {
         cursor: pointer;
       }
 
-      .dragging .remove {
+      .dragging .remove,
+      .dragging .resize {
         display: none;
+      }
+
+      /* Bottom-right, where a corner is dragged out in most apps. */
+      .resize {
+        position: absolute;
+        right: -8px;
+        bottom: -8px;
+        z-index: 1;
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        color: #1c1b1a;
+        background: rgb(255 255 255 / 92%);
+        box-shadow: 0 2px 6px rgb(0 0 0 / 25%);
+        cursor: nwse-resize;
+        touch-action: none;
+      }
+
+      /* A bigger target for a finger than the badge shows. */
+      .resize::before {
+        content: '';
+        position: absolute;
+        inset: -10px;
+      }
+
+      .dims {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        z-index: 1;
+        transform: translate(-50%, -50%);
+        padding: 8px 16px;
+        border-radius: 999px;
+        color: #1c1b1a;
+        background: rgb(255 255 255 / 92%);
+        font: 600 20px/1 var(--lf-font);
+        font-variant-numeric: tabular-nums;
+        pointer-events: none;
       }
 
       .add {

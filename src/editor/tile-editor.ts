@@ -2,7 +2,7 @@ import { dump, load } from 'js-yaml';
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { define } from '../define';
 import { resolve } from '../entity';
-import { sizeOf } from '../pages/grid';
+import { MAX_ROWS, sizeFor, sizeOf, spanOf } from '../sizes';
 import type { CardTileConfig, GridTileConfig, HomeAssistant, TileSize } from '../types';
 import { normalizeTile, tileLabel } from './layout';
 import { editorStyles } from './sheet';
@@ -15,8 +15,8 @@ const SIZES: Array<{ size: TileSize; label: string; w: number; h: number }> = [
 ];
 
 /**
- * One tile's settings: its size, its name, what it shows, where it sits, and
- * removing it. Fires `change` with the new tile, `replace` to choose what it
+ * One tile's settings: its size (a preset, or any width and height in grid
+ * cells), its name, what it shows, where it sits, and removing it. Fires `change` with the new tile, `replace` to choose what it
  * shows, `move` with -1 or 1, and `remove`.
  */
 export class LuxFrameTileEditor extends LitElement {
@@ -25,6 +25,7 @@ export class LuxFrameTileEditor extends LitElement {
     tile: { attribute: false },
     first: { type: Boolean },
     last: { type: Boolean },
+    columns: { type: Number },
     _yaml: { state: true },
     _error: { state: true },
   };
@@ -33,6 +34,8 @@ export class LuxFrameTileEditor extends LitElement {
   declare tile?: GridTileConfig | string;
   declare first: boolean;
   declare last: boolean;
+  /** The grid's width in columns, the widest a tile can be. */
+  declare columns: number;
   /** A card tile's YAML while it's being edited, before Apply. */
   declare _yaml?: string;
   declare _error?: string;
@@ -41,6 +44,7 @@ export class LuxFrameTileEditor extends LitElement {
     super();
     this.first = false;
     this.last = false;
+    this.columns = 4;
   }
 
   protected willUpdate(changed: PropertyValues): void {
@@ -116,10 +120,22 @@ export class LuxFrameTileEditor extends LitElement {
     this._fire('change', { tile: plain ? (next.entity as string) : (next as unknown as GridTileConfig) });
   }
 
+  private _stepper(label: string, value: number, max: number, set: (v: number) => void) {
+    return html`<div class="setting">
+      <span>${label}</span>
+      <div class="stepper" role="group" aria-label=${label}>
+        <button aria-label="Less ${label.toLowerCase()}" ?disabled=${value <= 1} @click=${() => set(value - 1)}>−</button>
+        <output>${value}</output>
+        <button aria-label="More ${label.toLowerCase()}" ?disabled=${value >= max} @click=${() => set(value + 1)}>+</button>
+      </div>
+    </div>`;
+  }
+
   protected render() {
     if (!this.tile) return nothing;
     const tile = normalizeTile(this.tile);
     const size = sizeOf(tile);
+    const [w, h] = spanOf(tile, this.columns);
     const kind = tile.type ?? 'entity';
     const named = kind === 'entity' || kind === 'thermostat';
     const entity = 'entity' in tile ? tile.entity : undefined;
@@ -138,6 +154,10 @@ export class LuxFrameTileEditor extends LitElement {
             ${s.label}
           </button>`,
         )}
+      </div>
+      <div class="settings">
+        ${this._stepper('Width', w, Math.max(1, this.columns), (v) => this._set({ size: sizeFor(v, h) }))}
+        ${this._stepper('Height', h, MAX_ROWS, (v) => this._set({ size: sizeFor(w, v) }))}
       </div>
 
       ${named
@@ -178,6 +198,20 @@ export class LuxFrameTileEditor extends LitElement {
         display: inline-flex;
         align-items: center;
         gap: 10px;
+      }
+
+      .settings {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .setting {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 17px;
       }
 
       .shape {

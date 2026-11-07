@@ -644,6 +644,7 @@ export class LuxFrameCard extends LitElement {
         .tile=${tile}
         ?first=${sheet.index === 0}
         ?last=${sheet.index === tiles.length - 1}
+        .columns=${this._gridAt(sheet.page)?.columns ?? 4}
         @change=${on}
         @move=${on}
         @remove=${on}

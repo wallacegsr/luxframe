@@ -80,8 +80,12 @@ export interface ScenesPageConfig {
 /** s = 1×1, w = 2×1, m = 2×2, l = 4×2 grid cells (clamped to the grid's columns). */
 export type TileSize = 's' | 'w' | 'm' | 'l';
 
+/** Any columns × rows, such as "3x2". */
+export type TileSpan = `${number}x${number}`;
+
 interface GridTileBase {
-  size?: TileSize;
+  /** A preset, or any columns × rows such as "3x2". */
+  size?: TileSize | TileSpan;
 }
 
 export interface EntityTileConfig extends GridTileBase {

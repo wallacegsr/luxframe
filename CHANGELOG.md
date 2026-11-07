@@ -6,6 +6,14 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Tiles can be any size: `size: 3x2` is three columns by two rows, up to the
+  grid's width and 8 rows tall. The presets still work.
+- While editing, each tile has a corner handle; drag it to resize the tile a
+  column or row at a time.
+- The tile editor has Width and Height steppers beside the presets.
+
 ## [0.3.1] - 2026-11-07
 
 ### Added
