@@ -49,6 +49,16 @@ const config: LuxFrameConfig = {
     },
     {
       type: 'grid',
+      title: 'Cards',
+      tiles: [
+        { type: 'card', card: { type: 'thermostat', entity: 'climate.living_room' } },
+        { type: 'card', size: 'w', card: { type: 'custom:late-card', text: 'Loaded late' } },
+        { type: 'card', size: 'w', glass: false, card: { type: 'markdown', content: 'Its own background' } },
+        { type: 'card', card: {} },
+      ],
+    },
+    {
+      type: 'grid',
       tiles: [
         { type: 'thermostat', entity: 'climate.living_room' },
         { type: 'analog-clock' },
@@ -107,6 +117,50 @@ const config: LuxFrameConfig = {
     },
   ],
 };
+
+// A stand-in for Home Assistant's card factory. Real cards read the same
+// --ha-card-* variables, so the glass treatment shows here too.
+class DevCard extends HTMLElement {
+  config: Record<string, any> = {};
+  layout?: string;
+  private _hass?: any;
+  set hass(hass: any) {
+    this._hass = hass;
+    this._render();
+  }
+  connectedCallback() {
+    this._render();
+  }
+  private _render() {
+    if (!this.isConnected) return;
+    const s = this.config.entity ? this._hass?.states[this.config.entity] : undefined;
+    const body = s
+      ? `<b style="font-size:48px;font-weight:300">${s.attributes.temperature}°</b><div style="color:var(--secondary-text-color)">${s.attributes.friendly_name} · ${s.state}</div>`
+      : `<div>${this.config.content ?? this.config.text ?? ''}</div>`;
+    this.innerHTML = `<div class="ha-card" style="box-sizing:border-box;height:100%;padding:16px;
+      background:var(--ha-card-background, #fff);color:var(--primary-text-color, #111);
+      border-radius:var(--ha-card-border-radius, 12px);box-shadow:var(--ha-card-box-shadow, 0 2px 6px #0003)">
+      <div style="color:var(--secondary-text-color, #666);font-size:13px">${this.config.type}</div>${body}</div>`;
+  }
+}
+customElements.define('dev-card', DevCard);
+window.loadCardHelpers = async () => ({
+  createCardElement(config: Record<string, unknown>) {
+    const type = String(config.type);
+    const element = document.createElement('dev-card') as DevCard;
+    if (type.startsWith('custom:') && !customElements.get(type.slice(7))) {
+      element.config = { type: 'Loading…' };
+      // Like Home Assistant: ask to be rebuilt once the card's code arrives.
+      customElements.whenDefined(type.slice(7)).then(() =>
+        element.dispatchEvent(new Event('ll-rebuild', { bubbles: true, composed: true })),
+      );
+    } else {
+      element.config = config;
+    }
+    return element as any;
+  },
+});
+setTimeout(() => customElements.define('late-card', class extends HTMLElement {}), 1500);
 
 const card = document.createElement('luxframe-card') as LuxFrameCard;
 card.setConfig(config);

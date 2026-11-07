@@ -5,6 +5,7 @@ import './tiles/weather';
 import './tiles/calendar';
 import './tiles/media';
 import './tiles/home';
+import './tiles/card';
 import './pages/clock';
 import './pages/grid';
 import './pages/room';

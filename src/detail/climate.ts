@@ -1,14 +1,15 @@
 import { LitElement, css, html, nothing } from 'lit';
-import { ACTION_LABELS, HVAC_LABELS, TempSetter, formatTemp } from '../climate';
+import { ACTION_LABELS, HVAC_LABELS, TempSetter, formatTemp, modeLabel } from '../climate';
 import { define } from '../define';
 import { chevron } from '../tiles/thermostat';
 import type { HassEntity, HomeAssistant } from '../types';
 import { detailStyles } from './styles';
 
 /**
- * A thermostat: the target large with big ▼/▲, what it's doing now, and its
- * modes. A heat/cool range shows Low and High side by side. Taps are gathered
- * and sent once they stop.
+ * A thermostat: the target large with big ▼/▲, what it's doing now, its
+ * modes, and its fan modes, presets and swing where it has them. A heat/cool
+ * range shows Low and High side by side. Taps are gathered and sent once they
+ * stop.
  */
 export class LuxFrameClimateDetail extends LitElement {
   static properties = {
@@ -48,6 +49,27 @@ export class LuxFrameClimateDetail extends LitElement {
         </button>
       </div>
     `;
+  }
+
+  /** One row of choices such as fan modes; nothing when the device has none. */
+  private _choices(label: string, options: unknown, current: unknown, service: string, field: string) {
+    if (!Array.isArray(options) || options.length < 2) return nothing;
+    const s = this.stateObj!;
+    return html`<div class="labelled">
+      <div class="muted">${label}</div>
+      <div class="row" role="group" aria-label=${label}>
+        ${options.map(
+          (option: string) => html`<button
+            class="chip ${current === option ? 'on' : 'glass'}"
+            aria-pressed=${current === option}
+            ?disabled=${s.state === 'unavailable'}
+            @click=${() => this.hass?.callService('climate', service, { entity_id: s.entity_id, [field]: option })}
+          >
+            ${modeLabel(option)}
+          </button>`,
+        )}
+      </div>
+    </div>`;
   }
 
   protected render() {
@@ -92,6 +114,9 @@ export class LuxFrameClimateDetail extends LitElement {
             )}
           </div>`
         : nothing}
+      ${this._choices('Fan', a.fan_modes, a.fan_mode, 'set_fan_mode', 'fan_mode')}
+      ${this._choices('Preset', a.preset_modes, a.preset_mode, 'set_preset_mode', 'preset_mode')}
+      ${this._choices('Swing', a.swing_modes, a.swing_mode, 'set_swing_mode', 'swing_mode')}
     `;
   }
 

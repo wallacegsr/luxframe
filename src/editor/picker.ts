@@ -14,6 +14,7 @@ const WIDGETS: Array<{ label: string; sub: string; tile: GridTileConfig }> = [
   { label: 'Now playing', sub: 'Whichever speaker is playing', tile: { type: 'now-playing' } },
   { label: 'Photos', sub: 'A slideshow from the media folder', tile: { type: 'photo' } },
   { label: 'Sunrise and sunset', sub: 'When the sun next rises or sets', tile: { type: 'sun' } },
+  { label: 'Home Assistant card', sub: 'Any card, pasted as YAML', tile: { type: 'card', card: {} } },
 ];
 
 /** Shown first; the rest of Home Assistant follows under "Everything else". */

@@ -145,6 +145,15 @@ export interface TodoTileConfig extends GridTileBase {
   entity: string;
 }
 
+/** Any Home Assistant card, built by Home Assistant. */
+export interface CardTileConfig extends GridTileBase {
+  type: 'card';
+  /** The card's config, as in a dashboard's YAML. */
+  card: Record<string, unknown>;
+  /** Default true: glass behind the card instead of its own background. */
+  glass?: boolean;
+}
+
 export interface RoomTileConfig extends GridTileBase {
   type: 'room';
   /** An area id or name. */
@@ -162,7 +171,8 @@ export type GridTileConfig =
   | PhotoTileConfig
   | SunTileConfig
   | TodoTileConfig
-  | RoomTileConfig;
+  | RoomTileConfig
+  | CardTileConfig;
 
 export type GridTileType = NonNullable<GridTileConfig['type']>;
 

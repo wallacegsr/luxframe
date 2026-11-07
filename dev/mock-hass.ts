@@ -30,6 +30,10 @@ const initial: HassEntity[] = [
     target_temp_step: 0.5,
     hvac_action: 'heating',
     hvac_modes: ['off', 'heat', 'cool', 'auto'],
+    fan_mode: 'auto',
+    fan_modes: ['auto', 'on'],
+    preset_mode: 'home',
+    preset_modes: ['home', 'away', 'sleep', 'away_indefinitely'],
   }),
   entity('light.living_room', 'on', { friendly_name: 'Living Room Ceiling', brightness: 180, ...DIMMABLE }),
   entity('light.floor_lamp', 'off', { friendly_name: 'Floor lamp', ...DIMMABLE }),
@@ -248,6 +252,9 @@ export function createMockHass(onChange: (hass: HomeAssistant) => void): HomeAss
       } else if (kind === 'climate.set_hvac_mode') {
         const mode = data!.hvac_mode as string;
         update(id, mode, { hvac_action: mode === 'off' ? 'off' : mode === 'cool' ? 'cooling' : 'heating' });
+      } else if (kind === 'climate.set_fan_mode' || kind === 'climate.set_preset_mode') {
+        const { entity_id: _, ...choice } = data!;
+        update(id, current.state, choice);
       } else if (kind === 'lock.lock' || kind === 'lock.unlock') {
         update(id, service === 'lock' ? 'locked' : 'unlocked', {});
       } else if (kind === 'todo.update_item') {

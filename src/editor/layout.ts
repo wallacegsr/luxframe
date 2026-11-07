@@ -1,5 +1,6 @@
+import { cardName } from '../tiles/card';
 import { areaName, domainOf, resolve } from '../entity';
-import type { GridPageConfig, GridTileConfig, HassEntity, HomeAssistant, PageConfig } from '../types';
+import type { CardTileConfig, GridPageConfig, GridTileConfig, HassEntity, HomeAssistant, PageConfig } from '../types';
 
 /** Domains a tablet tile makes sense for, in the order suggested pages list them. */
 const USEFUL = ['climate', 'light', 'fan', 'cover', 'lock', 'switch', 'media_player', 'scene', 'script'];
@@ -28,6 +29,8 @@ export function tileLabel(hass: HomeAssistant | undefined, raw: GridTileConfig |
       return 'Sunrise and sunset';
     case 'room':
       return tile.type === 'room' ? (hass?.areas?.[tile.area]?.name ?? tile.area) : 'Room';
+    case 'card':
+      return cardName((tile as CardTileConfig).card);
     case 'camera':
     case 'todo':
       return resolve(hass, (tile as { entity: string }).entity).name;

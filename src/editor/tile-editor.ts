@@ -1,8 +1,9 @@
-import { LitElement, css, html, nothing } from 'lit';
+import { dump, load } from 'js-yaml';
+import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { define } from '../define';
 import { resolve } from '../entity';
 import { sizeOf } from '../pages/grid';
-import type { GridTileConfig, HomeAssistant, TileSize } from '../types';
+import type { CardTileConfig, GridTileConfig, HomeAssistant, TileSize } from '../types';
 import { normalizeTile, tileLabel } from './layout';
 import { editorStyles } from './sheet';
 
@@ -24,17 +25,82 @@ export class LuxFrameTileEditor extends LitElement {
     tile: { attribute: false },
     first: { type: Boolean },
     last: { type: Boolean },
+    _yaml: { state: true },
+    _error: { state: true },
   };
 
   declare hass?: HomeAssistant;
   declare tile?: GridTileConfig | string;
   declare first: boolean;
   declare last: boolean;
+  /** A card tile's YAML while it's being edited, before Apply. */
+  declare _yaml?: string;
+  declare _error?: string;
 
   constructor() {
     super();
     this.first = false;
     this.last = false;
+  }
+
+  protected willUpdate(changed: PropertyValues): void {
+    if (changed.has('tile')) {
+      this._yaml = undefined;
+      this._error = undefined;
+    }
+  }
+
+  private _applyCard(): void {
+    if (this._yaml === undefined) return;
+    let card: unknown;
+    try {
+      card = load(this._yaml);
+    } catch (e) {
+      const reason = (e as { reason?: string }).reason;
+      this._error = `That isn\u2019t valid YAML${reason ? ` (${reason})` : ''}`;
+      return;
+    }
+    if (!card || typeof card !== 'object' || Array.isArray(card) || typeof (card as { type?: unknown }).type !== 'string') {
+      this._error = 'A card needs a type, such as \u201ctype: thermostat\u201d';
+      return;
+    }
+    this._set({ card });
+  }
+
+  private _renderCard(tile: CardTileConfig) {
+    const text = this._yaml ?? (tile.card?.type ? dump(tile.card, { lineWidth: -1 }) : '');
+    const glassy = tile.glass !== false;
+    return html`
+      <h3>Card</h3>
+      <textarea
+        aria-label="Card YAML"
+        spellcheck="false"
+        autocapitalize="off"
+        placeholder=${'type: thermostat\nentity: climate.living_room'}
+        .value=${text}
+        @input=${(e: Event) => {
+          this._yaml = (e.target as HTMLTextAreaElement).value;
+          this._error = undefined;
+        }}
+      ></textarea>
+      <p class="hint muted">
+        Paste a card from Home Assistant: open the card's editor there and choose Show code editor.
+      </p>
+      ${this._error ? html`<p class="error" role="alert">${this._error}</p>` : nothing}
+      <div class="row">
+        <button class="chip on" ?disabled=${this._yaml === undefined} @click=${this._applyCard}>Apply</button>
+      </div>
+
+      <h3>Background</h3>
+      <div class="row" role="group" aria-label="Background">
+        <button class="chip ${glassy ? 'on' : ''}" aria-pressed=${glassy} @click=${() => this._set({ glass: undefined })}>
+          Glass
+        </button>
+        <button class="chip ${glassy ? '' : 'on'}" aria-pressed=${!glassy} @click=${() => this._set({ glass: false })}>
+          The card's own
+        </button>
+      </div>
+    `;
   }
 
   private _fire(name: string, detail?: unknown): void {
@@ -85,6 +151,8 @@ export class LuxFrameTileEditor extends LitElement {
             />`
         : nothing}
 
+      ${kind === 'card' ? this._renderCard(tile as CardTileConfig) : nothing}
+
       <h3>Shows</h3>
       <div class="row">
         <span class="shows">${entity ? fallbackName : tileLabel(this.hass, tile)}</span>
@@ -127,6 +195,31 @@ export class LuxFrameTileEditor extends LitElement {
 
       .end {
         margin-top: 24px;
+      }
+
+      textarea {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 180px;
+        padding: 12px 14px;
+        border: 0;
+        border-radius: 14px;
+        background: rgb(127 127 127 / 16%);
+        color: inherit;
+        font: 14px/1.5 ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+        resize: vertical;
+        tab-size: 2;
+      }
+
+      .hint {
+        margin: 8px 0 0;
+        font-size: 14px;
+      }
+
+      .error {
+        margin: 8px 0 0;
+        color: #ff6961;
+        font-size: 15px;
       }
     `,
   ];

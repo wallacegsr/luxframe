@@ -101,7 +101,7 @@ Each tile takes a `size`:
 | Tile type      | Options                                   | Default size |
 | -------------- | ----------------------------------------- | ------------ |
 | `entity`       | `entity`, `name`, `icon`. A bare entity id is shorthand for this. | `s` |
-| `thermostat`   | `entity` (a `climate.*`), `name`          | `m`          |
+| `thermostat`   | `entity` (a `climate.*`), `name`. Glass, with what it's doing in the mode's color; medium and large tiles add mode buttons. | `m` |
 | `weather`      | `entity` (default: your first weather entity) | `s`      |
 | `clock`        |                                           | `s`          |
 | `analog-clock` | Drawn on the background, with no glass    | `s`          |
@@ -112,11 +112,40 @@ Each tile takes a `size`:
 | `sun`          | `entity` (default `sun.sun`). Next sunrise or sunset; an arc on bigger tiles. | `s` |
 | `todo`         | `entity` (a `todo.*`). Tap a circle to tick an item off. | `m` |
 | `room`         | `area` (id or name). Temperature and lights; the icon switches the room's lights, the rest opens the page with the room's name. | `s` |
+| `card`         | `card` (any Home Assistant card's config), `glass` (default `true`). See [Home Assistant cards](#home-assistant-cards). | `m` |
 
 When something a tile or page needs isn't there, it says so plainly: "No
 weather", "No calendar", "No camera", "No photos in local/holiday".
 Picking a calendar, camera, to-do list, speaker or the sun on the tablet gives
 it its own tile kind, and **Add tile → Rooms** adds a room tile.
+
+### Home Assistant cards
+
+A `card` tile holds any Home Assistant card, built by Home Assistant itself, so
+built-in cards and custom cards from HACS both work:
+
+```yaml
+- type: card
+  size: l
+  card:
+    type: thermostat
+    entity: climate.my_ecobee
+    features:
+      - type: climate-fan-modes
+      - type: climate-hvac-modes
+```
+
+The card's background gives way to LuxFrame's glass and its text takes
+LuxFrame's colors. Cards that draw their own background, such as a picture,
+keep it. `glass: false` leaves the card looking as it does on other
+dashboards. A card taller than its tile scrolls inside it.
+
+On the tablet, **Add tile → Home Assistant card** opens a box for the card's
+YAML. In Home Assistant, open the card's editor and choose **Show code editor**
+to copy it.
+
+Holding a card still starts editing after a second, unless the card opens a
+dialog of its own first.
 
 Entity tiles show the icon, the name and the entity's area. If an entity's
 name starts with its area ("Bedroom Bedside Lamp"), the area part is dropped.
@@ -135,7 +164,8 @@ spins faster the higher its speed.
 - Locks, and garage, door and gate covers, never act on one tap. The icon opens
   their details instead.
 - On the thermostat, **▼ / ▲** change the target. Several quick taps go to
-  Home Assistant as a single change.
+  Home Assistant as a single change. On medium and large tiles, the row of
+  mode buttons switches between off, heat, cool and the rest.
 
 ### Detail pages
 
@@ -146,8 +176,8 @@ Details open on a LuxFrame glass page over the frame:
 - **Fan**: speed in the fan's own steps, presets, oscillation, Turn On/Off.
 - **Shade**: a position slider with Open, Stop and Close. Garage, door and
   gate covers open only after a second tap.
-- **Thermostat**: a large target with ▼/▲ (Low and High for a range) and its
-  modes.
+- **Thermostat**: a large target with ▼/▲ (Low and High for a range), its
+  modes, and its fan modes, presets and swing where it has them.
 - **Lock**: Lock at once; Unlock only after a second tap.
 - **Anything else**: its state, when it last changed, and Turn On/Off or Run.
 

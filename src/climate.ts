@@ -1,4 +1,5 @@
 import type { ReactiveControllerHost } from 'lit';
+import type { IconName } from './icons';
 import { Pending } from './pending';
 import type { HassEntity, HomeAssistant } from './types';
 
@@ -26,6 +27,43 @@ export const ACTION_LABELS: Record<string, string> = {
   preheating: 'Preheating',
   defrosting: 'Defrosting',
 };
+
+/** The icon for each mode, drawn by LuxFrame (see icons.ts). */
+export const HVAC_ICONS: Record<string, IconName> = {
+  off: 'power',
+  heat: 'flame',
+  cool: 'snow',
+  heat_cool: 'range',
+  auto: 'auto',
+  dry: 'drop',
+  fan_only: 'fan',
+};
+
+const MODE_COLORS: Record<string, string> = {
+  heat: '#ff9f0a',
+  cool: '#64d2ff',
+  heat_cool: '#bf5af2',
+  auto: '#30d158',
+  dry: '#ffd60a',
+  fan_only: '#5ac8fa',
+};
+
+/**
+ * The color a thermostat shows: what it's doing when it says (heating is
+ * orange even in auto), else its mode. Undefined when it's off.
+ */
+export function climateColor(stateObj: HassEntity): string | undefined {
+  const action = stateObj.attributes.hvac_action;
+  if (action === 'heating' || action === 'preheating') return MODE_COLORS.heat;
+  if (action === 'cooling') return MODE_COLORS.cool;
+  return MODE_COLORS[stateObj.state];
+}
+
+/** A fan mode or preset as words: "away_indefinitely" → "Away indefinitely". */
+export function modeLabel(mode: string): string {
+  const words = mode.replace(/_/g, ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
 
 export function formatTemp(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);

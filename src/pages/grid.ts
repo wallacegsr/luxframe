@@ -27,6 +27,7 @@ const DEFAULT_SIZE: Record<GridTileType, TileSize> = {
   sun: 's',
   todo: 'm',
   room: 's',
+  card: 'm',
 };
 
 /** Tile kinds that are a plain element taking hass, config and size. */
@@ -40,6 +41,7 @@ const TILE_TAGS: Partial<Record<GridTileType, StaticValue>> = {
   sun: literal`luxframe-sun-tile`,
   todo: literal`luxframe-todo-tile`,
   room: literal`luxframe-room-tile`,
+  card: literal`luxframe-card-tile`,
 };
 
 export function sizeOf(tile: GridTileConfig): TileSize {
@@ -316,6 +318,8 @@ export class LuxFrameGrid extends LitElement {
         @pointermove=${this._holdMove}
         @pointerup=${this._cancelHold}
         @pointercancel=${this._cancelHold}
+        @hass-more-info=${this._cancelHold}
+        @hass-action=${this._cancelHold}
       >
         ${repeat(
           items,

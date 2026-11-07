@@ -20,6 +20,13 @@ const ICONS = {
   bulb: svg`<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z" />`,
   list: svg`<path d="M9 6h11M9 12h11M9 18h11" /><circle cx="4.5" cy="6" r="1" /><circle cx="4.5" cy="12" r="1" /><circle cx="4.5" cy="18" r="1" />`,
   moon: svg`<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z" />`,
+  power: svg`<path d="M12 3v8M6.3 6.3a8 8 0 1 0 11.4 0" />`,
+  snow: svg`<path d="M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7M9 3.5l3 2 3-2M9 20.5l3-2 3 2" />`,
+  flame: svg`<path d="M12 21.5a7 7 0 0 0 7-7c0-4.5-3.5-6.5-4.5-11-2 2-3 4-3 6.5-1-1-2-2.2-2.2-4C6.5 8 5 11 5 14.5a7 7 0 0 0 7 7z" />`,
+  range: svg`<path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0zM12 9v8" />`,
+  auto: svg`<path d="M5 20l7-16 7 16M8 14h8" />`,
+  drop: svg`<path d="M12 3s6 7 6 11.5a6 6 0 0 1-12 0C6 10 12 3 12 3z" />`,
+  fan: svg`<circle cx="12" cy="12" r="1.5" /><path d="M12 10.5c0-4 1-7 4-7 2 0 2.5 3 0 4.5M13.5 12c4 0 7 1 7 4 0 2-3 2.5-4.5 0M12 13.5c0 4-1 7-4 7-2 0-2.5-3 0-4.5M10.5 12c-4 0-7-1-7-4 0-2 3-2.5 4.5 0" />`,
 };
 
 export type IconName = keyof typeof ICONS;

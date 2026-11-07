@@ -6,6 +6,22 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `card` tiles hold any Home Assistant card, custom cards included, on glass
+  by default (`glass: false` keeps the card's own look). On the tablet,
+  **Add tile → Home Assistant card** takes the card's YAML.
+- Thermostat tiles show mode buttons on medium and large sizes.
+- The thermostat panel adds fan modes, presets and swing where the thermostat
+  has them.
+
+### Changed
+
+- Thermostat tiles stay glass instead of turning white while on. What it's
+  doing ("Heat · Heating") shows in the mode's color, with a soft glow to
+  match: orange for heat, blue for cool.
+- A heat/cool thermostat's tile shows its range, such as 20–24.
+
 ## [0.1.0] - 2026-11-07
 
 ### Added
