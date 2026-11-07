@@ -1,6 +1,6 @@
 {
   "name": "luxframe",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A calm, swipeable wall-tablet dashboard for Home Assistant.",
   "type": "module",
   "private": true,
