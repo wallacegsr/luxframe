@@ -89,7 +89,28 @@ const config: LuxFrameConfig = {
 
 const card = document.createElement('luxframe-card') as LuxFrameCard;
 card.setConfig(config);
-card.hass = createMockHass((hass) => (card.hass = hass));
+const hass = createMockHass((next) => (card.hass = next));
+
+// A stand-in for the dashboard LuxFrame lives in, so Done can save to it.
+// ?guest signs in as a non-admin; ?yaml makes the dashboard refuse saves.
+let dashboard: { views: Array<{ type: string; cards: LuxFrameConfig[] }> } = {
+  views: [{ type: 'panel', cards: [config] }],
+};
+hass.user = { name: 'Dev', is_admin: !params.has('guest') };
+hass.callWS = (async (message: Record<string, any>) => {
+  console.log('callWS', message.type, message.url_path);
+  await new Promise((r) => setTimeout(r, 300));
+  if (message.type === 'lovelace/config') return structuredClone(dashboard);
+  if (message.type === 'lovelace/config/save') {
+    if (params.has('yaml')) throw new Error('Not supported');
+    dashboard = message.config;
+    // Home Assistant reloads the dashboard and hands each card its new config.
+    setTimeout(() => card.setConfig(dashboard.views[0].cards[0]), 200);
+    return null;
+  }
+  throw new Error(`Unknown command ${message.type}`);
+}) as typeof hass.callWS;
+card.hass = hass;
 document.body.append(card);
 
 document.addEventListener('hass-more-info', (e) => {

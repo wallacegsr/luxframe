@@ -26,7 +26,7 @@ type Region = 'icon' | 'body';
  *   - tap the icon: toggle it (scenes and scripts run from anywhere on the tile)
  *   - tap anywhere else: open its detail view
  *   - drag up or down on a light, shade or fan: set its level
- *   - hold: open the detail view (until on-screen editing takes this over)
+ *   - hold: fires `luxframe-hold`; a grid page starts editing, otherwise details
  * A sideways swipe is left to the frame, which turns the page.
  */
 export class LuxFrameTile extends LitElement {
@@ -87,7 +87,9 @@ export class LuxFrameTile extends LitElement {
     };
     press.timer = window.setTimeout(() => {
       press.held = true;
-      this._detail();
+      // A grid page claims the hold to start editing; elsewhere it opens details.
+      const hold = new CustomEvent('luxframe-hold', { bubbles: true, composed: true, cancelable: true });
+      if (this.dispatchEvent(hold)) this._detail();
     }, HOLD_MS);
     this._press = press;
   }

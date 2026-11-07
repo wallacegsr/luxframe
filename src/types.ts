@@ -41,6 +41,9 @@ export interface HomeAssistant {
   themes?: { darkMode?: boolean };
   config?: { unit_system?: { temperature?: string } };
   formatEntityState?(stateObj: HassEntity, state?: string): string;
+  /** Sends a websocket command; used to read and save the dashboard. */
+  callWS?<T>(message: Record<string, unknown>): Promise<T>;
+  user?: { name?: string; is_admin: boolean };
 }
 
 export type EntityRef = string | { entity: string; name?: string; icon?: string };
@@ -114,7 +117,10 @@ export interface GridPageConfig {
   tiles: Array<GridTileConfig | string>;
 }
 
-export type PageConfig = ClockPageConfig | RoomPageConfig | ScenesPageConfig | GridPageConfig;
+export type PageConfig = (ClockPageConfig | RoomPageConfig | ScenesPageConfig | GridPageConfig) & {
+  /** Kept in the config but left out of the frame. */
+  hidden?: boolean;
+};
 
 export interface LuxFrameConfig {
   type: string;

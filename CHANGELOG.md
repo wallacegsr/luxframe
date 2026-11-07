@@ -17,9 +17,10 @@ All notable changes to LuxFrame are recorded here. The format follows
 - Clock, room and scenes pages.
 - Entity tiles: icon centered over the name and the area, with the area
   dropped from the front of the name. Tap the icon to toggle, tap the name for
-  details, drag up or down to set a light's, shade's or fan's level, and hold
-  for details. A running fan's icon spins at its speed. Locks and garage, door
-  and gate covers only open their details.
+  details, and drag up or down to set a light's, shade's or fan's level. A
+  running fan's icon spins at its speed. Locks and garage, door and gate
+  covers only open their details. Holding a tile on a grid page starts
+  editing; on room and scenes pages it opens the details.
 - A dragged level stays on screen until the device reports it, for up to 5
   seconds, so fading bulbs don't jump back. Quick thermostat taps go to Home
   Assistant as one change.
@@ -40,3 +41,12 @@ All notable changes to LuxFrame are recorded here. The format follows
   and everything else. Unlocking and opening a garage, door or gate ask for a
   second tap. Close with ✕, a swipe down or Escape; ⋯ opens Home Assistant's
   own dialog.
+- Editing on the tablet: hold a grid tile and the tiles wiggle. Drag to move,
+  tap to resize, rename, change or remove, add tiles from a searchable list,
+  and Customize pages (title, columns, rows, show/hide, order, add, delete),
+  the theme, wallpaper and tint. Done saves to the dashboard for admins, and
+  on that tablet for everyone else or on YAML dashboards.
+- Suggested pages: one grid page for each Home Assistant area without one,
+  built from the thermostat, lights, fans, shades, locks, switches, media and
+  scenes in it.
+- `hidden: true` on a page keeps it out of the frame.

@@ -42,7 +42,7 @@ artwork or face names.
 - Show the value you chose until the device reports it, so a bulb that fades
   doesn't seem to jump back.
 
-## Phase 3: editing on the tablet
+## Phase 3: editing on the tablet (done)
 
 - Hold a tile for 1 s: tiles wiggle; drag to move, tap to resize (S/W/M/L) or
   change what it shows; **+** adds a tile; **Customize** sets rows, the

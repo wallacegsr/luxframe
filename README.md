@@ -72,6 +72,8 @@ views:
 | `room`   | `title`, `entities` (ids or `{entity, name, icon}`), `sensors` (shown as chips) |
 | `scenes` | `title` (default "Scenes"), `scenes` (scene or script ids, or objects)       |
 
+Any page can have `hidden: true` to keep it in the config but out of the frame.
+
 ### Grid pages
 
 A grid page is `rows` × `columns` cells, and every row is the same height, so a
@@ -108,8 +110,8 @@ spins faster the higher its speed.
 - **Tap the name**, or anywhere else on the tile, to open its details.
 - **Drag up or down** on a dimmable light, a shade or a fan to set its level.
   A full tile height covers 0–100%.
-- **Hold** for a second to open the details. On-tablet editing will use this
-  gesture later.
+- **Hold** for a second to start [editing](#editing-on-the-tablet) on a grid
+  page. On room and scenes pages, holding opens the details.
 - Locks, and garage, door and gate covers, never act on one tap. The icon opens
   their details instead.
 - On the thermostat, **▼ / ▲** change the target. Several quick taps go to
@@ -131,6 +133,32 @@ Details open on a LuxFrame glass page over the frame:
 
 Close with ✕, by swiping down, or with Escape. **⋯** opens Home Assistant's own
 dialog for history, settings and attributes.
+
+### Editing on the tablet
+
+Hold any tile on a grid page for a second. The tiles wiggle, and a bar appears
+at the top.
+
+- **Drag** a tile to move it. The others make room.
+- **Tap** a tile to set its size (Small, Wide, Medium, Large), rename it,
+  change what it shows, move it earlier or later, or remove it.
+- **−** on a tile's corner removes it. **+ Add tile**, or the dashed tile at
+  the end, adds one: a clock, or any entity, searchable by name or room.
+  Thermostats and weather entities get their own tile kinds.
+- **Customize** sets the page's title, columns and rows; shows, hides,
+  reorders, adds and deletes pages; adds a page for each room in Home
+  Assistant that doesn't have one; and sets the theme, wallpaper and glass
+  tint.
+- **Done** saves, **Cancel** drops the changes.
+
+Where Done saves:
+
+- **Signed in as an admin**: into the dashboard's own config, so every tablet
+  on that dashboard gets the change. The YAML you wrote is the starting point;
+  after a save the dashboard's raw config shows the result.
+- **Otherwise**, or on a dashboard managed in YAML: on this tablet only, and
+  LuxFrame says so. When the dashboard's config changes, the tablet goes back
+  to it. **Customize → Use the dashboard's layout** does that by hand.
 
 ### Card options
 
