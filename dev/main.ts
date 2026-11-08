@@ -30,7 +30,21 @@ const config: LuxFrameConfig = {
   theme: (params.get('theme') as LuxFrameConfig['theme']) ?? 'auto',
   // ?wall puts a sample wallpaper behind the pages; the glass tints to match it.
   background: params.has('wall') ? "center / cover no-repeat url('./wallpaper.svg')" : undefined,
-  quick_panel: { pinned: ['light.porch', 'lock.front_door', 'scene.movie'] },
+  quick_panel: {
+    pinned: ['light.porch', 'lock.front_door', 'scene.movie'],
+    dock: [
+      'media',
+      'climate.living_room',
+      { name: 'Brew', icon: 'mdi:coffee', card: { type: 'button', name: 'Start Brew', glow: true } },
+      { name: 'Front door', tile: { type: 'camera', entity: 'camera.front_door' } },
+      {
+        name: 'Garage',
+        entity: 'cover.garage',
+        open: true,
+        visibility: [{ condition: 'state', entity: 'cover.garage', state: 'open' }],
+      },
+    ],
+  },
   pages: [
     {
       type: 'grid',

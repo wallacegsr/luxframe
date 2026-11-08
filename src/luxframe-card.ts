@@ -2,6 +2,7 @@ import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { badgeItems, compactBadge, normalizeBadge } from './badges';
 import { define } from './define';
 import './editor/badge-editor';
+import './editor/dock-editor';
 import './editor/customize';
 import './editor/picker';
 import './editor/sheet';
@@ -11,6 +12,7 @@ import { clearLocal, describe, loadLocal, save, stableJson } from './editor/stor
 import { openMoreInfo, resolve } from './entity';
 import { kiosk, onKiosk, type KioskTheme } from './kiosk';
 import './quick/assist';
+import { compactDock, dockOf, normalizeDock, toDockItem } from './quick/dock';
 import './quick/panel';
 import { readBrightness, veilOpacity, writeBrightness } from './screen';
 import { detectFlat } from './perf';
@@ -18,7 +20,18 @@ import type { GotoTarget } from './tiles/goto';
 import { tokens } from './theme';
 import { newerInstalled } from './update';
 import { averageColor, backgroundUrl } from './tint';
-import type { Badge, BadgeConfig, BadgeLook, GridPageConfig, GridTileConfig, HomeAssistant, LuxFrameConfig, PageConfig } from './types';
+import type {
+  Badge,
+  BadgeConfig,
+  BadgeLook,
+  GridPageConfig,
+  GridTileConfig,
+  HomeAssistant,
+  LuxFrameConfig,
+  PageConfig,
+  QuickDockConfig,
+  QuickDockItem,
+} from './types';
 
 const PAGE_HOLD_MS = 1000;
 const PAGE_HOLD_TOLERANCE = 10;
@@ -93,6 +106,8 @@ type Sheet =
   | { kind: 'replace'; page: number; index: number }
   | { kind: 'customize' }
   | { kind: 'pin' }
+  | { kind: 'dock-add' }
+  | { kind: 'dock'; index: number }
   | { kind: 'badge-add'; page: number }
   | { kind: 'badge'; page: number; scope: 'page' | 'frame'; index: number };
 
@@ -772,8 +787,43 @@ export class LuxFrameCard extends LitElement {
     this._setTiles(page, tiles);
   }
 
+  /** The dock being edited: as written, or media alone. */
+  private _dockOf(): QuickDockItem[] {
+    return dockOf(this._draft?.quick_panel || undefined);
+  }
+
+  private _setDock(dock: QuickDockItem[]): void {
+    if (!this._draft) return;
+    this._draft = { ...this._draft, quick_panel: { ...(this._draft.quick_panel || {}), dock } };
+  }
+
+  private _dockSheetEvent(index: number, e: CustomEvent): void {
+    const dock = [...this._dockOf()];
+    if (e.type === 'change') {
+      dock[index] = compactDock(e.detail as QuickDockConfig);
+      this._setDock(dock);
+    } else if (e.type === 'move') {
+      const to = index + (e.detail as number);
+      if (to < 0 || to >= dock.length) return;
+      [dock[index], dock[to]] = [dock[to], dock[index]];
+      this._setDock(dock);
+      this._sheet = { kind: 'dock', index: to };
+    } else if (e.type === 'remove') {
+      this._setDock(dock.filter((_, i) => i !== index));
+      this._sheet = { kind: 'customize' };
+    }
+  }
+
   private _picked(tile: GridTileConfig | string): void {
     const sheet = this._sheet;
+    if (sheet?.kind === 'dock-add' && this._draft) {
+      const item = toDockItem(tile);
+      if (!item) return;
+      const dock = [...this._dockOf(), item];
+      this._setDock(dock);
+      this._sheet = { kind: 'dock', index: dock.length - 1 };
+      return;
+    }
     if (sheet?.kind === 'pin' && this._draft) {
       const entity = typeof tile === 'string' ? tile : 'entity' in tile ? tile.entity : undefined;
       const quick = this._draft.quick_panel || {};
@@ -850,7 +900,32 @@ export class LuxFrameCard extends LitElement {
           @show-page=${(e: CustomEvent<{ page: number }>) => this._showPage(e.detail.page)}
           @reset=${this._useDashboardLayout}
           @pin=${() => (this._sheet = { kind: 'pin' })}
+          @dock-add=${() => (this._sheet = { kind: 'dock-add' })}
+          @dock-edit=${(e: CustomEvent<{ index: number }>) => (this._sheet = { kind: 'dock', index: e.detail.index })}
         ></luxframe-customize>
+      </luxframe-sheet>`;
+    }
+    if (sheet.kind === 'dock-add') {
+      return html`<luxframe-sheet heading="Add to the quick panel" @close=${() => (this._sheet = { kind: 'customize' })}>
+        <luxframe-picker .hass=${this.hass} @pick=${(e: CustomEvent) => this._picked(e.detail.tile)}>
+        </luxframe-picker>
+      </luxframe-sheet>`;
+    }
+    if (sheet.kind === 'dock') {
+      const dock = this._dockOf();
+      const raw = dock[sheet.index];
+      if (raw === undefined) return nothing;
+      const on = (e: CustomEvent) => this._dockSheetEvent(sheet.index, e);
+      return html`<luxframe-sheet heading="Quick panel" @close=${() => (this._sheet = { kind: 'customize' })}>
+        <luxframe-dock-editor
+          .hass=${this.hass}
+          .item=${normalizeDock(raw)}
+          ?first=${sheet.index === 0}
+          ?last=${sheet.index === dock.length - 1}
+          @change=${on}
+          @move=${on}
+          @remove=${on}
+        ></luxframe-dock-editor>
       </luxframe-sheet>`;
     }
     if (sheet.kind === 'pin') {

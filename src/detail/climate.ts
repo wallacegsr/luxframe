@@ -32,7 +32,7 @@ export class LuxFrameClimateDetail extends LitElement {
     this._send({ target_temp_low: this._low.value(this.stateObj?.attributes.target_temp_low), target_temp_high: high }),
   );
 
-  private _stepper(label: string, setter: TempSetter, reported: number | undefined, size: 'big' | 'small') {
+  private _stepper(label: string, setter: TempSetter, reported: number | undefined, size: 'large' | 'small') {
     const s = this.stateObj!;
     const value = setter.value(reported);
     const disabled = s.state === 'unavailable' || value === undefined;
@@ -96,7 +96,7 @@ export class LuxFrameClimateDetail extends LitElement {
             <div class="labelled"><div class="muted">High</div>
               ${this._stepper('high', this._high, a.target_temp_high, 'small')}</div>
           </div>`
-        : this._stepper('target', this._target, a.temperature, 'big')}
+        : this._stepper('target', this._target, a.temperature, 'large')}
       ${modes.length
         ? html`<div class="row" role="group" aria-label="Mode">
             ${modes.map(
@@ -137,11 +137,12 @@ export class LuxFrameClimateDetail extends LitElement {
         font-variant-numeric: tabular-nums;
       }
 
-      .big .value {
-        font-size: clamp(88px, 14vw, 160px);
+      /* Not .big: that's the sliders' size, shared by every detail view. */
+      .large .value {
+        font-size: var(--lf-detail-temp-size, clamp(88px, 14vw, 160px));
       }
 
-      .big .round {
+      .large .round {
         width: 76px;
         height: 76px;
       }

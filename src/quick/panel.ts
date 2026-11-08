@@ -1,22 +1,47 @@
 import { LitElement, css, html, nothing } from 'lit';
+import { keyed } from 'lit/directives/keyed.js';
 import { define } from '../define';
+import { renderEntityView } from '../detail/detail';
+import { isActive } from '../entity';
 import { icon } from '../icons';
+import { pickPlayer } from '../media';
 import '../now-playing';
 import { MIN_BRIGHTNESS } from '../screen';
-import type { HomeAssistant, QuickPanelConfig } from '../types';
+import { renderTile } from '../tiles/render';
+import type { HomeAssistant, QuickDockConfig, QuickPanelConfig, TileSize } from '../types';
+import { dockEntity, dockIcon, dockKind, dockLabel, dockOf, dockShows, normalizeDock } from './dock';
 
 const CLOSE_DISTANCE = 80;
 const CLOSE_MS = 200;
-const MAX_PINNED = 4;
-const CONTROLS = 'button, luxframe-slider, luxframe-tile, [data-no-swipe]';
+export const MAX_PINNED = 8;
+/** A touch that starts on one of these belongs to the control, not the panel. */
+const CONTROLS = 'button, input, select, textarea, a, luxframe-slider, luxframe-tile, [data-no-swipe]';
+/** Past this, a move says which way it's going. */
+const SWIPE_SLOP = 6;
+const RESIZE_MS = 240;
+const TILE_HEIGHT = 300;
+const PRESETS = new Set(['s', 'w', 'm', 'l']);
+
+interface Entry {
+  item: QuickDockConfig;
+  /** Its place in the dock as written. */
+  index: number;
+}
 
 /**
- * The panel pulled down from the top edge: what's playing and its volume, the
- * screen's brightness, a few pinned tiles, and a way into Assist.
+ * The panel pulled down from the top edge. Its dock, a row of icons, opens
+ * one thing at a time on the stage under it: what's playing, a device's
+ * controls, a Home Assistant card or a LuxFrame tile. Beside it (under it,
+ * upright) are the screen's brightness, pinned tiles and Ask. With one
+ * thing in the dock there's no row of icons: it just shows.
+ *
+ * The panel is as tall as what it shows, and grows and shrinks smoothly as
+ * that changes. Too tall for the screen, it scrolls; swiping up once it's
+ * scrolled to the end puts it away.
  *
  * The frame drives the pull with `offset` (px still hidden above the top) and
- * sets `offset` to 0 once open. Swiping it back up, tapping below it or
- * Escape fires `close`. Also fires `brightness` (detail: 10–100) and `ask`.
+ * sets `offset` to 0 once open. Swiping it away, tapping below it or Escape
+ * fires `close`. Also fires `brightness` (detail: 10–100) and `ask`.
  */
 export class LuxFrameQuickPanel extends LitElement {
   static properties = {
@@ -28,6 +53,7 @@ export class LuxFrameQuickPanel extends LitElement {
     _dy: { state: true },
     _closing: { state: true },
     _drop: { state: true },
+    _picked: { state: true },
   };
 
   declare hass?: HomeAssistant;
@@ -40,8 +66,14 @@ export class LuxFrameQuickPanel extends LitElement {
   declare _closing: boolean;
   /** Opened by a tap rather than pulled: it drops in by itself. */
   declare _drop: boolean;
+  /** The dock item tapped open (its index), or null once put away. */
+  declare _picked?: number | null;
 
-  private _swipe?: { y: number; id: number; active: boolean };
+  /** A swipe that may put the panel away; `active` once it's doing so. */
+  private _swipe?: { y: number; id?: number; active: boolean };
+  private _resizer?: ResizeObserver;
+  /** The panel's height last seen, to grow or shrink from. */
+  private _height = 0;
 
   constructor() {
     super();
@@ -65,12 +97,25 @@ export class LuxFrameQuickPanel extends LitElement {
   disconnectedCallback(): void {
     super.disconnectedCallback();
     this.removeEventListener('keydown', this._onKey);
+    this._resizer?.disconnect();
+    this._resizer = undefined;
+  }
+
+  protected firstUpdated(): void {
+    const content = this.renderRoot.querySelector('.content');
+    if (!content) return;
+    this._resizer = new ResizeObserver(() => this._resized());
+    this._resizer.observe(content);
   }
 
   close(): void {
     if (this._closing) return;
     this._closing = true;
     window.setTimeout(() => this.dispatchEvent(new CustomEvent('close')), CLOSE_MS);
+  }
+
+  private get _panel(): HTMLElement | null {
+    return this.renderRoot.querySelector('.panel');
   }
 
   private _onKey = (e: KeyboardEvent): void => {
@@ -80,23 +125,89 @@ export class LuxFrameQuickPanel extends LitElement {
     }
   };
 
-  // Swipe up anywhere but a control to put it away.
+  // ---- Growing and shrinking ------------------------------------------------
+
+  /** Eases the panel from its last height to its new one. */
+  private _resized(): void {
+    const panel = this._panel;
+    if (!panel) return;
+    const height = panel.offsetHeight;
+    const from = this._height;
+    this._height = height;
+    if (!from || Math.abs(height - from) < 2 || this.offset > 0 || this._swipe?.active) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    panel.animate([{ height: `${from}px` }, { height: `${height}px` }], {
+      duration: RESIZE_MS,
+      easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+    });
+  }
+
+  // ---- Putting it away ------------------------------------------------------
+  //
+  // Swiping up puts the panel away, unless it starts on a control, or the
+  // panel has more to show below: then it scrolls, and only once it's at the
+  // end does the next swipe up put it away. Touch scrolls natively; a mouse
+  // drags.
+
+  /** Whether the gesture starts on something that takes its own drags. */
+  private _onControl(e: Event): boolean {
+    const panel = this._panel;
+    for (const el of e.composedPath()) {
+      if (el === panel) break;
+      if (!(el instanceof Element)) continue;
+      if (el.matches(CONTROLS)) return true;
+      if (getComputedStyle(el).touchAction === 'none') return true;
+    }
+    return false;
+  }
+
+  /** Scrolled to the end, or with nothing to scroll. */
+  private _atEnd(): boolean {
+    const panel = this._panel;
+    return !panel || panel.scrollTop + panel.clientHeight >= panel.scrollHeight - 2;
+  }
+
+  private _touchStart = {
+    passive: true,
+    handleEvent: (e: TouchEvent): void => {
+      this._swipe = undefined;
+      if (e.touches.length !== 1 || !this._atEnd() || this._onControl(e)) return;
+      this._swipe = { y: e.touches[0].clientY, active: false };
+    },
+  };
+
+  private _touchMove = {
+    passive: false,
+    handleEvent: (e: TouchEvent): void => {
+      const swipe = this._swipe;
+      if (!swipe || e.touches.length !== 1) return;
+      const dy = e.touches[0].clientY - swipe.y;
+      if (!swipe.active) {
+        // Down scrolls the panel back up; only up puts it away.
+        if (dy > SWIPE_SLOP) this._swipe = undefined;
+        if (dy > -SWIPE_SLOP) return;
+        swipe.active = true;
+      }
+      if (e.cancelable) e.preventDefault();
+      this._dy = Math.min(0, dy);
+    },
+  };
+
+  private _touchEnd = (): void => this._release();
+
   private _down(e: PointerEvent): void {
-    if (e.button !== 0) return;
-    const onControl = e
-      .composedPath()
-      .some((el) => el instanceof Element && el !== this && el.matches(CONTROLS));
-    if (!onControl) this._swipe = { y: e.clientY, id: e.pointerId, active: false };
+    if (e.pointerType === 'touch' || e.button !== 0 || this._onControl(e)) return;
+    this._swipe = { y: e.clientY, id: e.pointerId, active: false };
   }
 
   private _move(e: PointerEvent): void {
     const swipe = this._swipe;
-    if (!swipe) return;
+    if (!swipe || swipe.id !== e.pointerId) return;
     const dy = Math.min(0, e.clientY - swipe.y);
     if (!swipe.active && dy < -8) {
       swipe.active = true;
       try {
-        (e.currentTarget as HTMLElement).setPointerCapture(swipe.id);
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       } catch {
         // Pointer already gone.
       }
@@ -104,39 +215,117 @@ export class LuxFrameQuickPanel extends LitElement {
     if (swipe.active) this._dy = dy;
   }
 
-  private _up(): void {
-    if (!this._swipe) return;
+  private _up(e: PointerEvent): void {
+    if (this._swipe?.id === e.pointerId) this._release();
+  }
+
+  private _release(): void {
+    const swipe = this._swipe;
     this._swipe = undefined;
+    if (!swipe?.active) return;
     if (this._dy < -CLOSE_DISTANCE) this.close();
     else this._dy = 0;
   }
 
-  private _renderMedia() {
-    return html`<luxframe-now-playing class="card media" .hass=${this.hass} .entity=${this.config?.media_player}>
-    </luxframe-now-playing>`;
+  // ---- The dock and its stage -----------------------------------------------
+
+  /** The dock items showing now, in order. */
+  private _entries(): Entry[] {
+    return dockOf(this.config)
+      .map((raw, index) => ({ item: normalizeDock(raw), index }))
+      .filter(({ item }) => dockKind(item) && dockShows(item, this.hass));
+  }
+
+  /** On the stage: the item tapped, else the first set to open first, else the first. */
+  private _current(entries: Entry[]): Entry | undefined {
+    if (entries.length === 1) return entries[0];
+    if (this._picked === null) return undefined;
+    return entries.find((e) => e.index === this._picked) ?? entries.find((e) => e.item.open) ?? entries[0];
+  }
+
+  private _pick(index: number, open: boolean): void {
+    this._picked = open ? null : index;
+  }
+
+  /** What's playing's artwork, for the media icon. */
+  private _artwork(): string | undefined {
+    const player = pickPlayer(this.hass, this.config?.media_player);
+    const playing = player?.state === 'playing' || player?.state === 'paused';
+    return playing ? (player?.attributes.entity_picture as string | undefined) : undefined;
+  }
+
+  private _renderDock(entries: Entry[], current: Entry | undefined) {
+    return html`<nav class="dock" aria-label="Quick panel">
+      ${entries.map(({ item, index }) => {
+        const on = current?.index === index;
+        const label = dockLabel(this.hass, item);
+        const art = dockKind(item) === 'media' ? this._artwork() : undefined;
+        const entity = dockEntity(item);
+        const lit = !!entity && isActive(this.hass?.states[entity]);
+        return html`<button
+          class="dock-item ${on ? 'on' : ''}"
+          aria-pressed=${on}
+          aria-label=${label}
+          @click=${() => this._pick(index, on)}
+        >
+          <span class="dock-icon ${art ? 'art' : ''} ${lit ? 'lit' : ''}"
+            style=${art ? `background-image: url("${art}")` : ''}>
+            ${art ? nothing : dockIcon(this.hass, item, label)}
+          </span>
+          <span class="dock-label">${label}</span>
+        </button>`;
+      })}
+    </nav>`;
+  }
+
+  private _renderStage(item: QuickDockConfig) {
+    switch (dockKind(item)) {
+      case 'media':
+        return html`<luxframe-now-playing class="card media" .hass=${this.hass} .entity=${this.config?.media_player}>
+        </luxframe-now-playing>`;
+      case 'entity':
+        return html`<div class="card view">
+          ${renderEntityView(this.hass, this.hass?.states[item.entity!])}
+        </div>`;
+      case 'card':
+        return html`<luxframe-stage-card class="card bare" .hass=${this.hass} .card=${item.card}
+          ?glass=${item.glass !== false}></luxframe-stage-card>`;
+      case 'tile': {
+        const tile = item.tile!;
+        const size = (PRESETS.has(String(tile.size)) ? tile.size : 'w') as TileSize;
+        const height = Number(item.height) > 0 ? Number(item.height) : TILE_HEIGHT;
+        return html`<div class="tile-box" style="height: ${height}px">${renderTile(this.hass, tile, size)}</div>`;
+      }
+      default:
+        return nothing;
+    }
   }
 
   private _renderSide() {
     const pinned = (this.config?.pinned ?? []).slice(0, MAX_PINNED);
-    const brightness = this.brightness;
+    const brightness = this.config?.brightness !== false;
+    if (!brightness && !pinned.length && !this.assist) return nothing;
+    const level = this.brightness;
     return html`
       <div class="side">
-        <div class="card">
-          <div class="labelled">
-            ${icon('sun', 22)}
-            <luxframe-slider
-              filled
-              label="Screen brightness"
-              .min=${MIN_BRIGHTNESS}
-              .value=${brightness}
-              .valueText=${`${brightness}%`}
-              @input=${(e: CustomEvent<number>) => this._fire('brightness', e.detail)}
-              @change=${(e: CustomEvent<number>) => this._fire('brightness', e.detail)}
-            ></luxframe-slider>
-          </div>
-        </div>
+        ${brightness
+          ? html`<div class="card">
+              <div class="labelled">
+                ${icon('sun', 22)}
+                <luxframe-slider
+                  filled
+                  label="Screen brightness"
+                  .min=${MIN_BRIGHTNESS}
+                  .value=${level}
+                  .valueText=${`${level}%`}
+                  @input=${(e: CustomEvent<number>) => this._fire('brightness', e.detail)}
+                  @change=${(e: CustomEvent<number>) => this._fire('brightness', e.detail)}
+                ></luxframe-slider>
+              </div>
+            </div>`
+          : nothing}
         ${pinned.length
-          ? html`<div class="pinned" style="--count: ${pinned.length}">
+          ? html`<div class="pinned" style="--columns: ${Math.min(pinned.length, 4)}">
               ${pinned.map(
                 (entity) => html`<luxframe-tile .hass=${this.hass} .entity=${entity} subtitle="state">
                 </luxframe-tile>`,
@@ -158,10 +347,26 @@ export class LuxFrameQuickPanel extends LitElement {
 
   protected render() {
     const dragging = this.offset > 0 || this._swipe?.active;
-    const shift = this._closing ? -100 : 0;
     const style = this._closing
-      ? `transform: translateY(${shift}%)`
+      ? 'transform: translateY(-100%)'
       : `transform: translateY(${-this.offset + this._dy}px)`;
+    const entries = this._entries();
+    const current = this._current(entries);
+    const side = this._renderSide();
+    const main = entries.length
+      ? html`<div class="main">
+          ${entries.length > 1 ? this._renderDock(entries, current) : nothing}
+          ${current
+            ? keyed(
+                current.index,
+                html`<div class="stage" role="region" aria-label=${dockLabel(this.hass, current.item)}>
+                  ${this._renderStage(current.item)}
+                </div>`,
+              )
+            : nothing}
+        </div>`
+      : nothing;
+    const columns = entries.length && side !== nothing ? 'two' : '';
     return html`
       <div class="backdrop ${this._closing ? 'closing' : ''}" @click=${this.close}></div>
       <section
@@ -173,8 +378,12 @@ export class LuxFrameQuickPanel extends LitElement {
         @pointermove=${this._move}
         @pointerup=${this._up}
         @pointercancel=${this._up}
+        @touchstart=${this._touchStart}
+        @touchmove=${this._touchMove}
+        @touchend=${this._touchEnd}
+        @touchcancel=${this._touchEnd}
       >
-        <div class="content">${this._renderMedia()} ${this._renderSide()}</div>
+        <div class="content ${columns}">${main} ${side}</div>
         <button class="grabber" aria-label="Close quick controls" @click=${this.close}></button>
       </section>
     `;
@@ -201,6 +410,11 @@ export class LuxFrameQuickPanel extends LitElement {
       opacity: 0;
     }
 
+    /*
+     * As tall as what it shows, up to most of the screen, leaving a strip
+     * below to tap it away; past that it scrolls. Touch scrolls it natively,
+     * up and down only, and never the page behind.
+     */
     .panel {
       position: absolute;
       top: 0;
@@ -212,13 +426,19 @@ export class LuxFrameQuickPanel extends LitElement {
       box-sizing: border-box;
       padding: var(--lf-pad) var(--lf-pad) 10px;
       overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: none;
       border-radius: 0 0 calc(var(--lf-radius) + 10px) calc(var(--lf-radius) + 10px);
       background: var(--lf-sheet);
       -webkit-backdrop-filter: var(--lf-blur-strong);
       backdrop-filter: var(--lf-blur-strong);
       box-shadow: 0 20px 50px rgb(0 0 0 / 30%);
       transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
-      touch-action: pan-x;
+      touch-action: pan-y;
+    }
+
+    .panel::-webkit-scrollbar {
+      display: none;
     }
 
     .panel.dragging {
@@ -236,14 +456,101 @@ export class LuxFrameQuickPanel extends LitElement {
     }
 
     .content {
+      flex: none;
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
+      align-items: start;
       gap: var(--lf-gap);
     }
 
     @media (orientation: landscape) {
-      .content {
+      .content.two {
         grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      }
+    }
+
+    .main {
+      display: flex;
+      flex-direction: column;
+      gap: var(--lf-gap);
+      min-width: 0;
+    }
+
+    /* The dock: glass icons with their names under them. */
+    .dock {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+    }
+
+    .dock-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      width: 76px;
+      padding: 0;
+      background: none;
+    }
+
+    .dock-icon {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 60px;
+      height: 60px;
+      border-radius: 18px;
+      color: var(--lf-text);
+      background: rgb(255 255 255 / 10%) center / cover no-repeat;
+      --mdc-icon-size: 28px;
+      transition: background-color 0.2s, color 0.2s, transform 0.15s;
+    }
+
+    .dock-icon.lit {
+      color: var(--lf-accent);
+    }
+
+    .dock-item.on .dock-icon {
+      background-color: var(--lf-surface-active);
+      color: var(--lf-text-active);
+    }
+
+    /* Artwork fills the media icon; picked, a ring says so. */
+    .dock-item.on .dock-icon.art {
+      box-shadow: 0 0 0 3px var(--lf-surface-active);
+    }
+
+    .dock-item:active .dock-icon {
+      transform: scale(0.94);
+    }
+
+    .glyph {
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    .dock-label {
+      max-width: 100%;
+      overflow: hidden;
+      font-size: 13px;
+      color: var(--lf-muted);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .dock-item.on .dock-label {
+      color: var(--lf-text);
+    }
+
+    .stage {
+      min-width: 0;
+      animation: stage-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    @keyframes stage-in {
+      from {
+        opacity: 0;
+        transform: translateY(-6px);
       }
     }
 
@@ -256,17 +563,29 @@ export class LuxFrameQuickPanel extends LitElement {
       background: rgb(255 255 255 / 10%);
     }
 
+    /* A Home Assistant card brings its own padding. */
+    .card.bare {
+      display: block;
+      padding: 0;
+      overflow: hidden;
+    }
 
+    /* A device's controls, as in its details, smaller. */
+    .card.view {
+      align-items: center;
+      padding: 22px 18px;
+      --lf-detail-big-height: min(28vh, 240px);
+      --lf-detail-big-width: 104px;
+      --lf-detail-temp-size: clamp(64px, 7vw, 96px);
+    }
 
-
-
-
-
+    .tile-box {
+      display: block;
+    }
 
     .muted {
       color: var(--lf-muted);
     }
-
 
     button {
       font: inherit;
@@ -286,8 +605,6 @@ export class LuxFrameQuickPanel extends LitElement {
       outline-offset: 2px;
     }
 
-
-
     .labelled {
       display: flex;
       align-items: center;
@@ -304,11 +621,12 @@ export class LuxFrameQuickPanel extends LitElement {
       display: flex;
       flex-direction: column;
       gap: var(--lf-gap);
+      min-width: 0;
     }
 
     .pinned {
       display: grid;
-      grid-template-columns: repeat(var(--count), minmax(0, 1fr));
+      grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
       gap: var(--lf-gap);
     }
 
@@ -329,6 +647,7 @@ export class LuxFrameQuickPanel extends LitElement {
     }
 
     .grabber {
+      flex: none;
       align-self: center;
       width: 64px;
       height: 22px;
@@ -357,7 +676,8 @@ export class LuxFrameQuickPanel extends LitElement {
 
     @media (prefers-reduced-motion: reduce) {
       .panel,
-      .backdrop {
+      .backdrop,
+      .stage {
         transition: none;
         animation: none;
       }

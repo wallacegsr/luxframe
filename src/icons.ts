@@ -26,6 +26,8 @@ const ICONS = {
   range: svg`<path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0zM12 9v8" />`,
   auto: svg`<path d="M5 20l7-16 7 16M8 14h8" />`,
   drop: svg`<path d="M12 3s6 7 6 11.5a6 6 0 0 1-12 0C6 10 12 3 12 3z" />`,
+  grid: svg`<rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" />`,
+  clock: svg`<circle cx="12" cy="12" r="8.5" /><path d="M12 7v5l3 2" />`,
   fan: svg`<circle cx="12" cy="12" r="1.5" /><path d="M12 10.5c0-4 1-7 4-7 2 0 2.5 3 0 4.5M13.5 12c4 0 7 1 7 4 0 2-3 2.5-4.5 0M12 13.5c0 4-1 7-4 7-2 0-2.5-3 0-4.5M10.5 12c-4 0-7-1-7-4 0-2 3-2.5 4.5 0" />`,
 };
 

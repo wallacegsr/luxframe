@@ -50,8 +50,8 @@ export const detailStyles = css`
   }
 
   .big {
-    width: clamp(112px, 13vw, 150px);
-    height: min(50vh, 440px);
+    width: var(--lf-detail-big-width, clamp(112px, 13vw, 150px));
+    height: var(--lf-detail-big-height, min(50vh, 440px));
   }
 
   .row {

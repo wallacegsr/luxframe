@@ -3,7 +3,7 @@ import { define } from '../define';
 import { glass, tileBase } from '../theme';
 import type { CardTileConfig, HomeAssistant, TileSize } from '../types';
 
-interface CardElement extends HTMLElement {
+export interface CardElement extends HTMLElement {
   hass?: HomeAssistant;
   layout?: string;
   setConfig?(config: Record<string, unknown>): void;
@@ -25,7 +25,28 @@ declare global {
 
 let helpers: Promise<CardHelpers> | undefined;
 
-function cardHelpers(): Promise<CardHelpers> | undefined {
+/**
+ * Home Assistant's cards read these from their surroundings. Under
+ * `.themed` the card goes clear so the glass shows through; menus that open
+ * from a card get a solid surface in LuxFrame's colors so they stay readable.
+ */
+export const haThemed = css`
+  .themed {
+    --ha-card-background: transparent;
+    --ha-card-border-width: 0;
+    --ha-card-box-shadow: none;
+    --ha-card-backdrop-filter: none;
+    --ha-card-border-radius: var(--lf-radius);
+    --primary-text-color: var(--lf-text);
+    --secondary-text-color: var(--lf-muted);
+    --card-background-color: var(--lf-sheet);
+    --mdc-theme-surface: var(--lf-sheet);
+    --divider-color: color-mix(in srgb, var(--lf-text) 14%, transparent);
+  }
+`;
+
+/** Home Assistant's card factory, or undefined outside Home Assistant. */
+export function cardHelpers(): Promise<CardHelpers> | undefined {
   if (!window.loadCardHelpers) return undefined;
   return (helpers ??= window.loadCardHelpers());
 }
@@ -272,6 +293,7 @@ export class LuxFrameCardTile extends LitElement {
   static styles = [
     tileBase,
     glass,
+    haThemed,
     css`
       .empty {
         display: grid;
@@ -325,24 +347,6 @@ export class LuxFrameCardTile extends LitElement {
         top: 0;
         left: 0;
         transform-origin: 0 0;
-      }
-
-      /*
-       * Home Assistant's cards read these from their surroundings. The card
-       * goes clear so the glass shows through; menus that open from a card
-       * get a solid surface in LuxFrame's colors so they stay readable.
-       */
-      .themed {
-        --ha-card-background: transparent;
-        --ha-card-border-width: 0;
-        --ha-card-box-shadow: none;
-        --ha-card-backdrop-filter: none;
-        --ha-card-border-radius: var(--lf-radius);
-        --primary-text-color: var(--lf-text);
-        --secondary-text-color: var(--lf-muted);
-        --card-background-color: var(--lf-sheet);
-        --mdc-theme-surface: var(--lf-sheet);
-        --divider-color: color-mix(in srgb, var(--lf-text) 14%, transparent);
       }
 
       .tile:not(.themed) {

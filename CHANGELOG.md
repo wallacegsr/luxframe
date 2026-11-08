@@ -6,6 +6,33 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The quick panel has a dock: a row of glass icons along its top, each
+  opening its own view on a stage under it. It can hold what's playing, a
+  device's controls, any Home Assistant card, and any LuxFrame tile, such as
+  a camera. Tap another icon to switch, or the open one to fold the stage
+  away. Each item can have its own name and icon, open first when the panel
+  comes down, and show only while Home Assistant's visibility conditions are
+  met. Set it up under Customize → Quick panel, or with `quick_panel: dock:`.
+  Out of the box the dock holds what's playing alone, which shows without an
+  icon, as before.
+- The quick panel grows and shrinks with what it shows, and scrolls when it's
+  taller than the screen. Swiping up once it's at the end puts it away.
+- `brightness: false` in `quick_panel`, or Customize → Quick panel, hides the
+  screen brightness slider.
+
+### Changed
+
+- Up to eight tiles can be pinned to the quick panel, from four. Past four
+  they wrap to a second row.
+
+### Fixed
+
+- A thermostat's details show round ▼ and ▲ buttons with the temperature
+  centered between them. They were squeezed into tall ovals, with the
+  temperature pushed off to the right.
+
 ## [0.8.8] - 2026-11-08
 
 ### Fixed

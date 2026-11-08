@@ -1,7 +1,7 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { define } from '../define';
 import { domainOf, resolve } from '../entity';
-import type { HomeAssistant } from '../types';
+import type { HassEntity, HomeAssistant } from '../types';
 
 const CLOSE_DISTANCE = 120;
 const CLOSE_MS = 180;
@@ -16,6 +16,25 @@ const CONTROLS = 'button, luxframe-slider, luxframe-confirm-button, [data-no-swi
  *
  * Fires `close`, and `more` with the entity id.
  */
+/** The controls for an entity's kind: a light's brightness and color, a lock's button. */
+export function renderEntityView(hass: HomeAssistant | undefined, stateObj: HassEntity | undefined) {
+  if (!stateObj) return html`<div class="missing">This device isn't in Home Assistant anymore.</div>`;
+  switch (domainOf(stateObj.entity_id)) {
+    case 'light':
+      return html`<luxframe-light-detail .hass=${hass} .stateObj=${stateObj}></luxframe-light-detail>`;
+    case 'fan':
+      return html`<luxframe-fan-detail .hass=${hass} .stateObj=${stateObj}></luxframe-fan-detail>`;
+    case 'cover':
+      return html`<luxframe-cover-detail .hass=${hass} .stateObj=${stateObj}></luxframe-cover-detail>`;
+    case 'climate':
+      return html`<luxframe-climate-detail .hass=${hass} .stateObj=${stateObj}></luxframe-climate-detail>`;
+    case 'lock':
+      return html`<luxframe-lock-detail .hass=${hass} .stateObj=${stateObj}></luxframe-lock-detail>`;
+    default:
+      return html`<luxframe-generic-detail .hass=${hass} .stateObj=${stateObj}></luxframe-generic-detail>`;
+  }
+}
+
 export class LuxFrameDetail extends LitElement {
   static properties = {
     hass: { attribute: false },
@@ -94,27 +113,7 @@ export class LuxFrameDetail extends LitElement {
   }
 
   private _renderView() {
-    const stateObj = this.entityId ? this.hass?.states[this.entityId] : undefined;
-    if (!stateObj) return html`<div class="missing">This device isn't in Home Assistant anymore.</div>`;
-    switch (domainOf(stateObj.entity_id)) {
-      case 'light':
-        return html`<luxframe-light-detail .hass=${this.hass} .stateObj=${stateObj}>
-        </luxframe-light-detail>`;
-      case 'fan':
-        return html`<luxframe-fan-detail .hass=${this.hass} .stateObj=${stateObj}></luxframe-fan-detail>`;
-      case 'cover':
-        return html`<luxframe-cover-detail .hass=${this.hass} .stateObj=${stateObj}>
-        </luxframe-cover-detail>`;
-      case 'climate':
-        return html`<luxframe-climate-detail .hass=${this.hass} .stateObj=${stateObj}>
-        </luxframe-climate-detail>`;
-      case 'lock':
-        return html`<luxframe-lock-detail .hass=${this.hass} .stateObj=${stateObj}>
-        </luxframe-lock-detail>`;
-      default:
-        return html`<luxframe-generic-detail .hass=${this.hass} .stateObj=${stateObj}>
-        </luxframe-generic-detail>`;
-    }
+    return renderEntityView(this.hass, this.entityId ? this.hass?.states[this.entityId] : undefined);
   }
 
   protected render() {

@@ -370,19 +370,41 @@ LuxFrame says so and stays in editing, so nothing is lost.
 
 **Pull down from the top edge**, or tap the small handle there, for the quick
 panel. The whole band above the page title counts, and a short flick is
-enough:
+enough.
 
-- **Now playing**: artwork, title and artist, previous / play-pause / next,
-  and volume. It follows whichever speaker is playing, Music Assistant's
-  players first, unless you set `media_player`. Buttons the speaker can't use
-  are dimmed.
+Along its top runs the **dock**, a row of glass icons, each opening its own
+view on the stage under it. Tap another icon to switch, or the open one to
+fold the stage away. The dock can hold:
+
+- **What's playing** (`media`): artwork, title and artist, previous /
+  play-pause / next, and volume. It follows whichever speaker is playing,
+  Music Assistant's players first, unless you set `media_player`. Buttons the
+  speaker can't use are dimmed, and the icon shows the artwork.
+- **A device's controls** (its entity id): the same controls as its details
+  page, a little smaller, such as a thermostat's temperature and modes or a
+  light's brightness and color.
+- **Any Home Assistant card** (`card`), custom cards too, in LuxFrame's glass
+  at its own height. `glass: false` keeps the card's own look.
+- **Any LuxFrame tile** (`tile`), such as a camera, the weather or a room.
+  `height` sets how tall it is, 300 pixels by default.
+
+Out of the box the dock holds what's playing alone, and with only one item
+there's no row of icons: it just shows.
+
+Beside them, or under them when the tablet is upright:
+
 - **Screen brightness**: in Kiosk Satellite this moves the tablet's backlight.
   Anywhere else LuxFrame dims itself with a dark veil, remembered per tablet.
-- **Pinned tiles**: up to four, e.g. a light, a lock and a scene. They work
+  `brightness: false` hides it.
+- **Pinned tiles**: up to eight, e.g. a light, a lock and a scene. They work
   like any tile.
 - **Ask Home Assistant**.
 
-Swipe the panel back up, tap below it, or press Escape to put it away.
+The panel is as tall as what it shows, and grows or shrinks as you switch.
+Taller than the screen, it scrolls.
+
+Swipe the panel back up, tap below it, or press Escape to put it away. When it
+scrolls, swipe up once you're at the end.
 
 **Hold the top edge** for a second to go straight to **Ask Home Assistant**:
 type a request ("turn off the kitchen lights") and read the answer. It uses
@@ -392,16 +414,44 @@ on the same conversation. Voice stays with Kiosk Satellite or Voice Satellite.
 ```yaml
 quick_panel:
   media_player: media_player.living_room   # optional
+  dock:
+    - media
+    - climate.living_room                  # its controls
+    - name: Front door
+      tile:
+        type: camera
+        entity: camera.front_door
+      height: 260
+    - name: Coffee
+      icon: mdi:coffee
+      card:
+        type: button
+        entity: switch.coffee_maker
+    - entity: cover.garage
+      open: true                           # opens first while it shows
+      visibility:
+        - condition: state
+          entity: cover.garage
+          state: open
   pinned:
     - light.porch
     - lock.front_door
     - scene.movie
+  brightness: false                        # hides the slider
 assist:
   agent_id: conversation.home_assistant   # optional; true/false also work
 ```
 
-The pinned tiles and the speaker can also be set on the tablet, under
-**Customize → Quick panel**.
+Every dock item can have its own `name` and `icon`. The first one opens when
+the panel comes down, unless another has `open: true`. `visibility` takes Home
+Assistant's visibility conditions, as on [tiles](#home-assistant-cards): the
+icon shows only while they're met. Without its own, a card's or tile's
+`visibility` counts.
+
+The dock, the pinned tiles, the brightness slider and the speaker can also be
+set on the tablet, under **Customize → Quick panel**. **Add to the dock**
+offers the same choices as adding a tile, and **Edit** sets an item's name,
+icon and card, whether it opens first, and its YAML.
 
 ### Card options
 
@@ -413,7 +463,7 @@ The pinned tiles and the speaker can also be set on the tablet, under
 | `tint`       | the background image's average color       | The color the glass picks up, e.g. `"#e07a2c"`.      |
 | `home_after` | `120`                                      | Seconds without a touch before going back to the start page. |
 | `height`     | `calc(100dvh - var(--header-height, 0px))` | Becomes `100dvh` when Kiosk Satellite hides HA's header. |
-| `quick_panel` | on, nothing pinned                        | `media_player`, `pinned`; `false` turns the panel off. |
+| `quick_panel` | on: what's playing, nothing pinned        | `dock`, `pinned`, `brightness`, `media_player`; `false` turns the panel off. See [Quick panel](#quick-panel-and-assist). |
 | `badges`     | none                                       | [Badges](#badges) on every page with a title bar.    |
 | `badge_align` | `right`                                   | `left`, `center` or `right`: where badges sit in the title bar. A page's own `badge_align` wins. |
 | `badge_style` | `pill`                                    | `plain` shows badges with no background. A page's own `badge_style` wins. |

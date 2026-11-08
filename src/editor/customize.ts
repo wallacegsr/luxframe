@@ -1,8 +1,10 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { hasTitleBar } from '../badges';
+import { dockKind, dockLabel, dockOf, normalizeDock } from '../quick/dock';
+import { MAX_PINNED } from '../quick/panel';
 import { define } from '../define';
 import { resolve } from '../entity';
-import type { BadgeLook, GridPageConfig, HomeAssistant, LuxFrameConfig, PageConfig, QuickPanelConfig } from '../types';
+import type { BadgeLook, GridPageConfig, HomeAssistant, QuickDockItem, LuxFrameConfig, PageConfig, QuickPanelConfig } from '../types';
 import { PAGE_KINDS, TITLE_DEFAULTS, kindLabel, pageLabel, suggestPages } from './layout';
 import { editorStyles } from './sheet';
 
@@ -20,6 +22,14 @@ const THEMES: Array<{ value: NonNullable<LuxFrameConfig['theme']>; label: string
  * Fires `change` with the whole new config, `show-page` with a page just
  * added, and `reset` to drop this tablet's own layout.
  */
+/** What a dock item opens, as its list row says. */
+const DOCK_KINDS: Record<string, string> = {
+  media: 'What\u2019s playing',
+  entity: 'Controls',
+  card: 'Home Assistant card',
+  tile: 'LuxFrame tile',
+};
+
 export class LuxFrameCustomize extends LitElement {
   static properties = {
     hass: { attribute: false },
@@ -280,19 +290,72 @@ export class LuxFrameCustomize extends LitElement {
   private _setQuick(changes: Partial<QuickPanelConfig>): void {
     const next: Record<string, unknown> = { ...(this.config!.quick_panel || {}), ...changes };
     for (const [key, value] of Object.entries(next)) {
-      if (value === undefined || (Array.isArray(value) && !value.length)) delete next[key];
+      // An empty dock is kept: it means no dock, where none means media alone.
+      if (value === undefined || (Array.isArray(value) && !value.length && key !== 'dock')) delete next[key];
     }
     this._set({ quick_panel: Object.keys(next).length ? (next as QuickPanelConfig) : undefined });
+  }
+
+  private _setDock(dock: QuickDockItem[]): void {
+    this._setQuick({ dock });
+  }
+
+  private _moveDock(index: number, by: number): void {
+    const dock = [...dockOf(this.config!.quick_panel || undefined)];
+    const to = index + by;
+    if (to < 0 || to >= dock.length) return;
+    [dock[index], dock[to]] = [dock[to], dock[index]];
+    this._setDock(dock);
+  }
+
+  private _renderDock() {
+    const dock = dockOf(this.config!.quick_panel || undefined);
+    const hasMedia = dock.some((raw) => dockKind(normalizeDock(raw)) === 'media');
+    return html`
+      <p class="muted">
+        Icons along the top of the panel, each opening its own view under them. With only one, it just shows.
+      </p>
+      <ul class="list">
+        ${dock.map((raw, i) => {
+          const item = normalizeDock(raw);
+          const label = dockLabel(this.hass, item);
+          const sub = [
+            DOCK_KINDS[dockKind(item) ?? 'card'],
+            item.visibility?.length ? 'Sometimes' : '',
+            item.open ? 'Opens first' : '',
+          ]
+            .filter(Boolean)
+            .join(' · ');
+          return html`<li class="item page">
+            <span class="text"><span class="name">${label}</span><div class="sub">${sub}</div></span>
+            <button class="mini" aria-label="Edit ${label}"
+              @click=${() => this.dispatchEvent(new CustomEvent('dock-edit', { detail: { index: i } }))}>Edit</button>
+            <button class="mini" aria-label="Move ${label} earlier" ?disabled=${i === 0}
+              @click=${() => this._moveDock(i, -1)}>↑</button>
+            <button class="mini" aria-label="Move ${label} later" ?disabled=${i === dock.length - 1}
+              @click=${() => this._moveDock(i, 1)}>↓</button>
+            <button class="mini" aria-label="Remove ${label}"
+              @click=${() => this._setDock(dock.filter((_, n) => n !== i))}>✕</button>
+          </li>`;
+        })}
+      </ul>
+      <div class="row add">
+        <button class="chip" @click=${() => this.dispatchEvent(new CustomEvent('dock-add'))}>Add to the dock</button>
+        ${hasMedia ? nothing : html`<button class="chip" @click=${() => this._setDock([...dock, 'media'])}>Add media</button>`}
+      </div>
+    `;
   }
 
   private _renderQuick() {
     const quick = this.config!.quick_panel;
     if (quick === false) return nothing;
     const pinned = quick?.pinned ?? [];
+    const brightness = quick?.brightness !== false;
     const players = Object.keys(this.hass?.states ?? {}).filter((id) => id.startsWith('media_player.'));
     return html`
       <h3>Quick panel</h3>
-      <p class="muted">Pull down from the top edge. Up to four pinned tiles.</p>
+      ${this._renderDock()}
+      <p class="muted pinned-note">Pinned tiles beside it, up to ${MAX_PINNED}: one tap switches them.</p>
       <ul class="list">
         ${pinned.map(
           (id, i) => html`<li class="item page">
@@ -303,8 +366,15 @@ export class LuxFrameCustomize extends LitElement {
         )}
       </ul>
       <div class="row add">
-        <button class="chip" ?disabled=${pinned.length >= 4}
+        <button class="chip" ?disabled=${pinned.length >= MAX_PINNED}
           @click=${() => this.dispatchEvent(new CustomEvent('pin'))}>Pin a device</button>
+      </div>
+      <div class="row players" role="group" aria-label="Screen brightness">
+        <span>Brightness</span>
+        <button class="chip ${brightness ? 'on' : ''}" aria-pressed=${brightness}
+          @click=${() => this._setQuick({ brightness: undefined })}>Show the slider</button>
+        <button class="chip ${brightness ? '' : 'on'}" aria-pressed=${!brightness}
+          @click=${() => this._setQuick({ brightness: false })}>Hide it</button>
       </div>
       ${players.length
         ? html`<div class="row players" role="group" aria-label="Speaker">
@@ -432,6 +502,10 @@ export class LuxFrameCustomize extends LitElement {
 
       .add {
         margin-top: 10px;
+      }
+
+      .pinned-note {
+        margin-top: 22px;
       }
 
       .add .label,

@@ -347,8 +347,40 @@ export interface LuxFrameConfig {
 export interface QuickPanelConfig {
   /** Defaults to whichever speaker is playing, Music Assistant's first. */
   media_player?: string;
-  /** Up to four entities shown as small tiles: a light, a lock, a scene. */
+  /** Up to eight entities shown as small tiles: a light, a lock, a scene. */
   pinned?: string[];
+  /**
+   * Icons along the top of the panel, each opening its own view under them:
+   * `media`, an entity's controls, a Home Assistant `card` or a LuxFrame
+   * `tile`. Default: media alone, which then shows without an icon.
+   */
+  dock?: QuickDockItem[];
+  /** The screen brightness slider. Default true. */
+  brightness?: boolean;
+}
+
+/** `media`, an entity id (its controls), or a full item. */
+export type QuickDockItem = string | QuickDockConfig;
+
+export interface QuickDockConfig {
+  /** `media` for what's playing. Otherwise `card`, `tile` or `entity` says what opens. */
+  type?: 'media';
+  /** The entity's controls, as LuxFrame's details show them. */
+  entity?: string;
+  /** Any Home Assistant card. */
+  card?: Record<string, unknown>;
+  /** Any LuxFrame tile, such as a camera or a thermostat. */
+  tile?: GridTileConfig;
+  /** How tall a `tile` is in the panel, in pixels. Default 300. */
+  height?: number;
+  /** A card in LuxFrame's glass (the default), or `false` for its own look. */
+  glass?: boolean;
+  name?: string;
+  icon?: string;
+  /** Opens first when the panel comes down, while it shows. */
+  open?: boolean;
+  /** Home Assistant's visibility conditions: the icon shows only while they're met. */
+  visibility?: Array<Record<string, unknown>>;
 }
 
 /** Every page element receives these two properties from the frame. */

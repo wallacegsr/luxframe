@@ -1,27 +1,13 @@
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
-import { html as staticHtml, literal, type StaticValue } from 'lit/static-html.js';
 import { type BadgeItem } from '../badges';
 import { tileShows } from '../conditions';
 import { define } from '../define';
 import { normalizeTile, tileLabel } from '../editor/layout';
 import { pageStyles } from '../theme';
+import { renderTile } from '../tiles/render';
 import { MAX_ROWS, shapeOf, sizeFor, spanOf } from '../sizes';
-import type { GridPageConfig, GridTileConfig, GridTileType, HomeAssistant, TileSize } from '../types';
-
-/** Tile kinds that are a plain element taking hass, config and size. */
-const TILE_TAGS: Partial<Record<GridTileType, StaticValue>> = {
-  thermostat: literal`luxframe-thermostat-tile`,
-  weather: literal`luxframe-weather-tile`,
-  calendar: literal`luxframe-calendar-tile`,
-  'now-playing': literal`luxframe-now-playing-tile`,
-  camera: literal`luxframe-camera-tile`,
-  photo: literal`luxframe-photo-tile`,
-  sun: literal`luxframe-sun-tile`,
-  todo: literal`luxframe-todo-tile`,
-  room: literal`luxframe-room-tile`,
-  card: literal`luxframe-card-tile`,
-};
+import type { GridPageConfig, GridTileConfig, HomeAssistant, TileSize } from '../types';
 
 const HOLD_MS = 1000;
 const MOVE_TOLERANCE = 10;
@@ -314,20 +300,7 @@ export class LuxFrameGrid extends LitElement {
   // ---- Rendering -----------------------------------------------------------
 
   private _renderTile(tile: GridTileConfig, size: TileSize) {
-    const tag = TILE_TAGS[tile.type ?? 'entity'];
-    if (tag) return staticHtml`<${tag} .hass=${this.hass} .config=${tile} size=${size}></${tag}>`;
-    switch (tile.type ?? 'entity') {
-      case 'clock':
-        return html`<luxframe-clock-tile .hass=${this.hass} size=${size}></luxframe-clock-tile>`;
-      case 'analog-clock':
-        return html`<luxframe-analog-clock-tile .hass=${this.hass} size=${size}>
-        </luxframe-analog-clock-tile>`;
-      default: {
-        const { entity, name, icon } = tile as { entity: string; name?: string; icon?: string };
-        return html`<luxframe-tile .hass=${this.hass} .entity=${{ entity, name, icon }} size=${size}>
-        </luxframe-tile>`;
-      }
-    }
+    return renderTile(this.hass, tile, size);
   }
 
   private _columns(): number {
