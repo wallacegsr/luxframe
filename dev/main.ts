@@ -55,6 +55,7 @@ const config: LuxFrameConfig = {
         { type: 'card', size: 'w', card: { type: 'custom:late-card', text: 'Loaded late' } },
         { type: 'card', size: 'w', glass: false, card: { type: 'markdown', content: 'Its own background' } },
         { type: 'card', card: {} },
+        { type: 'card', size: '2x2', fit: 'cover', card: { type: 'picture-elements', image: 'laundry' } },
       ],
     },
     {
@@ -133,6 +134,16 @@ class DevCard extends HTMLElement {
   }
   private _render() {
     if (!this.isConnected) return;
+    if (this.config.type === 'picture-elements') {
+      // Like Home Assistant's: as tall as its picture, badges placed in %.
+      const badge = (left: number, text: string) =>
+        `<div class="badge" style="position:absolute;left:${left}%;top:58%;width:38%;padding:10px 0;
+          border-radius:14px;background:rgb(255 255 255 / 35%);color:#222;text-align:center;font:600 16px system-ui">${text}</div>`;
+      this.innerHTML = `<div class="ha-card" style="position:relative;aspect-ratio:7/6;overflow:hidden;
+        border-radius:var(--ha-card-border-radius, 12px);background:linear-gradient(160deg,#e9d7c3 0 55%,#7b2d2d 55%)">
+        ${badge(6, 'Washer · Off')}${badge(56, 'Dryer · Done')}</div>`;
+      return;
+    }
     const s = this.config.entity ? this._hass?.states[this.config.entity] : undefined;
     const body = s
       ? `<b style="font-size:48px;font-weight:300">${s.attributes.temperature}°</b><div style="color:var(--secondary-text-color)">${s.attributes.friendly_name} · ${s.state}</div>`

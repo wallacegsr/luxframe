@@ -7,6 +7,16 @@ import type { CardTileConfig, GridTileConfig, HomeAssistant, TileSize } from '..
 import { normalizeTile, tileLabel } from './layout';
 import { editorStyles } from './sheet';
 
+const FITS: Array<{ fit: NonNullable<CardTileConfig['fit']>; label: string; hint: string }> = [
+  { fit: 'stretch', label: 'Stretch', hint: 'Fills the tile if the card can grow; scrolls if it\u2019s taller.' },
+  {
+    fit: 'cover',
+    label: 'Fill and crop',
+    hint: 'Scales the whole card to fill the tile and trims the edges. Best for pictures.',
+  },
+  { fit: 'contain', label: 'Fit inside', hint: 'Shows all of the card, centered, smaller if it\u2019s too tall.' },
+];
+
 const SIZES: Array<{ size: TileSize; label: string; w: number; h: number }> = [
   { size: 's', label: 'Small', w: 1, h: 1 },
   { size: 'w', label: 'Wide', w: 2, h: 1 },
@@ -74,6 +84,7 @@ export class LuxFrameTileEditor extends LitElement {
   private _renderCard(tile: CardTileConfig) {
     const text = this._yaml ?? (tile.card?.type ? dump(tile.card, { lineWidth: -1 }) : '');
     const glassy = tile.glass !== false;
+    const fit = tile.fit ?? 'stretch';
     return html`
       <h3>Card</h3>
       <textarea
@@ -94,6 +105,20 @@ export class LuxFrameTileEditor extends LitElement {
       <div class="row">
         <button class="chip on" ?disabled=${this._yaml === undefined} @click=${this._applyCard}>Apply</button>
       </div>
+
+      <h3>Fit</h3>
+      <div class="row" role="group" aria-label="Fit">
+        ${FITS.map(
+          (f) => html`<button
+            class="chip ${fit === f.fit ? 'on' : ''}"
+            aria-pressed=${fit === f.fit}
+            @click=${() => this._set({ fit: f.fit === 'stretch' ? undefined : f.fit })}
+          >
+            ${f.label}
+          </button>`,
+        )}
+      </div>
+      <p class="hint muted">${FITS.find((f) => f.fit === fit)?.hint}</p>
 
       <h3>Background</h3>
       <div class="row" role="group" aria-label="Background">

@@ -156,6 +156,13 @@ export interface CardTileConfig extends GridTileBase {
   card: Record<string, unknown>;
   /** Default true: glass behind the card instead of its own background. */
   glass?: boolean;
+  /**
+   * How the card meets the tile. `stretch` (default): the card fills the tile
+   * if it can grow, and scrolls if it's taller. `cover`: the whole card scales
+   * evenly until it fills the tile, centered, with the overflow trimmed.
+   * `contain`: the whole card shows, centered, shrunk if it's too tall.
+   */
+  fit?: 'stretch' | 'cover' | 'contain';
 }
 
 export interface RoomTileConfig extends GridTileBase {

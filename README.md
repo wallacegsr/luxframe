@@ -117,7 +117,7 @@ are medium (large from four columns), and one column is small however tall.
 | `sun`          | `entity` (default `sun.sun`). Next sunrise or sunset; an arc on bigger tiles. | `s` |
 | `todo`         | `entity` (a `todo.*`). Tap a circle to tick an item off. | `m` |
 | `room`         | `area` (id or name). Temperature and lights; the icon switches the room's lights, the rest opens the page with the room's name. | `s` |
-| `card`         | `card` (any Home Assistant card's config), `glass` (default `true`). See [Home Assistant cards](#home-assistant-cards). | `m` |
+| `card`         | `card` (any Home Assistant card's config), `glass` (default `true`), `fit` (`stretch`, `cover` or `contain`). See [Home Assistant cards](#home-assistant-cards). | `m` |
 
 When something a tile or page needs isn't there, it says so plainly: "No
 weather", "No calendar", "No camera", "No photos in local/holiday".
@@ -143,7 +143,20 @@ built-in cards and custom cards from HACS both work:
 The card's background gives way to LuxFrame's glass and its text takes
 LuxFrame's colors. Cards that draw their own background, such as a picture,
 keep it. `glass: false` leaves the card looking as it does on other
-dashboards. A card taller than its tile scrolls inside it.
+dashboards.
+
+`fit` decides how a card meets its tile:
+
+| `fit`     | What it does |
+| --------- | ------------ |
+| `stretch` | The default. A card that can grow fills the tile; one taller than the tile scrolls inside it. |
+| `cover`   | Scales the whole card evenly until it fills the tile, centered, and trims what runs past the edges. For cards that keep their picture's shape, such as a picture with badges over it. |
+| `contain` | Shows all of the card, centered, shrunk if it's taller than the tile. |
+
+Scaling moves everything together, so badges stay where they belong on the
+picture. With `cover`, anything close to the trimmed edges can be cut off;
+a tile closer to the picture's shape trims less. The tile editor has the same
+three choices under **Fit**.
 
 On the tablet, **Add tile → From your dashboards** lists the cards on your
 other dashboards, with the dashboard and view each is on. A tap copies the

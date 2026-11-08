@@ -6,6 +6,14 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `fit` for card tiles: `cover` scales the whole card to fill the tile and
+  trims the edges, `contain` shows all of it centered, and `stretch` (the
+  default) works as before. With `cover`, a picture card with badges fills
+  its tile instead of leaving empty glass below the picture. The tile editor
+  has the same choice under Fit.
+
 ## [0.4.0] - 2026-11-07
 
 ### Added

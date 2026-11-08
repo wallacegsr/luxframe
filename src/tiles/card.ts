@@ -39,7 +39,14 @@ export function cardName(card: Record<string, unknown> | undefined): string {
  * Any Home Assistant card in a tile, built by Home Assistant itself, so custom
  * cards from HACS work too. By default the card's own background gives way to
  * LuxFrame's glass and its text takes LuxFrame's colors; `glass: false`
- * leaves the card as it looks elsewhere. A card taller than its tile scrolls.
+ * leaves the card as it looks elsewhere.
+ *
+ * `fit` decides how the card meets the tile. Stretched, it fills the tile when
+ * it can grow and scrolls when it's taller. A card that keeps its own shape,
+ * such as a picture with badges over it, can instead be laid out at the
+ * tile's width and scaled as a whole: `cover` fills the tile and trims the
+ * overflow, `contain` shows all of it, centered. Scaling everything together
+ * keeps badges on the picture where they belong.
  */
 export class LuxFrameCardTile extends LitElement {
   static properties = {
@@ -59,9 +66,25 @@ export class LuxFrameCardTile extends LitElement {
   /** The card config the current element was built from, as JSON. */
   private _built?: string;
 
+  /** Watches the tile and the card, to keep a scaled card fitted. */
+  private _observer?: ResizeObserver;
+  private _observed?: CardElement;
+
   constructor() {
     super();
     this.size = 'm';
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._observer?.disconnect();
+    this._observer = undefined;
+    this._observed = undefined;
+  }
+
+  private get _fit(): 'stretch' | 'cover' | 'contain' {
+    const fit = this.config?.fit;
+    return fit === 'cover' || fit === 'contain' ? fit : 'stretch';
   }
 
   protected willUpdate(changed: PropertyValues): void {
@@ -69,9 +92,48 @@ export class LuxFrameCardTile extends LitElement {
     if (changed.has('hass') && this._element) this._element.hass = this.hass;
   }
 
+  protected updated(changed: PropertyValues): void {
+    const element = this._fit === 'stretch' ? undefined : this._element;
+    if (element === this._observed) {
+      // Between cover and contain the card stays; only its scale changes.
+      if (element && changed.has('config')) this._place();
+      return;
+    }
+    this._observer?.disconnect();
+    this._observed = element;
+    if (!element) return;
+    const box = this.renderRoot.querySelector('.card');
+    this._observer ??= new ResizeObserver(() => this._place());
+    if (box) this._observer.observe(box);
+    this._observer.observe(element);
+    // The observer reports on the next frame; place it now if it's drawn.
+    this._place();
+  }
+
+  /** Lays a scaled card out at the tile's width, then scales and centers it. */
+  private _place(): void {
+    const element = this._observed;
+    const box = this.renderRoot.querySelector('.card') as HTMLElement | null;
+    if (!element || !box) return;
+    const width = box.clientWidth;
+    const height = box.clientHeight;
+    if (element.style.width !== `${width}px`) element.style.width = `${width}px`;
+    // The card's own height at that width; a transform doesn't change it.
+    const natural = element.offsetHeight;
+    if (!width || !height || !natural) return;
+    const ratio = height / natural;
+    const scale = this._fit === 'cover' ? Math.max(1, ratio) : Math.min(1, ratio);
+    const x = (width - width * scale) / 2;
+    const y = (height - natural * scale) / 2;
+    element.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+  }
+
   private async _build(): Promise<void> {
     const card = this.config?.card;
-    const key = JSON.stringify(card ?? null);
+    const stretch = this._fit === 'stretch';
+    // A scaled card is laid out as it is on other dashboards, at its own
+    // height, so it's built afresh when that changes.
+    const key = JSON.stringify([card ?? null, stretch]);
     if (key === this._built) return;
     this._built = key;
 
@@ -90,7 +152,7 @@ export class LuxFrameCardTile extends LitElement {
     if (this._built !== key) return;
     element.hass = this.hass;
     // Cards that know Home Assistant's sections grid fill their cell in it.
-    element.layout = 'grid';
+    if (stretch) element.layout = 'grid';
     // A custom card whose code hasn't loaded yet comes back as a stand-in that
     // asks to be rebuilt once it has.
     element.addEventListener(
@@ -111,7 +173,7 @@ export class LuxFrameCardTile extends LitElement {
     if (this._problem) return html`<div class="tile glass empty muted">${this._problem}</div>`;
     const glassy = this.config.glass !== false;
     return html`<div class="tile ${glassy ? 'glass themed' : ''}">
-      <div class="card">${this._element ?? nothing}</div>
+      <div class="card ${this._fit === 'stretch' ? '' : 'scaled'}">${this._element ?? nothing}</div>
     </div>`;
   }
 
@@ -138,6 +200,18 @@ export class LuxFrameCardTile extends LitElement {
       .card > * {
         flex: 1 0 auto;
         display: block;
+      }
+
+      .card.scaled {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .card.scaled > * {
+        position: absolute;
+        top: 0;
+        left: 0;
+        transform-origin: 0 0;
       }
 
       /*
