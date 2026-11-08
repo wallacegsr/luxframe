@@ -25,9 +25,8 @@ interface DashboardInfo {
 type Card = Record<string, any>;
 
 // Layout that belongs to the dashboard the card came from, not to the card.
-// Visibility conditions are applied by that dashboard's wrapper, so a copied
-// card always shows.
-const DASHBOARD_KEYS = ['grid_options', 'layout_options', 'view_layout', 'visibility'];
+// Visibility conditions stay: the tile honors them as the dashboard did.
+const DASHBOARD_KEYS = ['grid_options', 'layout_options', 'view_layout'];
 
 // Cards that make no sense on their own in a tile.
 const SKIP = new Set(['heading', 'custom:luxframe-card']);

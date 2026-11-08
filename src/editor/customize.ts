@@ -66,7 +66,16 @@ export class LuxFrameCustomize extends LitElement {
     this._set({ pages });
   }
 
-  private _setPage(index: number, changes: Partial<GridPageConfig> & { hidden?: boolean }): void {
+  /** Makes a page the one the frame opens on; the first page needs no mark. */
+  private _setHome(index: number): void {
+    const pages = this.config!.pages.map((page, i) => {
+      const { home: _, ...rest } = page;
+      return i === index && index !== this.config!.pages.findIndex((p) => !p.hidden) ? { ...rest, home: true } : rest;
+    }) as PageConfig[];
+    this._setPages(pages);
+  }
+
+  private _setPage(index: number, changes: Partial<GridPageConfig> & { hidden?: boolean; home?: boolean }): void {
     const pages = [...this.config!.pages];
     const next: Record<string, unknown> = { ...pages[index], ...changes };
     for (const [key, value] of Object.entries(changes)) if (value === undefined || value === '' || value === false) delete next[key];
@@ -141,12 +150,22 @@ export class LuxFrameCustomize extends LitElement {
   private _renderPages() {
     const pages = this.config!.pages;
     const shown = pages.filter((p) => !p.hidden).length;
+    const homeIndex = Math.max(
+      pages.findIndex((p) => !p.hidden && p.home),
+      pages.findIndex((p) => !p.hidden),
+    );
     const suggestions = suggestPages(this.hass, pages);
     return html`
       <h3>Pages</h3>
       <ul class="list">
         ${pages.map((page, i) => {
-          const status = page.hidden ? 'Hidden' : i === this.page ? 'Showing now' : '';
+          const home = i === homeIndex;
+          const status = [
+            page.hidden ? 'Hidden' : i === this.page ? 'Showing now' : '',
+            home ? 'Start page' : '',
+          ]
+            .filter(Boolean)
+            .join(' · ');
           const fallback = TITLE_DEFAULTS[page.type];
           return html`<li class="item page ${page.hidden ? 'hidden' : ''}">
             <span class="text">
@@ -164,9 +183,13 @@ export class LuxFrameCustomize extends LitElement {
                     />
                     <div class="sub">${[kindLabel(page), status].filter(Boolean).join(' · ')}</div>`}
             </span>
+            <button class="mini home ${home ? 'on' : ''}" aria-pressed=${home}
+              aria-label="Start on ${pageLabel(page, i)}" title="Start page"
+              ?disabled=${!!page.hidden}
+              @click=${() => this._setHome(i)}>⌂</button>
             <button class="mini" aria-label="${page.hidden ? 'Show' : 'Hide'} ${pageLabel(page, i)}"
               ?disabled=${!page.hidden && shown <= 1}
-              @click=${() => this._setPage(i, { hidden: !page.hidden })}>
+              @click=${() => this._setPage(i, { hidden: !page.hidden, ...(page.hidden ? {} : { home: undefined }) })}>
               ${page.hidden ? 'Show' : 'Hide'}
             </button>
             <button class="mini" aria-label="Move ${pageLabel(page, i)} earlier" ?disabled=${i === 0}
@@ -339,6 +362,11 @@ export class LuxFrameCustomize extends LitElement {
         border-radius: 999px;
         font-size: 15px;
         background: rgb(255 255 255 / 12%);
+      }
+
+      .mini.home.on {
+        background: var(--lf-accent);
+        color: #1c1c1e;
       }
 
       .mini-space {

@@ -144,7 +144,10 @@ export class LuxFrameCard extends LitElement {
     this._base = config;
     const local = loadLocal(config);
     this._local = !!local;
+    const first = !this._config;
     this._config = local ?? config;
+    // Open on the home page; a later config keeps the page on screen.
+    if (first) this._index = this._homeIndex;
   }
 
   getCardSize(): number {
@@ -273,12 +276,17 @@ export class LuxFrameCard extends LitElement {
     );
   }
 
+  /** Where the frame opens and returns to: the page marked `home`, else the first. */
+  private get _homeIndex(): number {
+    return Math.max(0, this._visible.findIndex(({ page }) => page.home));
+  }
+
   private _goHome(smooth = true): void {
     if (this._editing) return;
     this._detail = undefined;
     this._quick = false;
     this._assist = false;
-    this.goTo(0, smooth);
+    this.goTo(this._homeIndex, smooth);
   }
 
   private _resetIdle = (): void => {

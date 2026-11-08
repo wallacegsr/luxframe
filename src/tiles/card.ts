@@ -46,7 +46,8 @@ export function cardName(card: Record<string, unknown> | undefined): string {
  * leaves the card as it looks elsewhere.
  *
  * `fit` decides how the card meets the tile. Stretched, it fills the tile when
- * it can grow and scrolls when it's taller. A card that keeps its own shape,
+ * it can grow, and one taller than the tile shrinks to fit; `scroll` keeps it
+ * full size and scrolls it instead. A card that keeps its own shape,
  * such as a picture with badges over it, can instead be laid out at the
  * tile's width and scaled as a whole: `cover` fills the tile and trims the
  * overflow, `contain` shows all of it, centered. Scaling everything together
@@ -64,6 +65,7 @@ export class LuxFrameCardTile extends LitElement {
     size: { reflect: true },
     _element: { state: true },
     _problem: { state: true },
+    _shrunk: { state: true },
   };
 
   declare hass?: HomeAssistant;
@@ -71,6 +73,8 @@ export class LuxFrameCardTile extends LitElement {
   declare size: TileSize;
   declare _element?: CardElement;
   declare _problem?: string;
+  /** A stretched card taller than its tile, scaled down to fit it. */
+  declare _shrunk: boolean;
 
   /** The card config the current element was built from, as JSON. */
   private _built?: string;
@@ -84,6 +88,7 @@ export class LuxFrameCardTile extends LitElement {
   constructor() {
     super();
     this.size = 'm';
+    this._shrunk = false;
   }
 
   disconnectedCallback(): void {
@@ -93,9 +98,19 @@ export class LuxFrameCardTile extends LitElement {
     this._observed = undefined;
   }
 
-  private get _fit(): 'stretch' | 'cover' | 'contain' {
+  private get _fit(): 'stretch' | 'scroll' | 'cover' | 'contain' {
     const fit = this.config?.fit;
-    return fit === 'cover' || fit === 'contain' ? fit : 'stretch';
+    return fit === 'cover' || fit === 'contain' || fit === 'scroll' ? fit : 'stretch';
+  }
+
+  /** Laid out to fill the tile, as in a sections view, rather than at its own height. */
+  private get _fills(): boolean {
+    return this._fit === 'stretch' || this._fit === 'scroll';
+  }
+
+  /** Scaled as a whole: cover and contain always, stretch once it's too tall. */
+  private get _scaled(): boolean {
+    return !this._fills || (this._fit === 'stretch' && this._shrunk);
   }
 
   /** A picture card in `cover` crops its picture to the tile instead of being scaled. */
@@ -114,13 +129,15 @@ export class LuxFrameCardTile extends LitElement {
   }
 
   protected updated(changed: PropertyValues): void {
-    const element = this._fit === 'stretch' ? undefined : this._element;
+    if (changed.has('config') && this._fit !== 'stretch') this._shrunk = false;
+    const element = this._fit === 'scroll' ? undefined : this._element;
     if (element === this._observed) {
       // Between cover and contain the card stays; only its scale changes.
-      if (element && changed.has('config')) this._place();
+      if (element && (changed.has('config') || changed.has('_shrunk'))) this._place();
       return;
     }
     this._observer?.disconnect();
+    this._unplace(this._observed);
     this._observed = element;
     if (!element) return;
     const box = this.renderRoot.querySelector('.card');
@@ -131,18 +148,37 @@ export class LuxFrameCardTile extends LitElement {
     this._place();
   }
 
-  /** Lays a scaled card out at the tile's width, then scales and centers it. */
+  private _unplace(element: CardElement | undefined): void {
+    if (!element) return;
+    element.style.width = '';
+    element.style.transform = '';
+  }
+
+  /**
+   * Lays a scaled card out at the tile's width, then scales and centers it.
+   * A stretched card is only watched: once it runs past the bottom of the
+   * tile it's shrunk like `contain`, and it fills again when it would fit.
+   */
   private _place(): void {
     const element = this._observed;
     const box = this.renderRoot.querySelector('.card') as HTMLElement | null;
     if (!element || !box) return;
     const width = box.clientWidth;
     const height = box.clientHeight;
+    if (this._fit === 'stretch' && !this._shrunk) {
+      if (height && element.offsetHeight > height + 1) this._shrunk = true;
+      return;
+    }
     if (element.style.width !== `${width}px`) element.style.width = `${width}px`;
     if (width && height) this._shapePicture(element, height / width);
     // The card's own height at that width; a transform doesn't change it.
     const natural = element.offsetHeight;
     if (!width || !height || !natural) return;
+    if (this._fit === 'stretch' && natural <= height) {
+      this._unplace(element);
+      this._shrunk = false;
+      return;
+    }
     const ratio = height / natural;
     const scale = this._fit === 'cover' ? Math.max(1, ratio) : Math.min(1, ratio);
     const x = (width - width * scale) / 2;
@@ -169,7 +205,7 @@ export class LuxFrameCardTile extends LitElement {
 
   private async _build(): Promise<void> {
     const card = this.config?.card;
-    const stretch = this._fit === 'stretch';
+    const stretch = this._fills;
     // A scaled card is laid out as it is on other dashboards, at its own
     // height, so it's built afresh when that changes.
     const key = JSON.stringify([card ?? null, stretch]);
@@ -190,6 +226,7 @@ export class LuxFrameCardTile extends LitElement {
     const element = (await loading).createCardElement(card);
     if (this._built !== key) return;
     this._shape = undefined;
+    this._shrunk = false;
     element.hass = this.hass;
     // Cards that know Home Assistant's sections grid fill their cell in it.
     if (stretch) element.layout = 'grid';
@@ -213,7 +250,7 @@ export class LuxFrameCardTile extends LitElement {
     if (this._problem) return html`<div class="tile glass empty muted">${this._problem}</div>`;
     const glassy = this.config.glass !== false;
     return html`<div class="tile ${glassy ? 'glass themed' : ''}">
-      <div class="card ${this._fit === 'stretch' ? '' : 'scaled'}">${this._element ?? nothing}</div>
+      <div class="card ${this._scaled ? 'scaled' : ''}">${this._element ?? nothing}</div>
     </div>`;
   }
 
@@ -229,8 +266,8 @@ export class LuxFrameCardTile extends LitElement {
       }
 
       /*
-       * A card taller than its tile scrolls up and down, and stops at its
-       * ends rather than scrolling the page. A sideways swipe isn't the
+       * With "fit: scroll", a card taller than its tile scrolls up and down,
+       * and stops at its ends rather than scrolling the page. A sideways swipe isn't the
        * card's: it goes on to turn the page, as it does on LuxFrame's tiles.
        */
       .card {

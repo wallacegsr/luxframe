@@ -1,6 +1,7 @@
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { html as staticHtml, literal, type StaticValue } from 'lit/static-html.js';
+import { tileShows } from '../conditions';
 import { define } from '../define';
 import { normalizeTile, tileLabel } from '../editor/layout';
 import { pageStyles } from '../theme';
@@ -387,7 +388,11 @@ export class LuxFrameGrid extends LitElement {
     const resize = this._resize;
     const tiles = drag?.tiles ?? this.config.tiles ?? [];
     const keys = drag?.keys ?? tiles.map((_, i) => i);
-    const items = tiles.map((raw, index) => ({ raw, index, key: keys[index] }));
+    // A tile whose visibility conditions aren't met is left out, and the
+    // rest close up, as on a dashboard. While editing it stays, faded.
+    const items = tiles
+      .map((raw, index) => ({ raw, index, key: keys[index], shows: tileShows(normalizeTile(raw), this.hass) }))
+      .filter((item) => item.shows || this.editing);
 
     return html`
       ${this.config.title ? html`<div class="head"><h1>${this.config.title}</h1></div>` : nothing}
@@ -404,7 +409,7 @@ export class LuxFrameGrid extends LitElement {
         ${repeat(
           items,
           (item) => item.key,
-          ({ raw, index }) => {
+          ({ raw, index, shows }) => {
             const tile = normalizeTile(raw);
             const resizing = resize?.index === index;
             const span: [number, number] = resizing ? [resize.w, resize.h] : spanOf(tile, columns);
@@ -412,7 +417,7 @@ export class LuxFrameGrid extends LitElement {
             const lifted = drag?.active && drag.index === index;
             return html`
               <div
-                class="cell ${lifted ? 'dragging' : ''} ${resizing ? 'resizing' : ''}"
+                class="cell ${lifted ? 'dragging' : ''} ${resizing ? 'resizing' : ''} ${shows ? '' : 'unmet'}"
                 data-index=${index}
                 style="grid-column: span ${span[0]}; grid-row: span ${span[1]}; --i: ${index}"
               >
@@ -462,6 +467,12 @@ export class LuxFrameGrid extends LitElement {
         grid-auto-rows: calc((100% - (var(--rows) - 1) * var(--lf-gap)) / var(--rows));
         grid-auto-flow: row dense;
         gap: var(--lf-gap);
+      }
+
+      /* Hidden by its visibility conditions right now; shown while editing. */
+      .cell.unmet > :first-child {
+        opacity: 0.4;
+        filter: saturate(0.4);
       }
 
       .cell {

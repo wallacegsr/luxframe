@@ -38,7 +38,7 @@ views:
     cards:
       - type: custom:luxframe-card
         theme: auto          # auto | light | dark | ha
-        home_after: 120      # seconds idle before returning to page 1; 0 = off
+        home_after: 120      # seconds idle before returning to the start page; 0 = off
         pages:
           - type: grid
             tiles:
@@ -81,6 +81,9 @@ views:
 | `night`  | `weather` (optional, for the temperature). A dim clock on black that drifts a little each minute. |
 
 Any page can have `hidden: true` to keep it in the config but out of the frame.
+The frame opens on the first page, and goes back to it after `home_after`
+seconds without a touch; `home: true` on another page makes that one the start
+page instead.
 
 ### Grid pages
 
@@ -145,11 +148,32 @@ LuxFrame's colors. Cards that draw their own background, such as a picture,
 keep it. `glass: false` leaves the card looking as it does on other
 dashboards.
 
+Visibility conditions work as they do on a dashboard: the tile shows only
+while they're all met, and the tiles after it close up. A card copied from a
+dashboard keeps its `visibility`, and any tile can have one of its own:
+
+```yaml
+- type: card
+  size: 4x2
+  visibility:
+    - condition: state
+      entity_id: sensor.xbloom_studio_brew_status
+      state: [brewing, grinding]
+  card:
+    type: custom:plotly-graph
+    # …
+```
+
+LuxFrame checks `state`, `numeric_state`, `screen`, `user`, `time`, and
+`and`/`or`/`not`. While editing, a tile that's hidden right now shows faded,
+so it can still be moved or changed.
+
 `fit` decides how a card meets its tile:
 
 | `fit`     | What it does |
 | --------- | ------------ |
-| `stretch` | The default. A card that can grow fills the tile; one taller than the tile scrolls inside it. |
+| `stretch` | The default. A card that can grow fills the tile; one taller than the tile shrinks, as a whole, until it fits. |
+| `scroll`  | Fills the tile like `stretch`, but a card taller than the tile keeps its size and scrolls inside it. Good for long lists. |
 | `cover`   | Fills the tile. Home Assistant's picture cards (`picture`, `picture-entity`, `picture-glance`, `picture-elements`) crop their picture to the tile's shape, and badges over it stay inside. Any other card scales evenly until it fills the tile, centered, and loses what runs past the edges. |
 | `contain` | Shows all of the card, centered, shrunk if it's taller than the tile. |
 
@@ -233,7 +257,7 @@ tile.
   clock, a room, or any entity, searchable by name or room. Thermostats and
   weather entities get their own tile kinds.
 - **Customize** sets the page's columns and rows; renames, shows, hides,
-  reorders, adds and deletes pages; adds a page for each room in Home
+  reorders, adds and deletes pages; picks the start page (⌂); adds a page for each room in Home
   Assistant that doesn't have one; and sets the theme, wallpaper and glass
   tint. A page's name is its heading, typed straight into the list of pages:
   tile pages, rooms, Calendar, Cameras and Scenes have one, while Weather,
@@ -300,7 +324,7 @@ The pinned tiles and the speaker can also be set on the tablet, under
 | `theme`      | `auto`                                     | `auto`, `light`, `dark`, or `ha`. See [Theming](#theming). |
 | `background` | a soft gradient                            | Any CSS background, e.g. `center / cover url('/local/wall.jpg')`. |
 | `tint`       | the background image's average color       | The color the glass picks up, e.g. `"#e07a2c"`.      |
-| `home_after` | `120`                                      | Seconds without a touch before going back to page 1. |
+| `home_after` | `120`                                      | Seconds without a touch before going back to the start page. |
 | `height`     | `calc(100dvh - var(--header-height, 0px))` | Becomes `100dvh` when Kiosk Satellite hides HA's header. |
 | `quick_panel` | on, nothing pinned                        | `media_player`, `pinned`; `false` turns the panel off. |
 | `assist`     | `true`                                     | `false` hides Ask; `{agent_id}` picks the conversation agent. |
@@ -385,4 +409,6 @@ stale install on a tablet is easy to spot.
 
 Releases: bump `version` in `package.json` and the changelog together, tag
 `vX.Y.Z`, and push the tag. The release workflow builds and attaches
-`luxframe.js`.
+`luxframe.js`, and uses the version's changelog section as the release notes,
+which Home Assistant shows with the update. `node scripts/release-notes.mjs
+vX.Y.Z` prints them.

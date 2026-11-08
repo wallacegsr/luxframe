@@ -8,7 +8,8 @@ import { normalizeTile, tileLabel } from './layout';
 import { editorStyles } from './sheet';
 
 const FITS: Array<{ fit: NonNullable<CardTileConfig['fit']>; label: string; hint: string }> = [
-  { fit: 'stretch', label: 'Stretch', hint: 'Fills the tile if the card can grow; scrolls if it\u2019s taller.' },
+  { fit: 'stretch', label: 'Stretch', hint: 'Fills the tile if the card can grow; shrinks to fit if it\u2019s taller.' },
+  { fit: 'scroll', label: 'Scroll', hint: 'Fills the tile like Stretch, but a taller card keeps its size and scrolls.' },
   {
     fit: 'cover',
     label: 'Fill and crop',

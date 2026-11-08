@@ -6,6 +6,25 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Tiles honor Home Assistant's visibility conditions (`state`,
+  `numeric_state`, `screen`, `user`, `time`, `and`/`or`/`not`): a tile shows
+  only while they're met, and the tiles after it close up. A card copied from
+  a dashboard keeps its `visibility`, and any tile can have its own. While
+  editing, a hidden tile shows faded.
+- A start page: `home: true` on a page, or ⌂ in Customize's list of pages.
+  The frame opens on it and goes back to it when idle, instead of the first
+  page.
+- `fit: scroll` (**Scroll** in the tile editor) keeps a tall card full size
+  and scrolls it inside its tile, as `stretch` used to.
+
+### Changed
+
+- A card tile taller than its tile shrinks to fit (`fit: stretch`, the
+  default) instead of scrolling, so nothing is cut off on a tablet with
+  shorter rows. It fills the tile again once there's room.
+
 ## [0.6.0] - 2026-11-07
 
 ### Added

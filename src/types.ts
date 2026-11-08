@@ -45,7 +45,7 @@ export interface HomeAssistant {
   formatEntityState?(stateObj: HassEntity, state?: string): string;
   /** Sends a websocket command; used to read and save the dashboard. */
   callWS?<T>(message: Record<string, unknown>): Promise<T>;
-  user?: { name?: string; is_admin: boolean };
+  user?: { id?: string; name?: string; is_admin: boolean };
   language?: string;
   /** REST calls against Home Assistant's API, e.g. calendar events. */
   callApi?<T>(method: 'GET' | 'POST', path: string, data?: Record<string, unknown>): Promise<T>;
@@ -86,6 +86,12 @@ export type TileSpan = `${number}x${number}`;
 interface GridTileBase {
   /** A preset, or any columns × rows such as "3x2". */
   size?: TileSize | TileSpan;
+  /**
+   * Home Assistant's visibility conditions: the tile shows only while they're
+   * all met, and the tiles after it close up. A card tile also takes them
+   * from its card, as a dashboard card carries them.
+   */
+  visibility?: Array<Record<string, unknown>>;
 }
 
 export interface EntityTileConfig extends GridTileBase {
@@ -158,11 +164,12 @@ export interface CardTileConfig extends GridTileBase {
   glass?: boolean;
   /**
    * How the card meets the tile. `stretch` (default): the card fills the tile
-   * if it can grow, and scrolls if it's taller. `cover`: the whole card scales
+   * if it can grow, and shrinks to fit if it's taller. `scroll`: fills the
+   * same way, but a taller card keeps its size and scrolls. `cover`: the whole card scales
    * evenly until it fills the tile, centered, with the overflow trimmed.
    * `contain`: the whole card shows, centered, shrunk if it's too tall.
    */
-  fit?: 'stretch' | 'cover' | 'contain';
+  fit?: 'stretch' | 'scroll' | 'cover' | 'contain';
 }
 
 export interface RoomTileConfig extends GridTileBase {
@@ -249,6 +256,8 @@ export type PageConfig = (
 ) & {
   /** Kept in the config but left out of the frame. */
   hidden?: boolean;
+  /** The page the frame opens on and goes back to when idle. Default: the first. */
+  home?: boolean;
 };
 
 export interface LuxFrameConfig {
