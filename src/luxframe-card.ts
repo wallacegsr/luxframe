@@ -31,6 +31,14 @@ const HOLDS_OWN = 'luxframe-tile, input, select, textarea, [role="slider"]';
 const DEFAULT_HOME_AFTER = 120;
 
 /**
+ * The page on screen when an edit was saved. A save to the dashboard makes
+ * Home Assistant build the card afresh, and the new card would open on the
+ * start page; it opens here instead, if it comes soon enough.
+ */
+let resumeAt: { page: number; until: number } | undefined;
+const RESUME_MS = 20_000;
+
+/**
  * Badge placement, as custom properties the badges read through the pages'
  * shadow roots. Centered is centered on the page, over the title bar; on an
  * upright tablet the badges have a line of their own and center on it.
@@ -170,7 +178,12 @@ export class LuxFrameCard extends LitElement {
     const first = !this._config;
     this._config = local ?? config;
     // Open on the home page; a later config keeps the page on screen.
-    if (first) this._index = this._homeIndex;
+    if (first) {
+      const resume = resumeAt && resumeAt.until > Date.now() ? resumeAt.page : undefined;
+      resumeAt = undefined;
+      const at = resume === undefined ? -1 : this._visible.findIndex(({ i }) => i === resume);
+      this._index = at >= 0 ? at : this._homeIndex;
+    }
   }
 
   getCardSize(): number {
@@ -521,6 +534,7 @@ export class LuxFrameCard extends LitElement {
     if (stableJson(draft) === stableJson(this._config)) return this._cancelEditing();
 
     this._saving = true;
+    resumeAt = { page: this._visible[this._index]?.i ?? 0, until: Date.now() + RESUME_MS };
     const result = await save(this.hass, this._base, draft);
     this._saving = false;
     if (result.where === 'nowhere') {
