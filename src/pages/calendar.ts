@@ -10,6 +10,7 @@ import {
   startOfDay,
   type CalendarEvent,
 } from '../data';
+import { type BadgeItem } from '../badges';
 import { define } from '../define';
 import { glass, pageStyles } from '../theme';
 import { formatClock } from '../time';
@@ -22,11 +23,16 @@ export class LuxFrameCalendarPage extends LitElement {
   static properties = {
     hass: { attribute: false },
     config: { attribute: false },
+    badges: { attribute: false },
+    editing: { type: Boolean },
     _events: { state: true },
   };
 
   declare hass?: HomeAssistant;
   declare config?: CalendarPageConfig;
+  /** The title bar's badges, worked out by the frame. */
+  declare badges?: BadgeItem[];
+  declare editing?: boolean;
   declare _events?: CalendarEvent[];
 
   private _poll = new Poller(this, () => this._load(), REFRESH_MS);
@@ -78,7 +84,9 @@ export class LuxFrameCalendarPage extends LitElement {
       .filter(({ events }) => events.length);
 
     return html`
-      <div class="head"><h1>${title}</h1></div>
+      <div class="head"><h1>${title}</h1>
+        ${this.editing || this.badges?.length ? html`<luxframe-badges .hass=${this.hass} .items=${this.badges ?? []} ?editing=${this.editing}></luxframe-badges>` : nothing}
+      </div>
       ${this._events && !days.length
         ? html`<div class="muted empty">Nothing in the next ${this._days} days</div>`
         : nothing}

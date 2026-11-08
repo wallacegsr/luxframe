@@ -192,14 +192,6 @@ export const pageStyles = css`
     letter-spacing: -0.02em;
   }
 
-  .chips {
-    display: flex;
-    gap: 16px;
-    color: var(--lf-muted);
-    font-size: 18px;
-    font-variant-numeric: tabular-nums;
-  }
-
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));

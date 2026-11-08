@@ -67,13 +67,15 @@ export interface RoomPageConfig {
   type: 'room';
   title: string;
   entities: EntityRef[];
-  /** Read-only sensors shown as chips beside the title, e.g. temperature. */
+  /** Sensors beside the title, e.g. temperature: badges that open details. */
   sensors?: string[];
+  badges?: Badge[];
 }
 
 export interface ScenesPageConfig {
   type: 'scenes';
   title?: string;
+  badges?: Badge[];
   scenes: EntityRef[];
 }
 
@@ -194,9 +196,34 @@ export type GridTileConfig =
 
 export type GridTileType = NonNullable<GridTileConfig['type']>;
 
+/**
+ * A small pill in a page's title bar: an entity's icon and state, or a button
+ * that runs something. A bare entity id is the short form.
+ */
+export interface BadgeConfig {
+  entity?: string;
+  /** Shown before the state; a run-something badge shows it alone. */
+  name?: string;
+  icon?: string;
+  /**
+   * What a tap does. `details` (the default) opens the entity's details;
+   * `toggle` switches it, except locks and garage doors, which open details.
+   * Scenes, scripts and buttons run whatever this says.
+   */
+  tap?: 'details' | 'toggle';
+  /** A service to call on tap, such as `script.turn_on`, instead of the above. */
+  action?: string;
+  data?: Record<string, unknown>;
+  /** Home Assistant's visibility conditions, as on tiles. */
+  visibility?: Array<Record<string, unknown>>;
+}
+
+export type Badge = BadgeConfig | string;
+
 export interface GridPageConfig {
   type: 'grid';
   title?: string;
+  badges?: Badge[];
   /** Rows that fit on one screen; more tiles than that scroll. Default 3. */
   rows?: number;
   /** Rows on one screen when the tablet is upright. Default `rows` + 2. */
@@ -216,6 +243,7 @@ export interface WeatherPageConfig {
 export interface CalendarPageConfig {
   type: 'calendar';
   title?: string;
+  badges?: Badge[];
   /** Calendars to show; all of them when left out. */
   entities?: string[];
   /** How many days ahead. Default 7. */
@@ -225,6 +253,7 @@ export interface CalendarPageConfig {
 export interface CamerasPageConfig {
   type: 'cameras';
   title?: string;
+  badges?: Badge[];
   /** Cameras to show; all of them when left out. */
   entities?: string[];
 }
@@ -279,6 +308,8 @@ export interface LuxFrameConfig {
   assist?: boolean | { agent_id?: string };
   /** `glass` blurs; `flat` uses solid tiles; `auto` (default) goes flat on slow devices. */
   style?: 'auto' | 'glass' | 'flat';
+  /** Badges on every page that has a title bar, after the page's own. */
+  badges?: Badge[];
 }
 
 export interface QuickPanelConfig {

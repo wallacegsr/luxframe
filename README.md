@@ -72,7 +72,7 @@ views:
 | -------- | ---------------------------------------------------------------------------- |
 | `grid`   | `tiles`, `columns` (default 4), `rows` (default 3), `portrait_rows` (default `rows` + 2), `title` |
 | `clock`  | `weather` (a `weather.*` entity), `greeting` (default `true`)                |
-| `room`   | `title`, `entities` (ids or `{entity, name, icon}`), `sensors` (shown as chips) |
+| `room`   | `title`, `entities` (ids or `{entity, name, icon}`), `sensors` (shown as badges beside the title) |
 | `scenes` | `title` (default "Scenes"), `scenes` (scene or script ids, or objects)       |
 | `weather` | `entity` (default: your first weather entity). Now, the next 12 hours and the week. |
 | `calendar` | `entities` (default: every calendar), `days` (default 7), `title`. An agenda by day. |
@@ -84,6 +84,53 @@ Any page can have `hidden: true` to keep it in the config but out of the frame.
 The frame opens on the first page, and goes back to it after `home_after`
 seconds without a touch; `home: true` on another page makes that one the start
 page instead.
+
+### Badges
+
+Pages with a title bar (tile pages, rooms, Calendar, Cameras and Scenes) can
+show badges beside the title: small pills with an entity's icon and state,
+such as "21°" or "Brewing". A page's `badges` show on that page; `badges` on
+the card itself show on every page with a title bar, after the page's own.
+
+```yaml
+type: custom:luxframe-card
+badges:
+  - alarm_control_panel.home          # on every page
+pages:
+  - type: grid
+    title: Coffee
+    badges:
+      - sensor.kitchen_temperature      # the short form: an entity id
+      - entity: light.kitchen
+        tap: toggle                     # switch it, instead of opening details
+      - entity: sensor.xbloom_studio_brew_status
+        visibility:
+          - condition: state
+            entity_id: sensor.xbloom_studio_brew_status
+            state: [brewing, grinding]
+      - entity: script.start_brew       # scenes, scripts and buttons run on tap
+        name: Start brew
+    tiles: []
+```
+
+| Option       | What it does |
+| ------------ | ------------ |
+| `entity`     | The entity whose icon and state show. |
+| `name`       | Shown before the state. Badges show only the state by default; one that runs something shows its name. |
+| `icon`       | Another icon, such as `mdi:coffee`. |
+| `tap`        | `details` (default) opens the entity's details; `toggle` switches a light, switch, fan and so on. Locks, garage doors and gates still open their details. |
+| `action`     | A service to call on tap, such as `script.turn_on`, with `data`. The badge shows its name and flashes Done. |
+| `visibility` | Home Assistant's visibility conditions, as on [tiles](#home-assistant-cards). |
+
+Scenes, scripts and buttons run when tapped, then show Done for a moment.
+Holding a badge opens Home Assistant's own dialog. States are kept short:
+"21.4 °C" shows as "21°". Up to six badges show at once; when the tablet
+stands upright, they move to a line under the title. A room's `sensors` show
+as badges first.
+
+While editing, **+ Badge** in the title bar adds one, and tapping a badge sets
+its name, what a tap does, whether it shows on this page or every page, and
+its place. Visibility conditions and actions are set in YAML.
 
 ### Grid pages
 
@@ -327,6 +374,7 @@ The pinned tiles and the speaker can also be set on the tablet, under
 | `home_after` | `120`                                      | Seconds without a touch before going back to the start page. |
 | `height`     | `calc(100dvh - var(--header-height, 0px))` | Becomes `100dvh` when Kiosk Satellite hides HA's header. |
 | `quick_panel` | on, nothing pinned                        | `media_player`, `pinned`; `false` turns the panel off. |
+| `badges`     | none                                       | [Badges](#badges) on every page with a title bar.    |
 | `assist`     | `true`                                     | `false` hides Ask; `{agent_id}` picks the conversation agent. |
 | `style`      | `auto`                                     | `glass`, or `flat` for solid tiles with no blur. `auto` goes flat on a device that can't blur, or blurs below 30 frames a second (checked once per tablet). |
 

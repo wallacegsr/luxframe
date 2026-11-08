@@ -1,0 +1,300 @@
+import { LitElement, css, html, nothing } from 'lit';
+import { conditionsMet } from './conditions';
+import { define } from './define';
+import { domainOf, isActive, isGuardedCover, openDetail, openMoreInfo, resolve, stateLabel, tapAction } from './entity';
+import { stateIcon } from './icon';
+import type { Badge, BadgeConfig, HassEntity, HomeAssistant, LuxFrameConfig, PageConfig } from './types';
+
+/** Where a badge lives: the page's own list, the frame's list, or a room's `sensors`. */
+export type BadgeScope = 'page' | 'frame' | 'fixed';
+
+export interface BadgeItem {
+  badge: BadgeConfig;
+  scope: BadgeScope;
+  /** Its place in that list. */
+  index: number;
+}
+
+/** At most this many show at once, so the title keeps its room. */
+const MAX_SHOWN = 6;
+
+/** Domains a tap runs rather than opens. */
+const RUNS = new Set(['scene', 'script', 'button', 'input_button']);
+
+/** Domains `tap: toggle` makes sense for. Locks and guarded covers still open details. */
+export const TOGGLEABLE = new Set(['light', 'switch', 'fan', 'input_boolean', 'automation', 'cover', 'lock']);
+
+export function normalizeBadge(badge: Badge): BadgeConfig {
+  return typeof badge === 'string' ? { entity: badge } : badge;
+}
+
+/** The short form when nothing but the entity is set. */
+export function compactBadge(badge: BadgeConfig): Badge {
+  const keys = Object.keys(badge).filter((k) => badge[k as keyof BadgeConfig] !== undefined);
+  return keys.length === 1 && keys[0] === 'entity' && badge.entity ? badge.entity : badge;
+}
+
+/** Whether a tap runs something: an action, or a scene, script or button. */
+export function badgeRuns(badge: BadgeConfig): boolean {
+  return !!badge.action || (!!badge.entity && RUNS.has(domainOf(badge.entity)));
+}
+
+/** The pages with a title bar, where badges show. */
+export function hasTitleBar(page: PageConfig): boolean {
+  return ['grid', 'calendar', 'cameras', 'scenes', 'room'].includes(page.type);
+}
+
+/** A page's badges in order: a room's sensors, the page's own, then the frame's. */
+export function badgeItems(page: PageConfig, config: LuxFrameConfig): BadgeItem[] {
+  if (!hasTitleBar(page)) return [];
+  const own = ('badges' in page && page.badges) || [];
+  const sensors = page.type === 'room' ? (page.sensors ?? []) : [];
+  return [
+    ...sensors.map((entity, index) => ({ badge: { entity }, scope: 'fixed' as const, index })),
+    ...own.map((b, index) => ({ badge: normalizeBadge(b), scope: 'page' as const, index })),
+    ...(config.badges ?? []).map((b, index) => ({ badge: normalizeBadge(b), scope: 'frame' as const, index })),
+  ];
+}
+
+/** "21.4 °C" → "21°", "1234.5 W" → "1235 W"; anything else as Home Assistant words it. */
+export function shortState(hass: HomeAssistant | undefined, stateObj: HassEntity): string {
+  const unit = stateObj.attributes.unit_of_measurement as string | undefined;
+  const n = Number(stateObj.state);
+  if (unit && stateObj.state.trim() !== '' && Number.isFinite(n)) {
+    const rounded = Math.abs(n) >= 10 ? Math.round(n) : Math.round(n * 10) / 10;
+    const text = rounded.toLocaleString(hass?.locale?.language);
+    if (unit === '°C' || unit === '°F') return `${text}°`;
+    if (unit === '%') return `${text}%`;
+    return `${text} ${unit}`;
+  }
+  return stateLabel(hass, stateObj);
+}
+
+const HOLD_MS = 600;
+const DONE_MS = 1200;
+
+/**
+ * The badges in a page's title bar. A tap opens an entity's details, toggles
+ * it, or runs a scene, script, button or action; holding opens Home
+ * Assistant's own dialog. While editing, a tap asks to edit the badge, and
+ * `+ Badge` asks to add one. Fires `luxframe-badge-edit` ({scope, index}) and
+ * `luxframe-badge-add`.
+ */
+export class LuxFrameBadges extends LitElement {
+  static properties = {
+    hass: { attribute: false },
+    items: { attribute: false },
+    editing: { type: Boolean, reflect: true },
+    _done: { state: true },
+  };
+
+  declare hass?: HomeAssistant;
+  declare items: BadgeItem[];
+  declare editing: boolean;
+  /** The badge that just ran, flashing "Done". */
+  declare _done?: BadgeItem;
+
+  private _holdTimer?: number;
+  private _held = false;
+  private _doneTimer?: number;
+
+  constructor() {
+    super();
+    this.items = [];
+    this.editing = false;
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    window.clearTimeout(this._holdTimer);
+    window.clearTimeout(this._doneTimer);
+  }
+
+  private _fire(name: string, detail: unknown = {}): void {
+    this.dispatchEvent(new CustomEvent(name, { detail, bubbles: true, composed: true }));
+  }
+
+  private _down(item: BadgeItem, e: PointerEvent): void {
+    // The badge's own hold, not the page's hold-to-edit.
+    e.stopPropagation();
+    this._held = false;
+    window.clearTimeout(this._holdTimer);
+    if (this.editing || !item.badge.entity) return;
+    const entity = item.badge.entity;
+    this._holdTimer = window.setTimeout(() => {
+      this._held = true;
+      openMoreInfo(this, entity);
+    }, HOLD_MS);
+  }
+
+  private _up(): void {
+    window.clearTimeout(this._holdTimer);
+  }
+
+  private _tap(item: BadgeItem): void {
+    if (this._held) {
+      this._held = false;
+      return;
+    }
+    if (this.editing) {
+      if (item.scope !== 'fixed') this._fire('luxframe-badge-edit', { scope: item.scope, index: item.index });
+      return;
+    }
+    const { badge } = item;
+    const hass = this.hass;
+    const stateObj = badge.entity ? hass?.states[badge.entity] : undefined;
+    if (!hass) return;
+
+    if (badge.action) {
+      const [domain, service] = badge.action.split('.');
+      if (!domain || !service) return;
+      const data = { ...(badge.data ?? {}) };
+      if (badge.entity && data.entity_id === undefined) data.entity_id = badge.entity;
+      hass.callService(domain, service, data);
+      return this._flash(item);
+    }
+    if (!badge.entity) return;
+    const domain = domainOf(badge.entity);
+    if (domain === 'button' || domain === 'input_button') {
+      hass.callService(domain, 'press', { entity_id: badge.entity });
+      return this._flash(item);
+    }
+    if (domain === 'scene' || domain === 'script') {
+      tapAction(hass, stateObj);
+      return this._flash(item);
+    }
+    const guarded = domain === 'lock' || (stateObj && isGuardedCover(stateObj));
+    if (badge.tap === 'toggle' && !guarded && tapAction(hass, stateObj)) return;
+    openDetail(this, badge.entity);
+  }
+
+  private _flash(item: BadgeItem): void {
+    window.clearTimeout(this._doneTimer);
+    this._done = item;
+    this._doneTimer = window.setTimeout(() => (this._done = undefined), DONE_MS);
+  }
+
+  private _renderBadge(item: BadgeItem, shows: boolean) {
+    const { badge } = item;
+    const hass = this.hass;
+    const stateObj = badge.entity ? hass?.states[badge.entity] : undefined;
+    const runs = badgeRuns(badge);
+    const name = badge.name ?? (badge.entity ? resolve(hass, badge.entity).name : badge.action ?? '');
+    const done = this._done?.scope === item.scope && this._done.index === item.index;
+    const state = done ? 'Done' : runs ? undefined : stateObj ? shortState(hass, stateObj) : 'Not found';
+    const label = runs ? name : [badge.name, state].filter(Boolean).join(' ');
+    const active = !runs && isActive(stateObj);
+    const iconHtml =
+      badge.icon && !stateObj && customElements.get('ha-icon')
+        ? html`<ha-icon .icon=${badge.icon}></ha-icon>`
+        : stateIcon(hass, stateObj, badge.icon, name || '?');
+    return html`<button
+      class="badge ${active ? 'on' : ''} ${runs ? 'runs' : ''} ${done ? 'done' : ''} ${shows ? '' : 'unmet'}"
+      aria-label=${runs ? `${name}${done ? ', done' : ''}` : `${name}: ${state}`}
+      @pointerdown=${(e: PointerEvent) => this._down(item, e)}
+      @pointerup=${this._up}
+      @pointercancel=${this._up}
+      @pointerleave=${this._up}
+      @contextmenu=${(e: Event) => e.preventDefault()}
+      @click=${() => this._tap(item)}
+    >
+      <span class="icon">${iconHtml}</span>
+      ${runs && done ? html`<span class="label">Done</span>` : html`<span class="label">${label}</span>`}
+    </button>`;
+  }
+
+  protected render() {
+    const items = this.items.map((item) => ({ item, shows: conditionsMet(item.badge.visibility, this.hass) }));
+    const shown = this.editing ? items : items.filter((i) => i.shows).slice(0, MAX_SHOWN);
+    if (!shown.length && !this.editing) return nothing;
+    return html`
+      ${shown.map(({ item, shows }) => this._renderBadge(item, shows))}
+      ${this.editing
+        ? html`<button class="badge add" @click=${() => this._fire('luxframe-badge-add')}>+ Badge</button>`
+        : nothing}
+    `;
+  }
+
+  static styles = css`
+    :host {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-left: auto;
+      align-self: center;
+    }
+
+    /* Stood upright, the title takes the line and the badges go under it. */
+    @media (orientation: portrait) {
+      :host {
+        flex-basis: 100%;
+        justify-content: flex-start;
+        margin-left: 0;
+      }
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 38px;
+      padding: 0 14px 0 10px;
+      border: 0;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--lf-text) 8%, transparent);
+      color: var(--lf-text);
+      font: 500 16px var(--lf-font);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.2s;
+    }
+
+    .badge:active {
+      background: color-mix(in srgb, var(--lf-text) 16%, transparent);
+    }
+
+    .icon {
+      display: inline-flex;
+      color: var(--lf-muted);
+      --mdc-icon-size: 20px;
+    }
+
+    .glyph {
+      display: inline-grid;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .on {
+      background: color-mix(in srgb, var(--lf-accent) 24%, transparent);
+    }
+
+    .on .icon,
+    .runs .icon {
+      color: var(--lf-accent);
+    }
+
+    .done {
+      background: color-mix(in srgb, #30d158 28%, transparent);
+    }
+
+    .unmet {
+      opacity: 0.4;
+    }
+
+    .add {
+      padding: 0 14px;
+      border: 1.5px dashed color-mix(in srgb, var(--lf-text) 35%, transparent);
+      background: transparent;
+    }
+  `;
+}
+
+define('luxframe-badges', LuxFrameBadges);

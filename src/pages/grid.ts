@@ -1,6 +1,7 @@
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { html as staticHtml, literal, type StaticValue } from 'lit/static-html.js';
+import { type BadgeItem } from '../badges';
 import { tileShows } from '../conditions';
 import { define } from '../define';
 import { normalizeTile, tileLabel } from '../editor/layout';
@@ -74,6 +75,7 @@ export class LuxFrameGrid extends LitElement {
     hass: { attribute: false },
     config: { attribute: false },
     editing: { type: Boolean, reflect: true },
+    badges: { attribute: false },
     _drag: { state: true },
     _resize: { state: true },
   };
@@ -81,6 +83,8 @@ export class LuxFrameGrid extends LitElement {
   declare hass?: HomeAssistant;
   declare config?: GridPageConfig;
   declare editing: boolean;
+  /** The title bar's badges, worked out by the frame. */
+  declare badges?: BadgeItem[];
   declare _drag?: Drag;
   declare _resize?: Resize;
 
@@ -395,7 +399,12 @@ export class LuxFrameGrid extends LitElement {
       .filter((item) => item.shows || this.editing);
 
     return html`
-      ${this.config.title ? html`<div class="head"><h1>${this.config.title}</h1></div>` : nothing}
+      ${this.config.title || this.badges?.length || this.editing
+        ? html`<div class="head">
+            ${this.config.title ? html`<h1>${this.config.title}</h1>` : nothing}
+            <luxframe-badges .hass=${this.hass} .items=${this.badges ?? []} ?editing=${this.editing}></luxframe-badges>
+          </div>`
+        : nothing}
       <div
         class="cells"
         style="--columns: ${columns}; --rows: ${rows}"

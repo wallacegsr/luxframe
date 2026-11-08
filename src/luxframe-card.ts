@@ -1,12 +1,14 @@
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
+import { badgeItems, compactBadge, normalizeBadge } from './badges';
 import { define } from './define';
+import './editor/badge-editor';
 import './editor/customize';
 import './editor/picker';
 import './editor/sheet';
 import './editor/tile-editor';
 import { normalizeTile, tileLabel } from './editor/layout';
 import { clearLocal, describe, loadLocal, save, stableJson } from './editor/store';
-import { openMoreInfo } from './entity';
+import { openMoreInfo, resolve } from './entity';
 import { kiosk, onKiosk, type KioskTheme } from './kiosk';
 import './quick/assist';
 import './quick/panel';
@@ -15,7 +17,7 @@ import { detectFlat } from './perf';
 import type { GotoTarget } from './tiles/goto';
 import { tokens } from './theme';
 import { averageColor, backgroundUrl } from './tint';
-import type { GridPageConfig, GridTileConfig, HomeAssistant, LuxFrameConfig, PageConfig } from './types';
+import type { Badge, BadgeConfig, GridPageConfig, GridTileConfig, HomeAssistant, LuxFrameConfig, PageConfig } from './types';
 
 const PAGE_HOLD_MS = 1000;
 const PAGE_HOLD_TOLERANCE = 10;
@@ -39,7 +41,9 @@ type Sheet =
   | { kind: 'add'; page: number }
   | { kind: 'replace'; page: number; index: number }
   | { kind: 'customize' }
-  | { kind: 'pin' };
+  | { kind: 'pin' }
+  | { kind: 'badge-add'; page: number }
+  | { kind: 'badge'; page: number; scope: 'page' | 'frame'; index: number };
 
 /**
  * The frame: a full-height, horizontally swipeable row of pages with dots.
@@ -166,6 +170,8 @@ export class LuxFrameCard extends LitElement {
     this.addEventListener('luxframe-open-detail', this._onOpenDetail);
     this.addEventListener('luxframe-edit-start', this._startEditing);
     this.addEventListener('luxframe-goto', this._onGoto);
+    this.addEventListener('luxframe-badge-edit', this._onBadgeEdit);
+    this.addEventListener('luxframe-badge-add', this._onBadgeAdd);
     detectFlat((slow) => (this._slow = slow));
     if (kiosk) this._connectKiosk();
     readBrightness().then((level) => (this._brightness = level));
@@ -180,6 +186,8 @@ export class LuxFrameCard extends LitElement {
     this.removeEventListener('luxframe-open-detail', this._onOpenDetail);
     this.removeEventListener('luxframe-edit-start', this._startEditing);
     this.removeEventListener('luxframe-goto', this._onGoto);
+    this.removeEventListener('luxframe-badge-edit', this._onBadgeEdit);
+    this.removeEventListener('luxframe-badge-add', this._onBadgeAdd);
     window.clearTimeout(this._toastTimer);
     this._unsubs.forEach((off) => off());
     this._unsubs = [];
@@ -546,6 +554,75 @@ export class LuxFrameCard extends LitElement {
     this._draft = { ...this._draft, pages };
   }
 
+  // ---- Badges -----------------------------------------------------------------
+
+  /** A page's own badges, or with `frame` the ones on every page. */
+  private _badgesOf(page: number, scope: 'page' | 'frame'): Badge[] {
+    if (scope === 'frame') return this._draft?.badges ?? [];
+    const config = this._draft?.pages[page];
+    return (config && 'badges' in config && config.badges) || [];
+  }
+
+  private _setBadges(page: number, scope: 'page' | 'frame', badges: Badge[]): void {
+    const draft = this._draft;
+    if (!draft) return;
+    const list = badges.length ? badges : undefined;
+    if (scope === 'frame') {
+      const { badges: _, ...rest } = draft;
+      this._draft = list ? { ...rest, badges: list } : rest;
+      return;
+    }
+    const pages = [...draft.pages];
+    const { badges: __, ...rest } = pages[page] as PageConfig & { badges?: Badge[] };
+    pages[page] = (list ? { ...rest, badges: list } : rest) as PageConfig;
+    this._draft = { ...draft, pages };
+  }
+
+  private _badgeSheetEvent(sheet: Extract<Sheet, { kind: 'badge' }>, e: CustomEvent): void {
+    const { page, scope, index } = sheet;
+    const badges = [...this._badgesOf(page, scope)];
+    switch (e.type) {
+      case 'change':
+        badges[index] = compactBadge(e.detail as BadgeConfig);
+        break;
+      case 'move': {
+        const to = index + (e.detail as number);
+        const [badge] = badges.splice(index, 1);
+        badges.splice(to, 0, badge);
+        this._sheet = { ...sheet, index: to };
+        break;
+      }
+      case 'remove':
+        badges.splice(index, 1);
+        this._sheet = undefined;
+        break;
+      case 'scope': {
+        // Moves to the end of the other list.
+        const other: 'page' | 'frame' = scope === 'page' ? 'frame' : 'page';
+        const [badge] = badges.splice(index, 1);
+        const moved = [...this._badgesOf(page, other), badge];
+        this._setBadges(page, scope, badges);
+        this._setBadges(page, other, moved);
+        this._sheet = { ...sheet, scope: other, index: moved.length - 1 };
+        return;
+      }
+    }
+    this._setBadges(page, scope, badges);
+  }
+
+  private _onBadgeEdit = (e: Event): void => {
+    const { scope, index } = (e as CustomEvent<{ scope: 'page' | 'frame'; index: number }>).detail;
+    const page = this._visible[this._index]?.i;
+    if (!this._editing || page === undefined) return;
+    this._sheet = { kind: 'badge', page, scope, index };
+  };
+
+  private _onBadgeAdd = (): void => {
+    const page = this._visible[this._index]?.i;
+    if (!this._editing || page === undefined) return;
+    this._sheet = { kind: 'badge-add', page };
+  };
+
   private _tileSheetEvent(page: number, index: number, e: CustomEvent): void {
     const tiles = [...(this._gridAt(page)?.tiles ?? [])];
     switch (e.type) {
@@ -579,6 +656,15 @@ export class LuxFrameCard extends LitElement {
         this._draft = { ...this._draft, quick_panel: { ...quick, pinned: [...(quick.pinned ?? []), entity] } };
       }
       this._sheet = { kind: 'customize' };
+      return;
+    }
+    if (sheet?.kind === 'badge-add') {
+      const entity = typeof tile === 'string' ? tile : 'entity' in tile ? tile.entity : undefined;
+      if (!entity) return;
+      const badges = [...this._badgesOf(sheet.page, 'page'), entity];
+      this._setBadges(sheet.page, 'page', badges);
+      // Straight on to its settings: a tap, a name, every page.
+      this._sheet = { kind: 'badge', page: sheet.page, scope: 'page', index: badges.length - 1 };
       return;
     }
     if (!sheet || (sheet.kind !== 'add' && sheet.kind !== 'replace')) return;
@@ -649,6 +735,33 @@ export class LuxFrameCard extends LitElement {
           @pick=${(e: CustomEvent) => this._picked(e.detail.tile)}></luxframe-picker>
       </luxframe-sheet>`;
     }
+    if (sheet.kind === 'badge-add') {
+      return html`<luxframe-sheet heading="Add a badge" @close=${close}>
+        <luxframe-picker .hass=${this.hass} entities-only
+          @pick=${(e: CustomEvent) => this._picked(e.detail.tile)}></luxframe-picker>
+      </luxframe-sheet>`;
+    }
+    if (sheet.kind === 'badge') {
+      const badges = this._badgesOf(sheet.page, sheet.scope);
+      const raw = badges[sheet.index];
+      if (raw === undefined) return nothing;
+      const badge = normalizeBadge(raw);
+      const on = (e: CustomEvent) => this._badgeSheetEvent(sheet, e);
+      const heading = badge.name ?? (badge.entity ? resolve(this.hass, badge.entity).name : (badge.action ?? 'Badge'));
+      return html`<luxframe-sheet heading=${heading} @close=${close}>
+        <luxframe-badge-editor
+          .hass=${this.hass}
+          .badge=${badge}
+          scope=${sheet.scope}
+          ?first=${sheet.index === 0}
+          ?last=${sheet.index === badges.length - 1}
+          @change=${on}
+          @move=${on}
+          @remove=${on}
+          @scope=${on}
+        ></luxframe-badge-editor>
+      </luxframe-sheet>`;
+    }
     if (sheet.kind === 'add' || sheet.kind === 'replace') {
       const back = sheet.kind === 'add' ? close : () => (this._sheet = { ...sheet, kind: 'tile' });
       return html`<luxframe-sheet heading=${sheet.kind === 'add' ? 'Add a tile' : 'Show on this tile'}
@@ -702,19 +815,24 @@ export class LuxFrameCard extends LitElement {
   }
 
   private _renderPage(page: PageConfig, i: number) {
+    const badges = badgeItems(page, this._shown!);
     switch (page.type) {
       case 'clock':
         return html`<luxframe-clock .hass=${this.hass} .config=${page}></luxframe-clock>`;
       case 'room':
-        return html`<luxframe-room .hass=${this.hass} .config=${page}></luxframe-room>`;
+        return html`<luxframe-room .hass=${this.hass} .config=${page} .badges=${badges}
+          ?editing=${this._editing}></luxframe-room>`;
       case 'scenes':
-        return html`<luxframe-scenes .hass=${this.hass} .config=${page}></luxframe-scenes>`;
+        return html`<luxframe-scenes .hass=${this.hass} .config=${page} .badges=${badges}
+          ?editing=${this._editing}></luxframe-scenes>`;
       case 'weather':
         return html`<luxframe-weather-page .hass=${this.hass} .config=${page}></luxframe-weather-page>`;
       case 'calendar':
-        return html`<luxframe-calendar-page .hass=${this.hass} .config=${page}></luxframe-calendar-page>`;
+        return html`<luxframe-calendar-page .hass=${this.hass} .config=${page} .badges=${badges}
+          ?editing=${this._editing}></luxframe-calendar-page>`;
       case 'cameras':
-        return html`<luxframe-cameras-page .hass=${this.hass} .config=${page}></luxframe-cameras-page>`;
+        return html`<luxframe-cameras-page .hass=${this.hass} .config=${page} .badges=${badges}
+          ?editing=${this._editing}></luxframe-cameras-page>`;
       case 'photos':
         return html`<luxframe-photos-page .hass=${this.hass} .config=${page}></luxframe-photos-page>`;
       case 'night':
@@ -723,6 +841,7 @@ export class LuxFrameCard extends LitElement {
         return html`<luxframe-grid
           .hass=${this.hass}
           .config=${page}
+          .badges=${badges}
           ?editing=${this._editing}
           @luxframe-tiles-change=${(e: CustomEvent) => this._setTiles(i, e.detail.tiles)}
           @luxframe-tile-edit=${(e: CustomEvent) =>

@@ -6,6 +6,19 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Badges in the title bar of tile pages, rooms, Calendar, Cameras and Scenes:
+  an entity's icon and short state ("21°"), set per page or for every page.
+  A tap opens details, switches the entity (`tap: toggle`), or runs a scene,
+  script, button or `action`, then shows Done; holding opens Home Assistant's
+  dialog. They take visibility conditions. While editing, **+ Badge** adds
+  one, and tapping one sets its name, tap, pages and place.
+
+### Changed
+
+- A room's `sensors` show as badges, which open their details when tapped.
+
 ## [0.7.0] - 2026-11-08
 
 ### Added

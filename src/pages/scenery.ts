@@ -1,5 +1,6 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { entitiesOr, firstWeather } from '../data';
+import { type BadgeItem } from '../badges';
 import { define } from '../define';
 import '../slideshow';
 import '../tiles/media';
@@ -12,15 +13,22 @@ export class LuxFrameCamerasPage extends LitElement {
   static properties = {
     hass: { attribute: false },
     config: { attribute: false },
+    badges: { attribute: false },
+    editing: { type: Boolean },
   };
 
   declare hass?: HomeAssistant;
   declare config?: CamerasPageConfig;
+  /** The title bar's badges, worked out by the frame. */
+  declare badges?: BadgeItem[];
+  declare editing?: boolean;
 
   protected render() {
     const cameras = entitiesOr(this.hass, 'camera', this.config?.entities);
     return html`
-      <div class="head"><h1>${this.config?.title ?? 'Cameras'}</h1></div>
+      <div class="head"><h1>${this.config?.title ?? 'Cameras'}</h1>
+        ${this.editing || this.badges?.length ? html`<luxframe-badges .hass=${this.hass} .items=${this.badges ?? []} ?editing=${this.editing}></luxframe-badges>` : nothing}
+      </div>
       ${cameras.length
         ? html`<div class="cameras">
             ${cameras.map(

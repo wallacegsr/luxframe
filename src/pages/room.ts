@@ -1,33 +1,30 @@
 import { LitElement, html, nothing } from 'lit';
+import { type BadgeItem } from '../badges';
 import { define } from '../define';
-import { stateLabel } from '../entity';
 import { pageStyles } from '../theme';
 import type { HomeAssistant, RoomPageConfig } from '../types';
 
-/** A room: its title, a few read-only sensor chips and a grid of tiles. */
+/** A room: its title, its sensors and badges beside it, and a grid of tiles. */
 export class LuxFrameRoom extends LitElement {
   static properties = {
     hass: { attribute: false },
     config: { attribute: false },
+    badges: { attribute: false },
+    editing: { type: Boolean },
   };
 
   declare hass?: HomeAssistant;
   declare config?: RoomPageConfig;
+  /** The title bar's badges, worked out by the frame. */
+  declare badges?: BadgeItem[];
+  declare editing?: boolean;
 
   protected render() {
     if (!this.config) return nothing;
-    const sensors = (this.config.sensors ?? [])
-      .map((id) => this.hass?.states[id])
-      .filter((s) => s !== undefined);
-
     return html`
       <div class="head">
         <h1>${this.config.title}</h1>
-        ${sensors.length
-          ? html`<div class="chips">
-              ${sensors.map((s) => html`<span>${stateLabel(this.hass, s)}</span>`)}
-            </div>`
-          : nothing}
+        ${this.editing || this.badges?.length ? html`<luxframe-badges .hass=${this.hass} .items=${this.badges ?? []} ?editing=${this.editing}></luxframe-badges>` : nothing}
       </div>
       <div class="grid">
         ${(this.config.entities ?? []).map(
