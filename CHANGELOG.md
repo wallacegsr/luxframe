@@ -6,6 +6,17 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- A second save in a row could miss the dashboard and land on the tablet
+  only ("LuxFrame couldn't find itself in the dashboard"), and a refresh then
+  lost it. LuxFrame now treats what it saved as its starting point, and when
+  its card in the dashboard has changed since it loaded, it saves over it:
+  the only LuxFrame card on the dashboard, or the only one in the view on
+  screen. The browser console lists what had changed.
+- When the browser won't store a tablet-only save, LuxFrame says the change
+  wasn't saved and stays in editing, instead of reporting it saved.
+
 ## [0.5.1] - 2026-11-07
 
 ### Changed

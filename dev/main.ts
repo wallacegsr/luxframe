@@ -218,7 +218,9 @@ const OTHER_DASHBOARD = {
 };
 
 // A stand-in for the dashboard LuxFrame lives in, so Done can save to it.
-// ?guest signs in as a non-admin; ?yaml makes the dashboard refuse saves.
+// ?guest signs in as a non-admin; ?yaml makes the dashboard refuse saves;
+// ?stale doesn't hand LuxFrame its saved config back, like Home Assistant
+// with its editor open.
 let dashboard: { views: Array<{ type: string; cards: LuxFrameConfig[] }> } = {
   views: [{ type: 'panel', cards: [config] }],
 };
@@ -245,7 +247,7 @@ hass.callWS = (async (message: Record<string, any>) => {
     if (params.has('yaml')) throw new Error('Not supported');
     dashboard = message.config;
     // Home Assistant reloads the dashboard and hands each card its new config.
-    setTimeout(() => card.setConfig(dashboard.views[0].cards[0]), 200);
+    if (!params.has('stale')) setTimeout(() => card.setConfig(dashboard.views[0].cards[0]), 200);
     return null;
   }
   if (message.type === 'conversation/process') return converse(message.text, message.conversation_id);

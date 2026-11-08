@@ -242,10 +242,15 @@ Where Done saves:
 
 - **Signed in as an admin**: into the dashboard's own config, so every tablet
   on that dashboard gets the change. The YAML you wrote is the starting point;
-  after a save the dashboard's raw config shows the result.
+  after a save the dashboard's raw config shows the result. If the dashboard
+  changed since LuxFrame loaded it, LuxFrame saves over its own card: the only
+  LuxFrame card on the dashboard, or the only one in the view on screen.
 - **Otherwise**, or on a dashboard managed in YAML: on this tablet only, and
   LuxFrame says so. When the dashboard's config changes, the tablet goes back
   to it. **Customize → Use the dashboard's layout** does that by hand.
+
+If neither will take the change, because the browser won't store it either,
+LuxFrame says so and stays in editing, so nothing is lost.
 
 ### Quick panel and Assist
 

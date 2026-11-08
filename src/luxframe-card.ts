@@ -488,8 +488,15 @@ export class LuxFrameCard extends LitElement {
     this._saving = true;
     const result = await save(this.hass, this._base, draft);
     this._saving = false;
-    // Home Assistant hands the saved config back through setConfig shortly;
-    // until then, show the draft.
+    if (result.where === 'nowhere') {
+      // Nothing kept it: stay in editing, so the change isn't lost.
+      this._showToast(describe(result));
+      return;
+    }
+    // Home Assistant builds LuxFrame afresh from the saved config, but it
+    // may not (an older Home Assistant, or its editor open): what was just
+    // saved is the dashboard's now, as the server stores it.
+    if (result.where === 'dashboard') this._base = JSON.parse(JSON.stringify(draft));
     this._config = draft;
     this._local = result.where === 'tablet';
     this._cancelEditing();
