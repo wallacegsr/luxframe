@@ -6,6 +6,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-11-07
+
 ### Fixed
 
 - A second save in a row could miss the dashboard and land on the tablet
@@ -156,7 +158,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.5.2...HEAD
+[0.5.2]: https://github.com/wallacegsr/luxframe/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/wallacegsr/luxframe/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/wallacegsr/luxframe/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/wallacegsr/luxframe/compare/v0.3.1...v0.4.0
