@@ -6,6 +6,13 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The update notice also catches an update when the dashboard's resource URL
+  stays the same between versions, as one added by hand without
+  `?hacstag=` does. It checks the file itself with the server, past the
+  browser's saved copy, so the tablet's Reload loads the new version.
+
 ## [0.8.6] - 2026-11-08
 
 ### Changed

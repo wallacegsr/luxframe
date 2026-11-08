@@ -5,9 +5,14 @@ declare const __LF_STAMP__: string;
 /**
  * Spotting a newer LuxFrame than the one running. A wall tablet keeps the
  * code it loaded until its page reloads, which kiosk apps rarely do, so an
- * update from HACS can sit unused for weeks. HACS gives each version its own
- * resource URL (`?hacstag=…`); when the dashboard's resource no longer
- * matches the file this code came from, a newer one is installed.
+ * update from HACS can sit unused for weeks. So the file is asked for again
+ * now and then, past the browser's copy, and the version stamped in it read.
+ *
+ * HACS gives each version its own resource URL (`?hacstag=…`), and the
+ * dashboard's resource is the one asked for. A resource added by hand has
+ * the same URL every version, and a browser may keep serving its old copy
+ * of it even across restarts; asking past that copy catches those too, and
+ * puts the new file in the browser's cache, so a reload runs it.
  */
 
 /** "luxframe-version:0.8.3", as it's found in the file `newerInstalled` fetches. */
@@ -54,15 +59,27 @@ async function check(hass: HomeAssistant | undefined): Promise<string | undefine
       }
     })
     .find((url) => url?.pathname === LOADED.pathname);
-  if (!mine || mine.search === LOADED.search) return undefined;
-
-  // The URL changed; the file says which version it is, if it can be read.
+  const moved = !!mine && mine.search !== LOADED.search;
+  // Revalidated with the server: cheap when it hasn't changed (304), and the
+  // browser's cache gets the new file when it has.
+  const url = mine?.href ?? LOADED.href;
   try {
-    const text = await (await fetch(mine.href, { cache: 'no-store' })).text();
-    const version = /luxframe-version:([\w.+-]+)/.exec(text)?.[1];
-    if (version === RUNNING) return undefined;
-    return version ?? '';
+    const response = await fetch(url, { cache: 'no-cache' });
+    if (!response.ok) return moved ? '' : undefined;
+    const version = /luxframe-version:([\w.+-]+)/.exec(await response.text())?.[1];
+    if (!version) return moved ? '' : undefined;
+    return newer(version, RUNNING) ? version : undefined;
   } catch {
-    return '';
+    return moved ? '' : undefined;
   }
+}
+
+/** Whether version `a` comes after `b`: "0.8.10" after "0.8.9". */
+export function newer(a: string, b: string): boolean {
+  const parts = (v: string) => v.split(/[.+-]/).map((p) => Number.parseInt(p, 10) || 0);
+  const [x, y] = [parts(a), parts(b)];
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) > (y[i] ?? 0);
+  }
+  return false;
 }
