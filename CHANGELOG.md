@@ -6,6 +6,12 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- A card tile with its own background (`glass: false`) shows the card's glow
+  and shadow past the tile's edge, as on a dashboard, instead of cutting them
+  off. `fit: scroll` and `fit: cover` still keep to the tile.
+
 ## [0.8.3] - 2026-11-08
 
 ### Added

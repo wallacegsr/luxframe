@@ -249,7 +249,10 @@ export class LuxFrameCardTile extends LitElement {
     if (!this.config) return nothing;
     if (this._problem) return html`<div class="tile glass empty muted">${this._problem}</div>`;
     const glassy = this.config.glass !== false;
-    return html`<div class="tile ${glassy ? 'glass themed' : ''}">
+    // A card in its own look draws its shadows and glows past the tile, as
+    // on a dashboard. Scrolling and cover's trimming still need the edge.
+    const free = !glassy && this._fit !== 'scroll' && this._fit !== 'cover';
+    return html`<div class="tile ${glassy ? 'glass themed' : ''} ${free ? 'free' : ''}">
       <div class="card ${this._scaled ? 'scaled' : ''}">${this._element ?? nothing}</div>
     </div>`;
   }
@@ -317,6 +320,11 @@ export class LuxFrameCardTile extends LitElement {
 
       .tile:not(.themed) {
         --ha-card-border-radius: var(--lf-radius);
+      }
+
+      .tile.free,
+      .tile.free .card {
+        overflow: visible;
       }
     `,
   ];

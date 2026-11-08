@@ -204,7 +204,8 @@ built-in cards and custom cards from HACS both work:
 The card's background gives way to LuxFrame's glass and its text takes
 LuxFrame's colors. Cards that draw their own background, such as a picture,
 keep it. `glass: false` leaves the card looking as it does on other
-dashboards.
+dashboards, glows and shadows included: they reach past the tile's edge into
+the gap around it, except with `fit: scroll` or `cover`, which need the edge.
 
 On the tablet, a card tile's settings switch between **Visual editor** and
 **YAML**. The visual editor is the card's own, as Home Assistant's card dialog
