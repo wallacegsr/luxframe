@@ -122,6 +122,10 @@ pages:
 | ------------ | ------------ |
 | `entity`     | The entity whose icon and state show. |
 | `name`       | Shown before the state. Badges show only the state by default; one that runs something shows its name. |
+| `show_name`  | `true` puts the name over the state, as Home Assistant's badges do; `false` hides it. |
+| `show_state` | `false` hides the state, leaving the icon and name. |
+| `show_icon`  | `false` hides the icon. |
+| `state_content` | What the state part says: `state` (the default), `last_changed`, `last_updated` or an attribute's name, or a list of them. |
 | `icon`       | Another icon, such as `mdi:coffee`. |
 | `tap`        | `details` (default) opens the entity's details; `toggle` switches a light, switch, fan and so on. Locks, garage doors and gates still open their details. |
 | `action`     | A service to call on tap, such as `script.turn_on`, with `data`. The badge shows its name and flashes Done. |
@@ -129,18 +133,34 @@ pages:
 
 Scenes, scripts and buttons run when tapped, then show Done for a moment.
 Holding a badge opens Home Assistant's own dialog. States are kept short:
-"21.4 °C" shows as "21°". Up to six badges show at once; when the tablet
+"21.4 °C" shows as "21°", and an event's or a timestamp's time as "29 minutes
+ago". A badge copied from a Home Assistant dashboard keeps its `show_*` and
+`state_content` settings. Up to six badges show at once; when the tablet
 stands upright, they move to a line under the title. A room's `sensors` show
 as badges first.
 
 `badge_align` places them: `right` (the default), `left`, just after the
 title, or `center`, in the middle of the page. `badge_style: plain` drops the
 soft cell behind each badge, leaving the icon and text on the page; an active
-badge then shows in the accent color. Customize sets both under Look.
+badge then shows in the accent color. Customize sets both under Look for
+every page; a page can set its own, under **This page**, or with the same
+options on the page.
+
+```yaml
+pages:
+  - type: grid
+    title: Coffee
+    badge_align: center
+    badge_style: plain
+    badges:
+      - entity: event.front_door_camera_motion
+        name: Front Door
+        show_name: true
+```
 
 While editing, **+ Badge** in the title bar adds one, and tapping a badge sets
-its name, what a tap does, whether it shows on this page or every page, and
-its place. The badge's YAML is there too, for visibility conditions, an
+its name, what it shows (icon, name, state, and what the state says), what a
+tap does, whether it shows on this page or every page, and its place. The badge's YAML is there too, for visibility conditions, an
 action, or an icon: change it and tap **Apply**.
 
 ### Grid pages
@@ -237,7 +257,7 @@ so it can still be moved or changed.
 
 | `fit`     | What it does |
 | --------- | ------------ |
-| `stretch` | The default. A card that can grow fills the tile; one taller than the tile shrinks, as a whole, until it fits. |
+| `stretch` | The default. The card gets the tile's size, so one that can grow fills it; one still taller than the tile shrinks, as a whole, until it fits. |
 | `scroll`  | Fills the tile like `stretch`, but a card taller than the tile keeps its size and scrolls inside it. Good for long lists. |
 | `cover`   | Fills the tile. Home Assistant's picture cards (`picture`, `picture-entity`, `picture-glance`, `picture-elements`) crop their picture to the tile's shape, and badges over it stay inside. Any other card scales evenly until it fills the tile, centered, and loses what runs past the edges. |
 | `contain` | Shows all of the card, centered, shrunk if it's taller than the tile. |
@@ -348,7 +368,8 @@ LuxFrame says so and stays in editing, so nothing is lost.
 ### Quick panel and Assist
 
 **Pull down from the top edge**, or tap the small handle there, for the quick
-panel:
+panel. The whole band above the page title counts, and a short flick is
+enough:
 
 - **Now playing**: artwork, title and artist, previous / play-pause / next,
   and volume. It follows whichever speaker is playing, Music Assistant's
@@ -393,8 +414,8 @@ The pinned tiles and the speaker can also be set on the tablet, under
 | `height`     | `calc(100dvh - var(--header-height, 0px))` | Becomes `100dvh` when Kiosk Satellite hides HA's header. |
 | `quick_panel` | on, nothing pinned                        | `media_player`, `pinned`; `false` turns the panel off. |
 | `badges`     | none                                       | [Badges](#badges) on every page with a title bar.    |
-| `badge_align` | `right`                                   | `left`, `center` or `right`: where badges sit in the title bar. |
-| `badge_style` | `pill`                                    | `plain` shows badges with no background.             |
+| `badge_align` | `right`                                   | `left`, `center` or `right`: where badges sit in the title bar. A page's own `badge_align` wins. |
+| `badge_style` | `pill`                                    | `plain` shows badges with no background. A page's own `badge_style` wins. |
 | `assist`     | `true`                                     | `false` hides Ask; `{agent_id}` picks the conversation agent. |
 | `style`      | `auto`                                     | `glass`, or `flat` for solid tiles with no blur. `auto` goes flat on a device that can't blur, or blurs below 30 frames a second (checked once per tablet). |
 

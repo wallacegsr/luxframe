@@ -6,6 +6,7 @@ export interface HassEntity {
   state: string;
   attributes: Record<string, any>;
   last_changed?: string;
+  last_updated?: string;
 }
 
 /** Registry entries HA's frontend keeps on `hass` (2023.6 and later). */
@@ -43,6 +44,7 @@ export interface HomeAssistant {
   themes?: { darkMode?: boolean };
   config?: { unit_system?: { temperature?: string } };
   formatEntityState?(stateObj: HassEntity, state?: string): string;
+  formatEntityAttributeValue?(stateObj: HassEntity, attribute: string, value?: unknown): string;
   /** Sends a websocket command; used to read and save the dashboard. */
   callWS?<T>(message: Record<string, unknown>): Promise<T>;
   user?: { id?: string; name?: string; is_admin: boolean };
@@ -63,7 +65,7 @@ export interface ClockPageConfig {
   greeting?: boolean;
 }
 
-export interface RoomPageConfig {
+export interface RoomPageConfig extends BadgeLook {
   type: 'room';
   title: string;
   entities: EntityRef[];
@@ -72,7 +74,7 @@ export interface RoomPageConfig {
   badges?: Badge[];
 }
 
-export interface ScenesPageConfig {
+export interface ScenesPageConfig extends BadgeLook {
   type: 'scenes';
   title?: string;
   badges?: Badge[];
@@ -216,11 +218,37 @@ export interface BadgeConfig {
   data?: Record<string, unknown>;
   /** Home Assistant's visibility conditions, as on tiles. */
   visibility?: Array<Record<string, unknown>>;
+  /**
+   * The name over the state, as Home Assistant's badges show it. Unset, a
+   * badge with its own `name` shows it before the state, and one without
+   * shows only the state.
+   */
+  show_name?: boolean;
+  /** Default true. */
+  show_state?: boolean;
+  /** Default true. */
+  show_icon?: boolean;
+  /**
+   * What the state part says: `state` (the default), `last_changed`,
+   * `last_updated` or an attribute's name; a list joins them with " · ".
+   */
+  state_content?: string | string[];
 }
 
 export type Badge = BadgeConfig | string;
 
-export interface GridPageConfig {
+/** Where badges sit in the title bar. Default `right`. */
+export type BadgeAlign = 'left' | 'center' | 'right';
+/** `pill` (default) draws a soft cell behind each badge; `plain` draws none. */
+export type BadgeStyle = 'pill' | 'plain';
+
+/** A page's own badge look, over the frame's `badge_align` and `badge_style`. */
+export interface BadgeLook {
+  badge_align?: BadgeAlign;
+  badge_style?: BadgeStyle;
+}
+
+export interface GridPageConfig extends BadgeLook {
   type: 'grid';
   title?: string;
   badges?: Badge[];
@@ -240,7 +268,7 @@ export interface WeatherPageConfig {
   entity?: string;
 }
 
-export interface CalendarPageConfig {
+export interface CalendarPageConfig extends BadgeLook {
   type: 'calendar';
   title?: string;
   badges?: Badge[];
@@ -250,7 +278,7 @@ export interface CalendarPageConfig {
   days?: number;
 }
 
-export interface CamerasPageConfig {
+export interface CamerasPageConfig extends BadgeLook {
   type: 'cameras';
   title?: string;
   badges?: Badge[];
@@ -310,10 +338,10 @@ export interface LuxFrameConfig {
   style?: 'auto' | 'glass' | 'flat';
   /** Badges on every page that has a title bar, after the page's own. */
   badges?: Badge[];
-  /** Where badges sit in the title bar. Default `right`. */
-  badge_align?: 'left' | 'center' | 'right';
-  /** `pill` (default) draws a soft cell behind each badge; `plain` draws none. */
-  badge_style?: 'pill' | 'plain';
+  /** Where badges sit in the title bar, on pages that don't say. Default `right`. */
+  badge_align?: BadgeAlign;
+  /** The badges' look on pages that don't say. Default `pill`. */
+  badge_style?: BadgeStyle;
 }
 
 export interface QuickPanelConfig {

@@ -56,8 +56,69 @@ export function badgeItems(page: PageConfig, config: LuxFrameConfig): BadgeItem[
   ];
 }
 
-/** "21.4 °C" → "21°", "1234.5 W" → "1235 W"; anything else as Home Assistant words it. */
+/** "29 minutes ago", "in 2 hours": how Home Assistant's badges give a time. */
+export function relativeTime(hass: HomeAssistant | undefined, iso: string | undefined, now = Date.now()): string {
+  const at = iso ? Date.parse(iso) : NaN;
+  if (!Number.isFinite(at)) return '';
+  const seconds = (at - now) / 1000;
+  const abs = Math.abs(seconds);
+  const [value, unit]: [number, Intl.RelativeTimeFormatUnit] =
+    abs < 45
+      ? [seconds, 'second']
+      : abs < 45 * 60
+        ? [seconds / 60, 'minute']
+        : abs < 22 * 3600
+          ? [seconds / 3600, 'hour']
+          : abs < 26 * 86400
+            ? [seconds / 86400, 'day']
+            : abs < 320 * 86400
+              ? [seconds / (30 * 86400), 'month']
+              : [seconds / (365 * 86400), 'year'];
+  try {
+    return new Intl.RelativeTimeFormat(hass?.locale?.language, { numeric: 'auto' }).format(Math.round(value), unit);
+  } catch {
+    return new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' }).format(Math.round(value), unit);
+  }
+}
+
+/** A state that is a moment: an event's last firing, or a timestamp sensor. */
+function isMoment(stateObj: HassEntity): boolean {
+  return (
+    (domainOf(stateObj.entity_id) === 'event' || stateObj.attributes.device_class === 'timestamp') &&
+    Number.isFinite(Date.parse(stateObj.state))
+  );
+}
+
+/**
+ * The state part of a badge, from `state_content`: the state, when it last
+ * changed or updated, or attributes, joined with " · ".
+ */
+export function badgeState(
+  hass: HomeAssistant | undefined,
+  stateObj: HassEntity,
+  content: string | string[] | undefined,
+): string {
+  const parts = Array.isArray(content) ? content : [content ?? 'state'];
+  return parts
+    .map((part) => {
+      if (part === 'state') return shortState(hass, stateObj);
+      if (part === 'last_changed' || part === 'last_updated') {
+        return relativeTime(hass, stateObj[part] ?? stateObj.last_changed);
+      }
+      const value = stateObj.attributes[part];
+      if (value === undefined || value === null || value === '') return '';
+      return hass?.formatEntityAttributeValue?.(stateObj, part) ?? String(value);
+    })
+    .filter(Boolean)
+    .join(' · ');
+}
+
+/**
+ * "21.4 °C" → "21°", "1234.5 W" → "1235 W", an event's time → "29 minutes
+ * ago"; anything else as Home Assistant words it.
+ */
 export function shortState(hass: HomeAssistant | undefined, stateObj: HassEntity): string {
+  if (isMoment(stateObj)) return relativeTime(hass, stateObj.state);
   const unit = stateObj.attributes.unit_of_measurement as string | undefined;
   const n = Number(stateObj.state);
   if (unit && stateObj.state.trim() !== '' && Number.isFinite(n)) {
@@ -72,6 +133,8 @@ export function shortState(hass: HomeAssistant | undefined, stateObj: HassEntity
 
 const HOLD_MS = 600;
 const DONE_MS = 1200;
+/** How often times like "29 minutes ago" move on. */
+const TICK_MS = 30_000;
 
 /**
  * The badges in a page's title bar. A tap opens an entity's details, toggles
@@ -86,6 +149,7 @@ export class LuxFrameBadges extends LitElement {
     items: { attribute: false },
     editing: { type: Boolean, reflect: true },
     _done: { state: true },
+    _now: { state: true },
   };
 
   declare hass?: HomeAssistant;
@@ -93,6 +157,9 @@ export class LuxFrameBadges extends LitElement {
   declare editing: boolean;
   /** The badge that just ran, flashing "Done". */
   declare _done?: BadgeItem;
+  /** Re-renders now and then, so times like "29 minutes ago" stay true. */
+  declare _now: number;
+  private _tick?: number;
 
   private _holdTimer?: number;
   private _held = false;
@@ -102,10 +169,17 @@ export class LuxFrameBadges extends LitElement {
     super();
     this.items = [];
     this.editing = false;
+    this._now = Date.now();
+  }
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    this._tick = window.setInterval(() => (this._now = Date.now()), TICK_MS);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    window.clearInterval(this._tick);
     window.clearTimeout(this._holdTimer);
     window.clearTimeout(this._doneTimer);
   }
@@ -181,15 +255,41 @@ export class LuxFrameBadges extends LitElement {
     const runs = badgeRuns(badge);
     const name = badge.name ?? (badge.entity ? resolve(hass, badge.entity).name : badge.action ?? '');
     const done = this._done?.scope === item.scope && this._done.index === item.index;
-    const state = done ? 'Done' : runs ? undefined : stateObj ? shortState(hass, stateObj) : 'Not found';
-    const label = runs ? name : [badge.name, state].filter(Boolean).join(' ');
+    const state = done
+      ? 'Done'
+      : runs
+        ? undefined
+        : stateObj
+          ? badgeState(hass, stateObj, badge.state_content)
+          : 'Not found';
+    // What shows, as Home Assistant's badges choose it. Unset, a badge shows
+    // its own name before the state, or the state alone.
+    const showState = !runs && badge.show_state !== false;
+    const showName = runs || (badge.show_name ?? (!!badge.name || !showState));
+    const showIcon = badge.show_icon !== false;
+    const stacked = showState && badge.show_name === true;
+    const label = runs
+      ? name
+      : [showName ? name : '', showState ? state : '']
+          .filter(Boolean)
+          .join(' ');
     const active = !runs && isActive(stateObj);
-    const iconHtml =
-      badge.icon && !stateObj && customElements.get('ha-icon')
+    const iconHtml = !showIcon
+      ? nothing
+      : badge.icon && !stateObj && customElements.get('ha-icon')
         ? html`<ha-icon .icon=${badge.icon}></ha-icon>`
         : stateIcon(hass, stateObj, badge.icon, name || '?');
+    const text =
+      runs && done
+        ? html`<span class="label">Done</span>`
+        : stacked
+          ? html`<span class="label stack"><span class="name">${name}</span><span>${state}</span></span>`
+          : label
+            ? html`<span class="label">${label}</span>`
+            : nothing;
     return html`<button
-      class="badge ${active ? 'on' : ''} ${runs ? 'runs' : ''} ${done ? 'done' : ''} ${shows ? '' : 'unmet'}"
+      class="badge ${active ? 'on' : ''} ${runs ? 'runs' : ''} ${done ? 'done' : ''} ${shows ? '' : 'unmet'}
+        ${text === nothing ? 'bare' : ''} ${showIcon ? '' : 'no-icon'}"
       aria-label=${runs ? `${name}${done ? ', done' : ''}` : `${name}: ${state}`}
       @pointerdown=${(e: PointerEvent) => this._down(item, e)}
       @pointerup=${this._up}
@@ -198,8 +298,7 @@ export class LuxFrameBadges extends LitElement {
       @contextmenu=${(e: Event) => e.preventDefault()}
       @click=${() => this._tap(item)}
     >
-      <span class="icon">${iconHtml}</span>
-      ${runs && done ? html`<span class="label">Done</span>` : html`<span class="label">${label}</span>`}
+      ${showIcon ? html`<span class="icon">${iconHtml}</span>` : nothing} ${text}
     </button>`;
   }
 
@@ -270,6 +369,28 @@ export class LuxFrameBadges extends LitElement {
 
     .badge:not(.add):active {
       opacity: 0.7;
+    }
+
+    /* Icon only, or words only: even padding all round. */
+    .badge.bare {
+      padding: var(--lf-badge-pad-bare, 0 9px);
+    }
+
+    .badge.no-icon {
+      padding: var(--lf-badge-pad-text, 0 14px);
+    }
+
+    /* The name over the state, as Home Assistant's badges have it. */
+    .stack {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      line-height: 1.15;
+    }
+
+    .stack .name {
+      color: var(--lf-muted);
+      font-size: 12px;
     }
 
     .icon {

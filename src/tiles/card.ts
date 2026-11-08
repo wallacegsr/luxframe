@@ -82,6 +82,8 @@ export class LuxFrameCardTile extends LitElement {
   /** Watches the tile and the card, to keep a scaled card fitted. */
   private _observer?: ResizeObserver;
   private _observed?: CardElement;
+  /** The tile size (width x height) a stretched card was shrunk in. */
+  private _shrunkIn?: string;
   /** The tile's shape (height ÷ width) last given to a picture card. */
   private _shape?: number;
 
@@ -166,7 +168,17 @@ export class LuxFrameCardTile extends LitElement {
     const width = box.clientWidth;
     const height = box.clientHeight;
     if (this._fit === 'stretch' && !this._shrunk) {
-      if (height && element.offsetHeight > height + 1) this._shrunk = true;
+      // Held to the tile's height, a card that doesn't fit spills out of it.
+      if (height && Math.max(element.offsetHeight, element.scrollHeight) > height + 1) {
+        this._shrunkIn = `${width}x${height}`;
+        this._shrunk = true;
+      }
+      return;
+    }
+    if (this._fit === 'stretch' && this._shrunkIn !== `${width}x${height}`) {
+      // The tile changed size: try the card at full size again.
+      this._unplace(element);
+      this._shrunk = false;
       return;
     }
     if (element.style.width !== `${width}px`) element.style.width = `${width}px`;
@@ -253,7 +265,7 @@ export class LuxFrameCardTile extends LitElement {
     // on a dashboard. Scrolling and cover's trimming still need the edge.
     const free = !glassy && this._fit !== 'scroll' && this._fit !== 'cover';
     return html`<div class="tile ${glassy ? 'glass themed' : ''} ${free ? 'free' : ''}">
-      <div class="card ${this._scaled ? 'scaled' : ''}">${this._element ?? nothing}</div>
+      <div class="card ${this._scaled ? 'scaled' : this._fit === 'stretch' ? 'held' : ''}">${this._element ?? nothing}</div>
     </div>`;
   }
 
@@ -286,6 +298,17 @@ export class LuxFrameCardTile extends LitElement {
       .card > * {
         flex: 1 0 auto;
         display: block;
+      }
+
+      /*
+       * A stretched card is given the tile's height, not left to grow to its
+       * content: cards that size themselves by their height, such as Home
+       * Assistant's button card, need that to fit.
+       */
+      .card.held > * {
+        flex: none;
+        height: 100%;
+        min-height: 0;
       }
 
       .card.scaled {

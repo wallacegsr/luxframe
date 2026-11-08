@@ -18,7 +18,7 @@ import type { GotoTarget } from './tiles/goto';
 import { tokens } from './theme';
 import { newerInstalled } from './update';
 import { averageColor, backgroundUrl } from './tint';
-import type { Badge, BadgeConfig, GridPageConfig, GridTileConfig, HomeAssistant, LuxFrameConfig, PageConfig } from './types';
+import type { Badge, BadgeConfig, BadgeLook, GridPageConfig, GridTileConfig, HomeAssistant, LuxFrameConfig, PageConfig } from './types';
 
 const PAGE_HOLD_MS = 1000;
 const PAGE_HOLD_TOLERANCE = 10;
@@ -67,11 +67,23 @@ const BADGE_ALIGN: Record<string, string> = {
 const BADGE_PLAIN =
   '--lf-badge-bg: transparent; --lf-badge-press: transparent; --lf-badge-on-bg: transparent; ' +
   '--lf-badge-done-bg: transparent; --lf-badge-done-color: #30d158; --lf-badge-pad: 0 6px; ' +
-  '--lf-badge-on-color: var(--lf-accent)';
+  '--lf-badge-pad-bare: 0 6px; --lf-badge-pad-text: 0 6px; --lf-badge-on-color: var(--lf-accent)';
+
+/** A page's badge placement and look: its own, or the frame's. */
+function badgeLook(page: PageConfig, config: LuxFrameConfig): string {
+  const own = page as BadgeLook;
+  const align = own.badge_align ?? config.badge_align ?? 'right';
+  const style = own.badge_style ?? config.badge_style ?? 'pill';
+  return [BADGE_ALIGN[align] ?? '', style === 'plain' ? BADGE_PLAIN : ''].filter(Boolean).join('; ');
+}
 const PAGE_TYPES = ['clock', 'room', 'scenes', 'grid', 'weather', 'calendar', 'cameras', 'photos', 'night'];
 const TOAST_MS = 4500;
 /** A pull from the top edge this far opens the quick panel. */
-const PULL_OPEN = 60;
+const PULL_OPEN = 40;
+/** A move this far down from the top edge starts the pull. */
+const PULL_START = 6;
+/** A flick down this fast (px per ms) opens the panel however short it was. */
+const PULL_FLICK = 0.35;
 const EDGE_HOLD_MS = 1000;
 
 /** An editor sheet open over the frame; `page` indexes `config.pages`. */
@@ -143,7 +155,17 @@ export class LuxFrameCard extends LitElement {
   /** This device can't blur, or blurs too slowly: `style: auto` goes flat. */
   declare _slow: boolean;
 
-  private _edge?: { y: number; id: number; timer: number; pulling: boolean; height: number; dy: number };
+  private _edge?: {
+    y: number;
+    id: number;
+    timer: number;
+    pulling: boolean;
+    height: number;
+    dy: number;
+    /** The last move, to tell a flick from a slow drag. */
+    at: number;
+    speed: number;
+  };
   /** The config as the dashboard has it; edits are saved against this. */
   private _base?: LuxFrameConfig;
   private _toastTimer?: number;
@@ -449,6 +471,8 @@ export class LuxFrameCard extends LitElement {
       pulling: false,
       height: 0,
       dy: 0,
+      at: e.timeStamp,
+      speed: 0,
       timer: window.setTimeout(() => {
         if (!this._edge || this._edge.pulling) return;
         this._edge = undefined;
@@ -460,9 +484,13 @@ export class LuxFrameCard extends LitElement {
   private _edgeMove(e: PointerEvent): void {
     const edge = this._edge;
     if (!edge || e.pointerId !== edge.id) return;
-    edge.dy = Math.max(0, e.clientY - edge.y);
+    const dy = Math.max(0, e.clientY - edge.y);
+    const elapsed = e.timeStamp - edge.at;
+    if (elapsed > 0) edge.speed = (dy - edge.dy) / elapsed;
+    edge.at = e.timeStamp;
+    edge.dy = dy;
     if (!edge.pulling) {
-      if (edge.dy < 10) return;
+      if (edge.dy < PULL_START) return;
       window.clearTimeout(edge.timer);
       edge.pulling = true;
       this._pull = 2000; // fully hidden until its height is known
@@ -482,7 +510,7 @@ export class LuxFrameCard extends LitElement {
       // A tap on the edge opens it too.
       this._pull = 0;
       this._quick = true;
-    } else if (edge.dy >= PULL_OPEN) {
+    } else if (edge.dy >= PULL_OPEN || (edge.speed >= PULL_FLICK && e.timeStamp - edge.at < 100)) {
       this._pull = 0;
     } else {
       this._quick = false;
@@ -977,8 +1005,6 @@ export class LuxFrameCard extends LitElement {
     const style = [
       `height: ${height}`,
       config.background ? `--lf-backdrop: ${config.background}` : '',
-      BADGE_ALIGN[config.badge_align ?? 'right'] ?? '',
-      config.badge_style === 'plain' ? BADGE_PLAIN : '',
     ]
       .filter(Boolean)
       .join('; ');
@@ -998,7 +1024,7 @@ export class LuxFrameCard extends LitElement {
         >
           ${visible.map(
             ({ page, i }, n) => html`
-              <section class="page" aria-label="Page ${n + 1} of ${visible.length}">
+              <section class="page" aria-label="Page ${n + 1} of ${visible.length}" style=${badgeLook(page, config)}>
                 ${this._renderPage(page, i)}
               </section>
             `,
@@ -1152,7 +1178,8 @@ export class LuxFrameCard extends LitElement {
         left: 0;
         right: 0;
         z-index: 4;
-        height: 28px;
+        /* The band above the page titles, which nothing else uses. */
+        height: max(36px, var(--lf-pad));
         display: flex;
         justify-content: center;
         touch-action: none;

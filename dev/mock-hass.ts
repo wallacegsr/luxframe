@@ -66,6 +66,14 @@ const initial: HassEntity[] = [
   entity('sensor.living_temperature', '21.5', { unit_of_measurement: '°C', device_class: 'temperature' }),
   entity('sensor.bedroom_temperature', '19.8', { unit_of_measurement: '°C', device_class: 'temperature' }),
   entity('sensor.living_humidity', '44', { unit_of_measurement: '%' }),
+  {
+    ...entity('event.front_door_motion', new Date(Date.now() - 29 * 60_000).toISOString(), {
+      friendly_name: 'Front Door Motion',
+      event_type: 'motion',
+      device_class: 'motion',
+    }),
+    last_changed: new Date(Date.now() - 29 * 60_000).toISOString(),
+  },
   entity('light.kitchen', 'off', { friendly_name: 'Kitchen', ...DIMMABLE }),
   entity('light.island', 'on', { friendly_name: 'Island pendants', brightness: 255, ...DIMMABLE }),
   entity('scene.arrive_home', 'scening', { friendly_name: 'Arrive Home' }),

@@ -6,6 +6,32 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A page can place and style its badges its own way: `badge_align` and
+  `badge_style` on the page win over the frame's, and Customize sets them
+  under **This page**. Look still sets them for every page.
+- Badges take Home Assistant's `show_name`, `show_state`, `show_icon` and
+  `state_content`. `show_name: true` puts the name over the state, as Home
+  Assistant's badges do. The badge editor sets them under **Shows** and
+  **State shows**.
+
+### Changed
+
+- A badge for an event entity or a timestamp sensor shows how long ago it
+  was, such as "29 minutes ago", instead of the full date and time.
+- Pulling down for the quick panel is easier to catch: the whole band above
+  the page title counts as the top edge, not just a thin strip, a pull starts
+  after a smaller move, and a quick flick opens the panel however short it is.
+
+### Fixed
+
+- A stretched card tile gives the card the tile's exact height. Cards that
+  size themselves by their height, such as Home Assistant's button card, now
+  fill the tile instead of being shrunk with gaps at the sides, and keep their
+  glow. A card that is still too tall shrinks to fit as before, and tries full
+  size again when the tile changes size.
+
 ## [0.8.4] - 2026-11-08
 
 ### Changed

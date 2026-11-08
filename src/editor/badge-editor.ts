@@ -1,6 +1,6 @@
 import { dump, load } from 'js-yaml';
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
-import { TOGGLEABLE, badgeRuns } from '../badges';
+import { TOGGLEABLE, badgeRuns, badgeState } from '../badges';
 import { define } from '../define';
 import { domainOf, resolve } from '../entity';
 import type { BadgeConfig, HomeAssistant } from '../types';
@@ -78,6 +78,50 @@ export class LuxFrameBadgeEditor extends LitElement {
     this.dispatchEvent(new CustomEvent(name, { detail }));
   }
 
+  /** The Shows chips: icon, name and state, each on or off, as Home Assistant's badges have them. */
+  private _renderShows(badge: BadgeConfig) {
+    const showState = badge.show_state !== false;
+    const showName = badge.show_name ?? (!!badge.name || !showState);
+    const showIcon = badge.show_icon !== false;
+    const chip = (label: string, on: boolean, set: () => void) =>
+      html`<button class="chip ${on ? 'on' : ''}" aria-pressed=${on} @click=${set}>${label}</button>`;
+    // Something has to show: the last one on can't go off.
+    const lastOn = (on: boolean) => on && [showIcon, showName, showState].filter(Boolean).length === 1;
+    return html`<div class="row" role="group" aria-label="Shows">
+      ${chip('Icon', showIcon, () => !lastOn(showIcon) && this._set({ show_icon: showIcon ? false : undefined }))}
+      ${chip('Name', showName, () => !lastOn(showName) && this._set({ show_name: !showName }))}
+      ${chip('State', showState, () => !lastOn(showState) && this._set({ show_state: showState ? false : undefined }))}
+    </div>`;
+  }
+
+  /** What the state part says: the state, a time, or an attribute. */
+  private _renderStateContent(badge: BadgeConfig) {
+    const stateObj = badge.entity ? this.hass?.states[badge.entity] : undefined;
+    const current = Array.isArray(badge.state_content)
+      ? badge.state_content.join(',')
+      : (badge.state_content ?? 'state');
+    const attributes = Object.keys(stateObj?.attributes ?? {}).filter(
+      (a) => !['friendly_name', 'icon', 'entity_picture', 'supported_features', 'event_types'].includes(a),
+    );
+    const options: Array<[string, string]> = [
+      ['state', 'State'],
+      ['last_changed', 'Last changed'],
+      ['last_updated', 'Last updated'],
+      ...attributes.map((a): [string, string] => [a, a.replace(/_/g, ' ')]),
+    ];
+    if (!options.some(([v]) => v === current)) options.push([current, current]);
+    return html`<select
+        aria-label="State shows"
+        @change=${(e: Event) => {
+          const value = (e.target as HTMLSelectElement).value;
+          this._set({ state_content: value === 'state' ? undefined : value.includes(',') ? value.split(',') : value });
+        }}
+      >
+        ${options.map(([value, label]) => html`<option value=${value} ?selected=${value === current}>${label}</option>`)}
+      </select>
+      ${stateObj ? html`<p class="hint muted">Now: ${badgeState(this.hass, stateObj, badge.state_content) || '—'}</p>` : nothing}`;
+  }
+
   private _set(changes: Partial<BadgeConfig>): void {
     const next: Record<string, unknown> = { ...this.badge!, ...changes };
     for (const [key, value] of Object.entries(changes)) if (value === undefined || value === '') delete next[key];
@@ -99,10 +143,19 @@ export class LuxFrameBadgeEditor extends LitElement {
       <input
         type="text"
         aria-label="Name"
-        placeholder=${runs ? entityName : 'Not shown, only the state'}
+        placeholder=${runs || badge.show_name || badge.show_state === false ? entityName : 'Not shown, only the state'}
         .value=${badge.name ?? ''}
         @change=${(e: Event) => this._set({ name: (e.target as HTMLInputElement).value.trim() })}
       />
+
+      ${runs
+        ? nothing
+        : html`<h3>Shows</h3>
+            ${this._renderShows(badge)}
+            ${badge.entity && badge.show_state !== false
+              ? html`<h3>State shows</h3>
+                  ${this._renderStateContent(badge)}`
+              : nothing}`}
 
       <h3>Tap</h3>
       ${runs
@@ -141,7 +194,9 @@ export class LuxFrameBadgeEditor extends LitElement {
       <p class="hint muted">
         ${badge.visibility?.length ? 'Shows only while its visibility conditions are met. ' : ''}Add
         <code>visibility</code> to show it only sometimes, as on a dashboard card; <code>action</code> and
-        <code>data</code> to call a service; <code>icon</code> for another icon.
+        <code>data</code> to call a service; <code>icon</code> for another icon. Home Assistant's
+        <code>show_name</code>, <code>show_state</code>, <code>show_icon</code> and
+        <code>state_content</code> work as on its badges.
       </p>
       ${this._error ? html`<p class="error" role="alert">${this._error}</p>` : nothing}
       <div class="row">
@@ -170,6 +225,23 @@ export class LuxFrameBadgeEditor extends LitElement {
 
       .end {
         margin-top: 24px;
+      }
+
+      select {
+        box-sizing: border-box;
+        width: 100%;
+        height: 48px;
+        padding: 0 14px;
+        border: 0;
+        border-radius: 14px;
+        background: rgb(127 127 127 / 16%);
+        color: inherit;
+        font: inherit;
+        font-size: 17px;
+      }
+
+      option {
+        color: initial;
       }
 
       textarea {

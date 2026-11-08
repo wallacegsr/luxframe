@@ -50,11 +50,24 @@ const config: LuxFrameConfig = {
     {
       type: 'grid',
       title: 'Cards',
+      badge_align: 'left',
+      badges: [
+        { entity: 'event.front_door_motion', name: 'Front Door', show_name: true },
+        { entity: 'sensor.living_temperature', show_name: false, show_icon: false },
+        { entity: 'sensor.living_humidity', show_state: false },
+        { entity: 'event.front_door_motion', name: 'Front Door' },
+      ],
       tiles: [
         { type: 'card', card: { type: 'thermostat', entity: 'climate.living_room' } },
         { type: 'card', size: 'w', card: { type: 'custom:late-card', text: 'Loaded late' } },
         { type: 'card', size: 'w', glass: false, card: { type: 'markdown', content: 'Its own background' } },
         { type: 'card', card: {} },
+        {
+          type: 'card',
+          size: 'w',
+          glass: false,
+          card: { type: 'button', name: 'Start Brew', glow: true },
+        },
         { type: 'card', size: '2x2', fit: 'cover', card: { type: 'picture-elements', image: 'laundry' } },
       ],
     },
@@ -138,6 +151,20 @@ class DevCard extends HTMLElement {
   }
   private _render() {
     if (!this.isConnected) return;
+    if (this.config.type === 'button') {
+      // Like Home Assistant's: the icon is 40% of the card's width, but no
+      // more than 80% of its height, which only holds when its height is set.
+      const root = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
+      const glow = this.config.glow ? 'box-shadow:0 0 18px 4px rgb(140 195 75 / 70%);' : '';
+      root.innerHTML = `<style>
+        ha-card { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4% 0;
+          height:100%; box-sizing:border-box; overflow:hidden; border-radius:var(--ha-card-border-radius, 12px);
+          background:var(--ha-card-background, #26232f); color:var(--primary-text-color, #eee); ${glow} }
+        .icon { width:40%; height:auto; max-height:80%; aspect-ratio:1; border-radius:20%; background:#8bc34a; }
+        span { margin-top:8px; font:16px system-ui; }
+      </style><ha-card><div class="icon"></div><span>${this.config.name ?? ''}</span></ha-card>`;
+      return;
+    }
     if (this.config.type === 'picture-elements') {
       // Like Home Assistant's: as tall as its picture, badges placed in %.
       // An aspect_ratio ("104%" of the width) crops the picture to that shape.

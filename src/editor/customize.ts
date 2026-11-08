@@ -1,7 +1,8 @@
 import { LitElement, css, html, nothing } from 'lit';
+import { hasTitleBar } from '../badges';
 import { define } from '../define';
 import { resolve } from '../entity';
-import type { GridPageConfig, HomeAssistant, LuxFrameConfig, PageConfig, QuickPanelConfig } from '../types';
+import type { BadgeLook, GridPageConfig, HomeAssistant, LuxFrameConfig, PageConfig, QuickPanelConfig } from '../types';
 import { PAGE_KINDS, TITLE_DEFAULTS, kindLabel, pageLabel, suggestPages } from './layout';
 import { editorStyles } from './sheet';
 
@@ -131,19 +132,69 @@ export class LuxFrameCustomize extends LitElement {
     `;
   }
 
+  /**
+   * Badge placement and look chips. `own` is what's set here, `fallback` what
+   * shows when it isn't; `set` gets undefined to go back to the fallback.
+   */
+  private _badgeLookRow(
+    label: string,
+    own: BadgeLook,
+    fallback: Required<BadgeLook>,
+    set: (look: BadgeLook) => void,
+  ) {
+    const align = own.badge_align ?? fallback.badge_align;
+    const style = own.badge_style ?? fallback.badge_style;
+    return html`<div class="row badge-look" role="group" aria-label=${label}>
+      <span class="label">${label}</span>
+      ${(['left', 'center', 'right'] as const).map((a) => {
+        const on = align === a;
+        return html`<button class="chip ${on ? 'on' : ''}" aria-pressed=${on}
+          @click=${() => set({ ...own, badge_align: a })}>
+          ${a === 'left' ? 'Left' : a === 'center' ? 'Center' : 'Right'}</button>`;
+      })}
+      <button class="chip ${style === 'pill' ? 'on' : ''}" aria-pressed=${style === 'pill'}
+        @click=${() => set({ ...own, badge_style: 'pill' })}>With background</button>
+      <button class="chip ${style === 'plain' ? 'on' : ''}" aria-pressed=${style === 'plain'}
+        @click=${() => set({ ...own, badge_style: 'plain' })}>No background</button>
+    </div>`;
+  }
+
+  /** The badge look every page has unless it says otherwise. */
+  private get _frameLook(): Required<BadgeLook> {
+    return { badge_align: this.config!.badge_align ?? 'right', badge_style: this.config!.badge_style ?? 'pill' };
+  }
+
   private _renderThisPage() {
     const page = this.config!.pages[this.page];
-    if (page?.type !== 'grid') return nothing;
-    const rows = page.rows ?? 3;
+    if (!page) return nothing;
+    const grid = page.type === 'grid';
+    const titled = hasTitleBar(page);
+    if (!grid && !titled) return nothing;
+    const rows = grid ? (page.rows ?? 3) : 0;
+    const look = page as BadgeLook;
+    const ownLook = look.badge_align !== undefined || look.badge_style !== undefined;
     return html`
       <h3>This page</h3>
-      <div class="settings">
-        ${this._stepper('Columns', page.columns ?? 4, 1, 8, (columns) => this._setPage(this.page, { columns }))}
-        ${this._stepper('Rows', rows, 1, 8, (v) => this._setPage(this.page, { rows: v }))}
-        ${this._stepper('Rows upright', page.portrait_rows ?? rows + 2, 1, 10, (v) =>
-          this._setPage(this.page, { portrait_rows: v }),
-        )}
-      </div>
+      ${grid
+        ? html`<div class="settings">
+            ${this._stepper('Columns', page.columns ?? 4, 1, 8, (columns) => this._setPage(this.page, { columns }))}
+            ${this._stepper('Rows', rows, 1, 8, (v) => this._setPage(this.page, { rows: v }))}
+            ${this._stepper('Rows upright', page.portrait_rows ?? rows + 2, 1, 10, (v) =>
+              this._setPage(this.page, { portrait_rows: v }),
+            )}
+          </div>`
+        : nothing}
+      ${titled
+        ? html`${this._badgeLookRow('Badges', look, this._frameLook, (l) => this._setPage(this.page, l))}
+            <div class="row look-from">
+              ${ownLook
+                ? html`<span class="muted">Its own badge look.</span>
+                    <button class="chip"
+                      @click=${() => this._setPage(this.page, { badge_align: undefined, badge_style: undefined })}>
+                      Same as every page</button>`
+                : html`<span class="muted">The same as every page, set under Look.</span>`}
+            </div>`
+        : nothing}
     `;
   }
 
@@ -303,19 +354,12 @@ export class LuxFrameCustomize extends LitElement {
           @change=${(e: Event) => this._set({ tint: (e.target as HTMLInputElement).value })}
         />
       </div>
-      <div class="row badge-look" role="group" aria-label="Badges">
-        <span class="label">Badges</span>
-        ${(['left', 'center', 'right'] as const).map((a) => {
-          const on = (config.badge_align ?? 'right') === a;
-          return html`<button class="chip ${on ? 'on' : ''}" aria-pressed=${on}
-            @click=${() => this._set({ badge_align: a === 'right' ? undefined : a })}>
-            ${a === 'left' ? 'Left' : a === 'center' ? 'Center' : 'Right'}</button>`;
-        })}
-        <button class="chip ${config.badge_style === 'plain' ? '' : 'on'}" aria-pressed=${config.badge_style !== 'plain'}
-          @click=${() => this._set({ badge_style: undefined })}>With background</button>
-        <button class="chip ${config.badge_style === 'plain' ? 'on' : ''}" aria-pressed=${config.badge_style === 'plain'}
-          @click=${() => this._set({ badge_style: 'plain' })}>No background</button>
-      </div>
+      ${this._badgeLookRow('Badges, every page', config, { badge_align: 'right', badge_style: 'pill' }, (l) =>
+        this._set({
+          badge_align: l.badge_align === 'right' ? undefined : l.badge_align,
+          badge_style: l.badge_style === 'pill' ? undefined : l.badge_style,
+        }),
+      )}
       ${this.local
         ? html`<h3>This tablet</h3>
             <p class="muted">This tablet shows its own saved layout, not the dashboard's.</p>
@@ -391,6 +435,12 @@ export class LuxFrameCustomize extends LitElement {
       }
 
       .add .label,
+      .look-from {
+        margin-top: 4px;
+        align-items: center;
+        font-size: 15px;
+      }
+
       .badge-look .label {
         width: 100%;
         font-size: 15px;
