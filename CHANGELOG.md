@@ -6,6 +6,20 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- When a newer LuxFrame is installed through HACS, a notice offers to reload,
+  so a kiosk tablet that never refreshes picks up the update. It checks soon
+  after loading, every half hour and when the screen wakes; ✕ puts it away
+  until the next version. It's hidden while editing.
+
+### Fixed
+
+- Starting or finishing editing keeps the page on screen. When Home
+  Assistant moved LuxFrame as it laid the dashboard out again, the browser
+  put the pages back at the first one, and LuxFrame took that for a swipe.
+  It also stopped following the tablet turning after such a move.
+
 ## [0.8.2] - 2026-11-08
 
 ### Added

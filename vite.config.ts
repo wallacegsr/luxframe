@@ -19,6 +19,8 @@ export default defineConfig({
   define: {
     __LF_VERSION__: JSON.stringify(pkg.version),
     __LF_COMMIT__: JSON.stringify(commit()),
+    // Found by a running LuxFrame in a newer file, to name its version.
+    __LF_STAMP__: JSON.stringify(`luxframe-version:${pkg.version}`),
   },
   build: {
     lib: {

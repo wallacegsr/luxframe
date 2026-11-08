@@ -16,6 +16,7 @@ import { readBrightness, veilOpacity, writeBrightness } from './screen';
 import { detectFlat } from './perf';
 import type { GotoTarget } from './tiles/goto';
 import { tokens } from './theme';
+import { newerInstalled } from './update';
 import { averageColor, backgroundUrl } from './tint';
 import type { Badge, BadgeConfig, GridPageConfig, GridTileConfig, HomeAssistant, LuxFrameConfig, PageConfig } from './types';
 
@@ -37,6 +38,17 @@ const DEFAULT_HOME_AFTER = 120;
  */
 let resumeAt: { page: number; until: number } | undefined;
 const RESUME_MS = 20_000;
+
+/**
+ * How long the frame holds its page after editing starts or ends, or after
+ * Home Assistant moves the card. A dashboard laying itself out again can
+ * reset the pages' scroll, which would otherwise read as a swipe to page one.
+ */
+const HOLD_PAGE_MS = 1000;
+
+/** When to look for a newer LuxFrame installed: soon after loading, then twice an hour. */
+const UPDATE_FIRST_CHECK_MS = 15_000;
+const UPDATE_CHECK_MS = 30 * 60_000;
 
 /**
  * Badge placement, as custom properties the badges read through the pages'
@@ -94,6 +106,7 @@ export class LuxFrameCard extends LitElement {
     _saving: { state: true },
     _local: { state: true },
     _toast: { state: true },
+    _update: { state: true },
     _quick: { state: true },
     _pull: { state: true },
     _assist: { state: true },
@@ -116,6 +129,11 @@ export class LuxFrameCard extends LitElement {
   /** Showing this tablet's own saved layout instead of the dashboard's. */
   declare _local: boolean;
   declare _toast?: string;
+  /** A newer LuxFrame is installed: its version, or '' when unknown. */
+  declare _update?: string;
+  /** The update notice was put away; it comes back for a later version. */
+  private _updateDismissed?: string;
+  private _updateTimer?: number;
   /** The quick panel is out; `_pull` is how much of it is still above the top while pulled. */
   declare _quick: boolean;
   declare _pull: number;
@@ -131,6 +149,8 @@ export class LuxFrameCard extends LitElement {
   private _toastTimer?: number;
   private _idleTimer?: number;
   private _scrollFrame?: number;
+  /** A page held in place for a moment; see HOLD_PAGE_MS. */
+  private _held?: { index: number; until: number };
   private _target?: number;
   private _resize?: ResizeObserver;
   private _unsubs: Array<() => void> = [];
@@ -196,6 +216,16 @@ export class LuxFrameCard extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    if (this.hasUpdated) {
+      // Moved by Home Assistant: the browser put the pages back at the first
+      // one, and the size watcher went with the old place.
+      this._holdPage();
+      void this.updateComplete.then(() => {
+        if (!this.isConnected) return;
+        this._resize?.observe(this._track);
+        this.goTo(this._held?.index ?? this._index, false);
+      });
+    }
     this._media.addEventListener('change', this._requestThemeUpdate);
     this.addEventListener('pointerdown', this._resetIdle);
     this.addEventListener('keydown', this._onKey);
@@ -205,6 +235,11 @@ export class LuxFrameCard extends LitElement {
     this.addEventListener('luxframe-badge-edit', this._onBadgeEdit);
     this.addEventListener('luxframe-badge-add', this._onBadgeAdd);
     detectFlat((slow) => (this._slow = slow));
+    // A while after the tablet loads, then now and then; HACS updates come rarely.
+    this._updateTimer = window.setTimeout(function tick(this: LuxFrameCard) {
+      void this._checkUpdate();
+      this._updateTimer = window.setTimeout(tick.bind(this), UPDATE_CHECK_MS);
+    }.bind(this), UPDATE_FIRST_CHECK_MS);
     if (kiosk) this._connectKiosk();
     readBrightness().then((level) => (this._brightness = level));
     this._resetIdle();
@@ -225,6 +260,7 @@ export class LuxFrameCard extends LitElement {
     this._unsubs = [];
     this._resize?.disconnect();
     window.clearTimeout(this._idleTimer);
+    window.clearTimeout(this._updateTimer);
   }
 
   protected firstUpdated(): void {
@@ -265,6 +301,8 @@ export class LuxFrameCard extends LitElement {
     const track = this._track;
     if (!track) return;
     const target = Math.max(0, Math.min(index, this._pages.length - 1));
+    // A page asked for on purpose is the one to hold.
+    if (this._held) this._held.index = target;
     this._target = smooth ? target : undefined;
     track.scrollTo({ left: target * track.clientWidth, behavior: smooth ? 'smooth' : 'instant' });
     this._index = target;
@@ -311,7 +349,10 @@ export class LuxFrameCard extends LitElement {
     this._unsubs.push(
       onKiosk<KioskTheme>('theme', applyTheme),
       // Coming back from a screensaver or a dark screen should land on page one.
-      onKiosk('screenon', () => this._goHome(false)),
+      onKiosk('screenon', () => {
+        this._goHome(false);
+        void this._checkUpdate();
+      }),
       onKiosk('screensaverstop', () => this._goHome(false)),
     );
   }
@@ -515,12 +556,14 @@ export class LuxFrameCard extends LitElement {
   private _startEditing = (): void => {
     if (this._editing || !this._config) return;
     this._detail = undefined;
+    this._holdPage();
     this._draft = structuredClone(this._config);
     this._editing = true;
     this._resetIdle();
   };
 
   private _cancelEditing(): void {
+    this._holdPage();
     this._sheet = undefined;
     this._editing = false;
     this._draft = undefined;
@@ -566,6 +609,27 @@ export class LuxFrameCard extends LitElement {
     this._config = this._base;
     this._draft = structuredClone(this._base);
     this._showToast("This tablet now uses the dashboard's layout");
+  }
+
+  // ---- A newer LuxFrame installed --------------------------------------------
+
+  private async _checkUpdate(): Promise<void> {
+    const version = await newerInstalled(this.hass);
+    if (version === undefined || version === this._updateDismissed) return;
+    this._update = version;
+  }
+
+  private _renderUpdate() {
+    if (this._update === undefined || this._editing) return nothing;
+    const what = this._update ? `LuxFrame ${this._update} is installed.` : 'A newer LuxFrame is installed.';
+    return html`<div class="toast update" role="status">
+      <span>${what}</span>
+      <button class="update-btn primary" @click=${() => location.reload()}>Reload</button>
+      <button class="update-btn" aria-label="Not now" @click=${() => {
+        this._updateDismissed = this._update;
+        this._update = undefined;
+      }}>✕</button>
+    </div>`;
   }
 
   private _showToast(message: string): void {
@@ -824,12 +888,31 @@ export class LuxFrameCard extends LitElement {
 
   // ---- Paging -------------------------------------------------------------
 
+  /** Holds the page on screen for a moment, through scrolling the frame didn't ask for. */
+  private _holdPage(): void {
+    this._held = { index: this._held?.index ?? this._index, until: performance.now() + HOLD_PAGE_MS };
+  }
+
+  /** While a page is held, puts it back if something scrolled away from it. */
+  private _keepHeld(): boolean {
+    const held = this._held;
+    if (!held || performance.now() > held.until) {
+      this._held = undefined;
+      return false;
+    }
+    const track = this._track;
+    if (track.clientWidth && Math.abs(track.scrollLeft / track.clientWidth - held.index) > 0.01) {
+      this.goTo(held.index, false);
+    }
+    return true;
+  }
+
   private _onScroll(): void {
     if (this._scrollFrame) return;
     this._scrollFrame = requestAnimationFrame(() => {
       this._scrollFrame = undefined;
       const track = this._track;
-      if (!track.clientWidth) return;
+      if (!track.clientWidth || this._keepHeld()) return;
       const position = track.scrollLeft / track.clientWidth;
       // While goTo() animates, the target is already the index; following the
       // in-between positions would make repeated arrow presses fall short.
@@ -843,6 +926,7 @@ export class LuxFrameCard extends LitElement {
 
   private _onScrollEnd(): void {
     this._target = undefined;
+    if (this._keepHeld()) return;
     const track = this._track;
     if (track.clientWidth) this._index = Math.round(track.scrollLeft / track.clientWidth);
   }
@@ -983,7 +1067,7 @@ export class LuxFrameCard extends LitElement {
             </luxframe-sheet>`
           : nothing}
         ${this._editing ? this._renderEditBar() : nothing} ${this._renderSheet()}
-        ${this._toast ? html`<div class="toast" role="status">${this._toast}</div>` : nothing}
+        ${this._toast ? html`<div class="toast" role="status">${this._toast}</div>` : this._renderUpdate()}
         <div class="veil" style="opacity: ${veilOpacity(this._brightness)}"></div>
       </div>
     `;
@@ -1163,6 +1247,32 @@ export class LuxFrameCard extends LitElement {
         background: var(--lf-surface-active);
         box-shadow: 0 8px 24px rgb(0 0 0 / 25%);
         animation: toast 220ms ease-out;
+      }
+
+      .update {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 8px 8px 22px;
+        white-space: nowrap;
+      }
+
+      .update-btn {
+        min-width: 40px;
+        height: 40px;
+        padding: 0 14px;
+        border: 0;
+        border-radius: 999px;
+        font: inherit;
+        font-weight: 600;
+        color: inherit;
+        background: rgb(127 127 127 / 18%);
+        cursor: pointer;
+      }
+
+      .update-btn.primary {
+        color: #fff;
+        background: var(--lf-accent);
       }
 
       @keyframes toast {

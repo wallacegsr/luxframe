@@ -18,6 +18,11 @@ the page dots, or the arrow keys.
    as type **Dashboard**.
 2. Install **LuxFrame** and reload the browser.
 
+A tablet keeps running the version it loaded until its page reloads, which a
+kiosk app may never do. LuxFrame checks for a newer version installed through
+HACS soon after it loads, every half hour, and when the screen wakes, and then
+offers **Reload**. The clock page's corner shows the version running.
+
 ### Manual
 
 1. Download `luxframe.js` from the
