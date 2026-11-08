@@ -6,6 +6,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-11-08
+
 ### Added
 
 - When a newer LuxFrame is installed through HACS, a notice offers to reload,
@@ -259,7 +261,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.8.2...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.8.3...HEAD
+[0.8.3]: https://github.com/wallacegsr/luxframe/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/wallacegsr/luxframe/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/wallacegsr/luxframe/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/wallacegsr/luxframe/compare/v0.7.0...v0.8.0
