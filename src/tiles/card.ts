@@ -228,12 +228,18 @@ export class LuxFrameCardTile extends LitElement {
         text-align: center;
       }
 
+      /*
+       * A card taller than its tile scrolls up and down, and stops at its
+       * ends rather than scrolling the page. A sideways swipe isn't the
+       * card's: it goes on to turn the page, as it does on LuxFrame's tiles.
+       */
       .card {
         display: flex;
         flex-direction: column;
         height: 100%;
+        overflow-x: hidden;
         overflow-y: auto;
-        overscroll-behavior: contain;
+        overscroll-behavior: auto contain;
         scrollbar-width: none;
       }
 

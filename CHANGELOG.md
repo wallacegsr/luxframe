@@ -6,6 +6,14 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Swiping sideways on a Home Assistant card turns the page, as it does on
+  LuxFrame's own tiles. A card taller than its tile used to keep the swipe
+  for itself. Scrolling up and down inside the card works as before.
+- The analog clock fits a tile that's wider than it is tall, such as on a
+  landscape tablet, instead of running off the bottom.
+
 ## [0.5.2] - 2026-11-07
 
 ### Fixed

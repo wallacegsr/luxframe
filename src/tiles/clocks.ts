@@ -67,17 +67,20 @@ export class LuxFrameAnalogClockTile extends MinuteTile {
   static styles = [
     tileBase,
     css`
+      /*
+       * One cell exactly the tile's size, so the face fits whichever side is
+       * shorter: a row sized by the drawing would grow as tall as the tile is
+       * wide, and a wide, short tile would clip the bottom of the face.
+       */
       .tile {
         display: grid;
-        place-items: center;
+        grid-template: minmax(0, 1fr) / minmax(0, 1fr);
         padding: 6px;
       }
 
       svg {
         width: 100%;
         height: 100%;
-        max-width: 100%;
-        max-height: 100%;
         overflow: visible;
       }
 
