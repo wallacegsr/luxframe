@@ -5,6 +5,7 @@ import { resolve } from '../entity';
 import { MAX_ROWS, sizeFor, sizeOf, spanOf } from '../sizes';
 import type { CardTileConfig, GridTileConfig, HomeAssistant, TileSize } from '../types';
 import { normalizeTile, tileLabel } from './layout';
+import './card-visual';
 import { editorStyles } from './sheet';
 
 const FITS: Array<{ fit: NonNullable<CardTileConfig['fit']>; label: string; hint: string }> = [
@@ -39,6 +40,8 @@ export class LuxFrameTileEditor extends LitElement {
     columns: { type: Number },
     _yaml: { state: true },
     _error: { state: true },
+    _mode: { state: true },
+    _noVisual: { state: true },
   };
 
   declare hass?: HomeAssistant;
@@ -50,18 +53,33 @@ export class LuxFrameTileEditor extends LitElement {
   /** A card tile's YAML while it's being edited, before Apply. */
   declare _yaml?: string;
   declare _error?: string;
+  /** A card tile edited with the card's own editor, or as YAML. */
+  declare _mode: 'visual' | 'yaml';
+  /** Why the card's visual editor can't be used, once it's known. */
+  declare _noVisual?: string;
+  /** The card type `_noVisual` is about. */
+  private _cardType?: string;
 
   constructor() {
     super();
     this.first = false;
     this.last = false;
     this.columns = 4;
+    this._mode = 'visual';
   }
 
   protected willUpdate(changed: PropertyValues): void {
     if (changed.has('tile')) {
       this._yaml = undefined;
       this._error = undefined;
+      const tile = this.tile && typeof this.tile === 'object' && this.tile.type === 'card' ? this.tile : undefined;
+      const type = typeof tile?.card?.type === 'string' ? tile.card.type : undefined;
+      if (type !== this._cardType) {
+        // A new card: its own editor, if it has one; a blank one is pasted.
+        this._cardType = type;
+        this._noVisual = undefined;
+        this._mode = type ? 'visual' : 'yaml';
+      }
     }
   }
 
@@ -84,10 +102,31 @@ export class LuxFrameTileEditor extends LitElement {
 
   private _renderCard(tile: CardTileConfig) {
     const text = this._yaml ?? (tile.card?.type ? dump(tile.card, { lineWidth: -1 }) : '');
-    const glassy = tile.glass !== false;
-    const fit = tile.fit ?? 'stretch';
+    const visual = this._mode === 'visual' && !this._noVisual && !!tile.card?.type;
     return html`
       <h3>Card</h3>
+      <div class="row" role="group" aria-label="Edit the card">
+        <button class="chip ${visual ? 'on' : ''}" aria-pressed=${visual}
+          ?disabled=${!!this._noVisual || !tile.card?.type}
+          @click=${() => (this._mode = 'visual')}>Visual editor</button>
+        <button class="chip ${visual ? '' : 'on'}" aria-pressed=${!visual}
+          @click=${() => (this._mode = 'yaml')}>YAML</button>
+      </div>
+      ${visual
+        ? html`<luxframe-card-visual
+            .hass=${this.hass}
+            .card=${tile.card}
+            @change=${(e: CustomEvent<{ card: Record<string, unknown> }>) => this._set({ card: e.detail.card })}
+            @unavailable=${(e: CustomEvent<{ message: string }>) => (this._noVisual = e.detail.message)}
+          ></luxframe-card-visual>`
+        : this._renderYaml(text)}
+      ${this._noVisual ? html`<p class="hint muted">${this._noVisual}</p>` : nothing}
+      ${this._renderFitAndLook(tile)}
+    `;
+  }
+
+  private _renderYaml(text: string) {
+    return html`
       <textarea
         aria-label="Card YAML"
         spellcheck="false"
@@ -106,7 +145,13 @@ export class LuxFrameTileEditor extends LitElement {
       <div class="row">
         <button class="chip on" ?disabled=${this._yaml === undefined} @click=${this._applyCard}>Apply</button>
       </div>
+    `;
+  }
 
+  private _renderFitAndLook(tile: CardTileConfig) {
+    const glassy = tile.glass !== false;
+    const fit = tile.fit ?? 'stretch';
+    return html`
       <h3>Fit</h3>
       <div class="row" role="group" aria-label="Fit">
         ${FITS.map(

@@ -6,6 +6,20 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A card tile's settings switch between **Visual editor**, the card's own
+  editor as Home Assistant shows it, and **YAML**. Custom cards with an
+  editor work too; a card without one opens in YAML.
+- A badge's settings include its YAML, so visibility conditions, an action
+  and an icon can be set on the tablet.
+
+### Fixed
+
+- After Done, the frame stays on the page that was being edited. Saving to
+  the dashboard makes Home Assistant rebuild LuxFrame, which used to open on
+  the start page.
+
 ## [0.8.1] - 2026-11-08
 
 ### Added

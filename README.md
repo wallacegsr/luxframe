@@ -135,7 +135,8 @@ badge then shows in the accent color. Customize sets both under Look.
 
 While editing, **+ Badge** in the title bar adds one, and tapping a badge sets
 its name, what a tap does, whether it shows on this page or every page, and
-its place. Visibility conditions and actions are set in YAML.
+its place. The badge's YAML is there too, for visibility conditions, an
+action, or an icon: change it and tap **Apply**.
 
 ### Grid pages
 
@@ -199,6 +200,12 @@ The card's background gives way to LuxFrame's glass and its text takes
 LuxFrame's colors. Cards that draw their own background, such as a picture,
 keep it. `glass: false` leaves the card looking as it does on other
 dashboards.
+
+On the tablet, a card tile's settings switch between **Visual editor** and
+**YAML**. The visual editor is the card's own, as Home Assistant's card dialog
+shows it, so a card's layouts and other options can be changed in place;
+custom cards from HACS that have an editor work too. A card with no visual
+editor, or settings its editor can't show, opens in YAML.
 
 Visibility conditions work as they do on a dashboard: the tile shows only
 while they're all met, and the tiles after it close up. A card copied from a

@@ -180,6 +180,37 @@ window.loadCardHelpers = async () => ({
 });
 setTimeout(() => customElements.define('late-card', class extends HTMLElement {}), 1500);
 
+// A custom card with a visual editor, as HACS cards have: a layout to pick.
+class DemoCardEditor extends HTMLElement {
+  hass?: unknown;
+  private _config: Record<string, any> = {};
+  setConfig(config: Record<string, any>) {
+    if (config.layout && !['vertical', 'horizontal'].includes(config.layout)) {
+      throw new Error(`layout "${config.layout}" isn't in the editor`);
+    }
+    this._config = config;
+    this.innerHTML = `<label style="display:flex;gap:10px;align-items:center;color:var(--primary-text-color)">Layout
+      <select>${['vertical', 'horizontal']
+        .map((l) => `<option ${(config.layout ?? 'vertical') === l ? 'selected' : ''}>${l}</option>`)
+        .join('')}</select></label>`;
+    this.querySelector('select')!.addEventListener('change', (e) => {
+      const layout = (e.target as HTMLSelectElement).value;
+      this.dispatchEvent(
+        new CustomEvent('config-changed', { detail: { config: { ...this._config, layout } }, bubbles: true, composed: true }),
+      );
+    });
+  }
+}
+customElements.define('demo-layout-card-editor', DemoCardEditor);
+customElements.define(
+  'demo-layout-card',
+  class extends HTMLElement {
+    static getConfigElement() {
+      return document.createElement('demo-layout-card-editor');
+    }
+  },
+);
+
 const card = document.createElement('luxframe-card') as LuxFrameCard;
 card.setConfig(config);
 const hass = createMockHass((next) => (card.hass = next));

@@ -1,4 +1,5 @@
-import { LitElement, css, html, nothing } from 'lit';
+import { dump, load } from 'js-yaml';
+import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { TOGGLEABLE, badgeRuns } from '../badges';
 import { define } from '../define';
 import { domainOf, resolve } from '../entity';
@@ -9,7 +10,8 @@ import { editorStyles } from './sheet';
  * One badge's settings: its name, what a tap does, whether it shows on this
  * page or every page, its place, and removing it. Fires `change` with the
  * new badge, `scope` with 'page' or 'frame', `move` (-1 or 1) and `remove`.
- * Visibility conditions and actions are YAML-only; they're noted here.
+ * The badge's YAML, below, takes everything else: visibility conditions,
+ * an action and its data, an icon.
  */
 export class LuxFrameBadgeEditor extends LitElement {
   static properties = {
@@ -18,6 +20,8 @@ export class LuxFrameBadgeEditor extends LitElement {
     scope: {},
     first: { type: Boolean },
     last: { type: Boolean },
+    _yaml: { state: true },
+    _error: { state: true },
   };
 
   declare hass?: HomeAssistant;
@@ -25,12 +29,49 @@ export class LuxFrameBadgeEditor extends LitElement {
   declare scope: 'page' | 'frame';
   declare first: boolean;
   declare last: boolean;
+  /** The YAML while it's being edited, before Apply. */
+  declare _yaml?: string;
+  declare _error?: string;
 
   constructor() {
     super();
     this.scope = 'page';
     this.first = false;
     this.last = false;
+  }
+
+  protected willUpdate(changed: PropertyValues): void {
+    if (changed.has('badge')) {
+      this._yaml = undefined;
+      this._error = undefined;
+    }
+  }
+
+  private _applyYaml(): void {
+    if (this._yaml === undefined) return;
+    let badge: unknown;
+    try {
+      badge = load(this._yaml);
+    } catch (e) {
+      const reason = (e as { reason?: string }).reason;
+      this._error = `That isn\u2019t valid YAML${reason ? ` (${reason})` : ''}`;
+      return;
+    }
+    if (typeof badge === 'string' && /^\w+\.\w+$/.test(badge)) badge = { entity: badge };
+    if (!badge || typeof badge !== 'object' || Array.isArray(badge)) {
+      this._error = 'A badge needs an entity or an action, such as \u201centity: light.kitchen\u201d';
+      return;
+    }
+    const { entity, action, visibility } = badge as BadgeConfig;
+    if ((typeof entity !== 'string' || !entity) && (typeof action !== 'string' || !action)) {
+      this._error = 'A badge needs an entity or an action, such as \u201centity: light.kitchen\u201d';
+      return;
+    }
+    if (visibility !== undefined && !Array.isArray(visibility)) {
+      this._error = 'visibility is a list of conditions, each starting with \u201c- condition:\u201d';
+      return;
+    }
+    this._fire('change', badge);
   }
 
   private _fire(name: string, detail?: unknown): void {
@@ -86,12 +127,26 @@ export class LuxFrameBadgeEditor extends LitElement {
           @click=${() => this.scope !== 'frame' && this._fire('scope', 'frame')}>Every page</button>
       </div>
 
-      ${badge.visibility?.length || badge.action
-        ? html`<p class="hint muted">
-            ${badge.visibility?.length ? 'Shows only while its visibility conditions are met. ' : ''}
-            ${badge.action ? `Calls ${badge.action}. ` : ''}Change these in the YAML.
-          </p>`
-        : nothing}
+      <h3>YAML</h3>
+      <textarea
+        aria-label="Badge YAML"
+        spellcheck="false"
+        autocapitalize="off"
+        .value=${this._yaml ?? dump(badge, { lineWidth: -1 })}
+        @input=${(e: Event) => {
+          this._yaml = (e.target as HTMLTextAreaElement).value;
+          this._error = undefined;
+        }}
+      ></textarea>
+      <p class="hint muted">
+        ${badge.visibility?.length ? 'Shows only while its visibility conditions are met. ' : ''}Add
+        <code>visibility</code> to show it only sometimes, as on a dashboard card; <code>action</code> and
+        <code>data</code> to call a service; <code>icon</code> for another icon.
+      </p>
+      ${this._error ? html`<p class="error" role="alert">${this._error}</p>` : nothing}
+      <div class="row">
+        <button class="chip on" ?disabled=${this._yaml === undefined} @click=${this._applyYaml}>Apply</button>
+      </div>
 
       <h3>Position</h3>
       <div class="row">
@@ -115,6 +170,30 @@ export class LuxFrameBadgeEditor extends LitElement {
 
       .end {
         margin-top: 24px;
+      }
+
+      textarea {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 140px;
+        padding: 12px 14px;
+        border: 0;
+        border-radius: 14px;
+        background: rgb(127 127 127 / 16%);
+        color: inherit;
+        font: 14px/1.5 ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+        resize: vertical;
+        tab-size: 2;
+      }
+
+      code {
+        font: 13px ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      }
+
+      .error {
+        margin: 8px 0 0;
+        color: #ff6961;
+        font-size: 15px;
       }
     `,
   ];
