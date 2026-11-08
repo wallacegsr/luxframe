@@ -56,6 +56,10 @@ const config: LuxFrameConfig = {
         { entity: 'sensor.living_temperature', show_name: false, show_icon: false },
         { entity: 'sensor.living_humidity', show_state: false },
         { entity: 'event.front_door_motion', name: 'Front Door' },
+        { entity: 'sensor.bedroom_temperature', name: 'Bedroom', show_name: true },
+        { entity: 'light.kitchen', name: 'Kitchen', show_name: true },
+        { entity: 'light.island', name: 'Island', show_name: true },
+        { entity: 'fan.ceiling', name: 'Ceiling fan', show_name: true },
       ],
       tiles: [
         { type: 'card', card: { type: 'thermostat', entity: 'climate.living_room' } },

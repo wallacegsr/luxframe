@@ -1,7 +1,7 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { conditionsMet } from './conditions';
 import { define } from './define';
-import { domainOf, isActive, isGuardedCover, openDetail, openMoreInfo, resolve, stateLabel, tapAction } from './entity';
+import { domainOf, isActive, isGuardedCover, openDetail, resolve, stateLabel, tapAction } from './entity';
 import { stateIcon } from './icon';
 import type { Badge, BadgeConfig, HassEntity, HomeAssistant, LuxFrameConfig, PageConfig } from './types';
 
@@ -14,9 +14,6 @@ export interface BadgeItem {
   /** Its place in that list. */
   index: number;
 }
-
-/** At most this many show at once, so the title keeps its room. */
-const MAX_SHOWN = 6;
 
 /** Domains a tap runs rather than opens. */
 const RUNS = new Set(['scene', 'script', 'button', 'input_button']);
@@ -131,7 +128,9 @@ export function shortState(hass: HomeAssistant | undefined, stateObj: HassEntity
   return stateLabel(hass, stateObj);
 }
 
-const HOLD_MS = 600;
+/** Holding a badge this long starts editing, as holding a tile does. */
+const HOLD_MS = 1000;
+const HOLD_TOLERANCE = 10;
 const DONE_MS = 1200;
 /** How often times like "29 minutes ago" move on. */
 const TICK_MS = 30_000;
@@ -162,6 +161,7 @@ export class LuxFrameBadges extends LitElement {
   private _tick?: number;
 
   private _holdTimer?: number;
+  private _holdAt?: { x: number; y: number };
   private _held = false;
   private _doneTimer?: number;
 
@@ -188,21 +188,27 @@ export class LuxFrameBadges extends LitElement {
     this.dispatchEvent(new CustomEvent(name, { detail, bubbles: true, composed: true }));
   }
 
-  private _down(item: BadgeItem, e: PointerEvent): void {
-    // The badge's own hold, not the page's hold-to-edit.
+  private _down(e: PointerEvent): void {
+    // The badge keeps its hold to itself, so the release isn't also a tap.
     e.stopPropagation();
     this._held = false;
     window.clearTimeout(this._holdTimer);
-    if (this.editing || !item.badge.entity) return;
-    const entity = item.badge.entity;
+    if (this.editing || e.button !== 0) return;
+    this._holdAt = { x: e.clientX, y: e.clientY };
     this._holdTimer = window.setTimeout(() => {
       this._held = true;
-      openMoreInfo(this, entity);
+      this._fire('luxframe-edit-start');
     }, HOLD_MS);
+  }
+
+  private _move(e: PointerEvent): void {
+    const at = this._holdAt;
+    if (at && Math.hypot(e.clientX - at.x, e.clientY - at.y) > HOLD_TOLERANCE) this._up();
   }
 
   private _up(): void {
     window.clearTimeout(this._holdTimer);
+    this._holdAt = undefined;
   }
 
   private _tap(item: BadgeItem): void {
@@ -291,7 +297,8 @@ export class LuxFrameBadges extends LitElement {
       class="badge ${active ? 'on' : ''} ${runs ? 'runs' : ''} ${done ? 'done' : ''} ${shows ? '' : 'unmet'}
         ${text === nothing ? 'bare' : ''} ${showIcon ? '' : 'no-icon'}"
       aria-label=${runs ? `${name}${done ? ', done' : ''}` : `${name}: ${state}`}
-      @pointerdown=${(e: PointerEvent) => this._down(item, e)}
+      @pointerdown=${this._down}
+      @pointermove=${this._move}
       @pointerup=${this._up}
       @pointercancel=${this._up}
       @pointerleave=${this._up}
@@ -304,7 +311,7 @@ export class LuxFrameBadges extends LitElement {
 
   protected render() {
     const items = this.items.map((item) => ({ item, shows: conditionsMet(item.badge.visibility, this.hass) }));
-    const shown = this.editing ? items : items.filter((i) => i.shows).slice(0, MAX_SHOWN);
+    const shown = this.editing ? items : items.filter((i) => i.shows);
     if (!shown.length && !this.editing) return nothing;
     return html`
       ${shown.map(({ item, shows }) => this._renderBadge(item, shows))}
@@ -316,16 +323,24 @@ export class LuxFrameBadges extends LitElement {
 
   static styles = css`
     /*
-     * Right-aligned unless the frame says otherwise (badge_align), through
-     * --lf-badges-*: left follows the title, center sits mid-page.
+     * Right-aligned unless the page or frame says otherwise (badge_align),
+     * through --lf-badges-*: left follows the title, center sits mid-page.
+     * They stay on one line, as Home Assistant's do; when there are more than
+     * fit, the line scrolls sideways.
      */
     :host {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
+      flex: 1 1 0;
+      min-width: 0;
       align-items: center;
-      justify-content: var(--lf-badges-justify, flex-end);
+      justify-content: var(--lf-badges-justify, safe flex-end);
       gap: 8px;
       margin-left: var(--lf-badges-margin, auto);
+      overflow-x: auto;
+      overflow-y: hidden;
+      overscroll-behavior-x: auto;
+      scrollbar-width: none;
       align-self: center;
       position: var(--lf-badges-position, static);
       top: 50%;
@@ -345,7 +360,12 @@ export class LuxFrameBadges extends LitElement {
       }
     }
 
+    :host::-webkit-scrollbar {
+      display: none;
+    }
+
     .badge {
+      flex: none;
       display: inline-flex;
       align-items: center;
       gap: 6px;

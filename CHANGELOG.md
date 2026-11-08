@@ -6,6 +6,14 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Holding a badge for a second starts editing, as holding a tile does,
+  instead of opening Home Assistant's dialog. A tap still opens its details.
+- Every badge shows, on one line, as on a Home Assistant dashboard; when
+  there are more than fit, the line scrolls sideways. Before, at most six
+  showed, and they could wrap to a second line.
+
 ## [0.8.5] - 2026-11-08
 
 ### Added

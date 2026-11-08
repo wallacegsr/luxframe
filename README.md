@@ -132,11 +132,12 @@ pages:
 | `visibility` | Home Assistant's visibility conditions, as on [tiles](#home-assistant-cards). |
 
 Scenes, scripts and buttons run when tapped, then show Done for a moment.
-Holding a badge opens Home Assistant's own dialog. States are kept short:
+Holding a badge for a second starts editing, as holding a tile does. States are kept short:
 "21.4 °C" shows as "21°", and an event's or a timestamp's time as "29 minutes
 ago". A badge copied from a Home Assistant dashboard keeps its `show_*` and
-`state_content` settings. Up to six badges show at once; when the tablet
-stands upright, they move to a line under the title. A room's `sensors` show
+`state_content` settings. Badges stay on one line, as on a Home Assistant
+dashboard; when there are more than fit, swipe along them to see the rest.
+When the tablet stands upright, they move to a line under the title. A room's `sensors` show
 as badges first.
 
 `badge_align` places them: `right` (the default), `left`, just after the

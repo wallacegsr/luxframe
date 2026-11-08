@@ -58,7 +58,7 @@ const UPDATE_CHECK_MS = 30 * 60_000;
 const BADGE_ALIGN: Record<string, string> = {
   left: '--lf-badges-margin: 0; --lf-badges-justify: flex-start',
   center:
-    '--lf-badges-margin: 0; --lf-badges-justify: center; --lf-badges-upright: center; ' +
+    '--lf-badges-margin: 0; --lf-badges-justify: safe center; --lf-badges-upright: safe center; ' +
     '--lf-badges-position: absolute; --lf-badges-translate: -50% -50%',
   right: '',
 };
