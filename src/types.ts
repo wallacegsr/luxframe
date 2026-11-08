@@ -310,6 +310,10 @@ export interface LuxFrameConfig {
   style?: 'auto' | 'glass' | 'flat';
   /** Badges on every page that has a title bar, after the page's own. */
   badges?: Badge[];
+  /** Where badges sit in the title bar. Default `right`. */
+  badge_align?: 'left' | 'center' | 'right';
+  /** `pill` (default) draws a soft cell behind each badge; `plain` draws none. */
+  badge_style?: 'pill' | 'plain';
 }
 
 export interface QuickPanelConfig {

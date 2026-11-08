@@ -216,22 +216,33 @@ export class LuxFrameBadges extends LitElement {
   }
 
   static styles = css`
+    /*
+     * Right-aligned unless the frame says otherwise (badge_align), through
+     * --lf-badges-*: left follows the title, center sits mid-page.
+     */
     :host {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      justify-content: flex-end;
+      justify-content: var(--lf-badges-justify, flex-end);
       gap: 8px;
-      margin-left: auto;
+      margin-left: var(--lf-badges-margin, auto);
       align-self: center;
+      position: var(--lf-badges-position, static);
+      top: 50%;
+      left: 50%;
+      translate: var(--lf-badges-translate, none);
+      max-width: 100%;
     }
 
     /* Stood upright, the title takes the line and the badges go under it. */
     @media (orientation: portrait) {
       :host {
         flex-basis: 100%;
-        justify-content: flex-start;
+        justify-content: var(--lf-badges-upright, flex-start);
         margin-left: 0;
+        position: static;
+        translate: none;
       }
     }
 
@@ -240,10 +251,10 @@ export class LuxFrameBadges extends LitElement {
       align-items: center;
       gap: 6px;
       height: 38px;
-      padding: 0 14px 0 10px;
+      padding: var(--lf-badge-pad, 0 14px 0 10px);
       border: 0;
       border-radius: 999px;
-      background: color-mix(in srgb, var(--lf-text) 8%, transparent);
+      background: var(--lf-badge-bg, color-mix(in srgb, var(--lf-text) 8%, transparent));
       color: var(--lf-text);
       font: 500 16px var(--lf-font);
       font-variant-numeric: tabular-nums;
@@ -254,7 +265,11 @@ export class LuxFrameBadges extends LitElement {
     }
 
     .badge:active {
-      background: color-mix(in srgb, var(--lf-text) 16%, transparent);
+      background: var(--lf-badge-press, color-mix(in srgb, var(--lf-text) 16%, transparent));
+    }
+
+    .badge:not(.add):active {
+      opacity: 0.7;
     }
 
     .icon {
@@ -273,7 +288,8 @@ export class LuxFrameBadges extends LitElement {
     }
 
     .on {
-      background: color-mix(in srgb, var(--lf-accent) 24%, transparent);
+      background: var(--lf-badge-on-bg, color-mix(in srgb, var(--lf-accent) 24%, transparent));
+      color: var(--lf-badge-on-color, var(--lf-text));
     }
 
     .on .icon,
@@ -282,7 +298,11 @@ export class LuxFrameBadges extends LitElement {
     }
 
     .done {
-      background: color-mix(in srgb, #30d158 28%, transparent);
+      background: var(--lf-badge-done-bg, color-mix(in srgb, #30d158 28%, transparent));
+    }
+
+    .done .label {
+      color: var(--lf-badge-done-color, inherit);
     }
 
     .unmet {

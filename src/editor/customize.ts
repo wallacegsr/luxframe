@@ -303,6 +303,19 @@ export class LuxFrameCustomize extends LitElement {
           @change=${(e: Event) => this._set({ tint: (e.target as HTMLInputElement).value })}
         />
       </div>
+      <div class="row badge-look" role="group" aria-label="Badges">
+        <span class="label">Badges</span>
+        ${(['left', 'center', 'right'] as const).map((a) => {
+          const on = (config.badge_align ?? 'right') === a;
+          return html`<button class="chip ${on ? 'on' : ''}" aria-pressed=${on}
+            @click=${() => this._set({ badge_align: a === 'right' ? undefined : a })}>
+            ${a === 'left' ? 'Left' : a === 'center' ? 'Center' : 'Right'}</button>`;
+        })}
+        <button class="chip ${config.badge_style === 'plain' ? '' : 'on'}" aria-pressed=${config.badge_style !== 'plain'}
+          @click=${() => this._set({ badge_style: undefined })}>With background</button>
+        <button class="chip ${config.badge_style === 'plain' ? 'on' : ''}" aria-pressed=${config.badge_style === 'plain'}
+          @click=${() => this._set({ badge_style: 'plain' })}>No background</button>
+      </div>
       ${this.local
         ? html`<h3>This tablet</h3>
             <p class="muted">This tablet shows its own saved layout, not the dashboard's.</p>
@@ -377,7 +390,8 @@ export class LuxFrameCustomize extends LitElement {
         margin-top: 10px;
       }
 
-      .add .label {
+      .add .label,
+      .badge-look .label {
         width: 100%;
         font-size: 15px;
         color: var(--lf-muted);

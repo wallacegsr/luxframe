@@ -128,6 +128,11 @@ Holding a badge opens Home Assistant's own dialog. States are kept short:
 stands upright, they move to a line under the title. A room's `sensors` show
 as badges first.
 
+`badge_align` places them: `right` (the default), `left`, just after the
+title, or `center`, in the middle of the page. `badge_style: plain` drops the
+soft cell behind each badge, leaving the icon and text on the page; an active
+badge then shows in the accent color. Customize sets both under Look.
+
 While editing, **+ Badge** in the title bar adds one, and tapping a badge sets
 its name, what a tap does, whether it shows on this page or every page, and
 its place. Visibility conditions and actions are set in YAML.
@@ -375,6 +380,8 @@ The pinned tiles and the speaker can also be set on the tablet, under
 | `height`     | `calc(100dvh - var(--header-height, 0px))` | Becomes `100dvh` when Kiosk Satellite hides HA's header. |
 | `quick_panel` | on, nothing pinned                        | `media_player`, `pinned`; `false` turns the panel off. |
 | `badges`     | none                                       | [Badges](#badges) on every page with a title bar.    |
+| `badge_align` | `right`                                   | `left`, `center` or `right`: where badges sit in the title bar. |
+| `badge_style` | `pill`                                    | `plain` shows badges with no background.             |
 | `assist`     | `true`                                     | `false` hides Ask; `{agent_id}` picks the conversation agent. |
 | `style`      | `auto`                                     | `glass`, or `flat` for solid tiles with no blur. `auto` goes flat on a device that can't blur, or blurs below 30 frames a second (checked once per tablet). |
 

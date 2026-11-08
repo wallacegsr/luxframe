@@ -6,6 +6,12 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `badge_align` (`left`, `center`, `right`) places the badges in the title
+  bar, and `badge_style: plain` shows them with no background. Both are under
+  Look in Customize.
+
 ## [0.8.0] - 2026-11-08
 
 ### Added

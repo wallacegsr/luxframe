@@ -178,6 +178,8 @@ export const pageStyles = css`
   }
 
   .head {
+    position: relative;
+    min-height: 38px;
     display: flex;
     align-items: baseline;
     flex-wrap: wrap;

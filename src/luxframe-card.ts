@@ -29,6 +29,25 @@ const PAGE_HOLD_TOLERANCE = 10;
 const HOLDS_OWN = 'luxframe-tile, input, select, textarea, [role="slider"]';
 
 const DEFAULT_HOME_AFTER = 120;
+
+/**
+ * Badge placement, as custom properties the badges read through the pages'
+ * shadow roots. Centered is centered on the page, over the title bar; on an
+ * upright tablet the badges have a line of their own and center on it.
+ */
+const BADGE_ALIGN: Record<string, string> = {
+  left: '--lf-badges-margin: 0; --lf-badges-justify: flex-start',
+  center:
+    '--lf-badges-margin: 0; --lf-badges-justify: center; --lf-badges-upright: center; ' +
+    '--lf-badges-position: absolute; --lf-badges-translate: -50% -50%',
+  right: '',
+};
+
+/** Badges with no cell behind them: an icon and text on the page. */
+const BADGE_PLAIN =
+  '--lf-badge-bg: transparent; --lf-badge-press: transparent; --lf-badge-on-bg: transparent; ' +
+  '--lf-badge-done-bg: transparent; --lf-badge-done-color: #30d158; --lf-badge-pad: 0 6px; ' +
+  '--lf-badge-on-color: var(--lf-accent)';
 const PAGE_TYPES = ['clock', 'room', 'scenes', 'grid', 'weather', 'calendar', 'cameras', 'photos', 'night'];
 const TOAST_MS = 4500;
 /** A pull from the top edge this far opens the quick panel. */
@@ -857,9 +876,14 @@ export class LuxFrameCard extends LitElement {
     const height =
       config.height ?? (this._hideHeader ? '100dvh' : 'calc(100dvh - var(--header-height, 0px))');
     const visible = this._visible;
-    const style = config.background
-      ? `height: ${height}; --lf-backdrop: ${config.background}`
-      : `height: ${height}`;
+    const style = [
+      `height: ${height}`,
+      config.background ? `--lf-backdrop: ${config.background}` : '',
+      BADGE_ALIGN[config.badge_align ?? 'right'] ?? '',
+      config.badge_style === 'plain' ? BADGE_PLAIN : '',
+    ]
+      .filter(Boolean)
+      .join('; ');
 
     return html`
       <div class="frame" style=${style} tabindex="0">
