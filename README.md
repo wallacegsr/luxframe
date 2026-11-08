@@ -150,13 +150,17 @@ dashboards.
 | `fit`     | What it does |
 | --------- | ------------ |
 | `stretch` | The default. A card that can grow fills the tile; one taller than the tile scrolls inside it. |
-| `cover`   | Scales the whole card evenly until it fills the tile, centered, and trims what runs past the edges. For cards that keep their picture's shape, such as a picture with badges over it. |
+| `cover`   | Fills the tile. Home Assistant's picture cards (`picture`, `picture-entity`, `picture-glance`, `picture-elements`) crop their picture to the tile's shape, and badges over it stay inside. Any other card scales evenly until it fills the tile, centered, and loses what runs past the edges. |
 | `contain` | Shows all of the card, centered, shrunk if it's taller than the tile. |
 
-Scaling moves everything together, so badges stay where they belong on the
-picture. With `cover`, anything close to the trimmed edges can be cut off;
-a tile closer to the picture's shape trims less. The tile editor has the same
-three choices under **Fit**.
+For a picture card, `cover` hands the card the tile's shape as its
+`aspect_ratio`, and follows the tile when it's resized or the tablet turns.
+Badges are placed as a share of the card, so they land a little differently
+on the cropped picture, but never outside it. A card that sets its own
+`aspect_ratio` keeps it and is scaled like any other card. When a card is
+scaled, everything moves together, and anything close to the trimmed edges
+can be cut off; a tile closer to the card's shape trims less. The tile editor
+has the same three choices under **Fit**.
 
 On the tablet, **Add tile → From your dashboards** lists the cards on your
 other dashboards, with the dashboard and view each is on. A tap copies the

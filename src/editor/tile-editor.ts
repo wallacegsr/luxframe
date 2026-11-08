@@ -12,7 +12,7 @@ const FITS: Array<{ fit: NonNullable<CardTileConfig['fit']>; label: string; hint
   {
     fit: 'cover',
     label: 'Fill and crop',
-    hint: 'Scales the whole card to fill the tile and trims the edges. Best for pictures.',
+    hint: 'Fills the tile. Picture cards crop the picture and keep their badges inside; other cards scale as a whole and lose their edges.',
   },
   { fit: 'contain', label: 'Fit inside', hint: 'Shows all of the card, centered, smaller if it\u2019s too tall.' },
 ];

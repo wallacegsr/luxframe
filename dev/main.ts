@@ -132,14 +132,21 @@ class DevCard extends HTMLElement {
   connectedCallback() {
     this._render();
   }
+  setConfig(config: Record<string, any>) {
+    this.config = config;
+    this._render();
+  }
   private _render() {
     if (!this.isConnected) return;
     if (this.config.type === 'picture-elements') {
       // Like Home Assistant's: as tall as its picture, badges placed in %.
+      // An aspect_ratio ("104%" of the width) crops the picture to that shape.
+      const ratio = parseFloat(String(this.config.aspect_ratio ?? ''));
+      const shape = ratio > 0 ? `100 / ${ratio}` : '7 / 6';
       const badge = (left: number, text: string) =>
         `<div class="badge" style="position:absolute;left:${left}%;top:58%;width:38%;padding:10px 0;
           border-radius:14px;background:rgb(255 255 255 / 35%);color:#222;text-align:center;font:600 16px system-ui">${text}</div>`;
-      this.innerHTML = `<div class="ha-card" style="position:relative;aspect-ratio:7/6;overflow:hidden;
+      this.innerHTML = `<div class="ha-card" style="position:relative;aspect-ratio:${shape};overflow:hidden;
         border-radius:var(--ha-card-border-radius, 12px);background:linear-gradient(160deg,#e9d7c3 0 55%,#7b2d2d 55%)">
         ${badge(6, 'Washer · Off')}${badge(56, 'Dryer · Done')}</div>`;
       return;

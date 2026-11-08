@@ -6,7 +6,11 @@ import type { CardTileConfig, HomeAssistant, TileSize } from '../types';
 interface CardElement extends HTMLElement {
   hass?: HomeAssistant;
   layout?: string;
+  setConfig?(config: Record<string, unknown>): void;
 }
+
+/** Home Assistant's picture cards, which crop their picture to an `aspect_ratio`. */
+const PICTURE_CARDS = new Set(['picture', 'picture-entity', 'picture-glance', 'picture-elements']);
 
 interface CardHelpers {
   createCardElement(config: Record<string, unknown>): CardElement;
@@ -47,6 +51,11 @@ export function cardName(card: Record<string, unknown> | undefined): string {
  * tile's width and scaled as a whole: `cover` fills the tile and trims the
  * overflow, `contain` shows all of it, centered. Scaling everything together
  * keeps badges on the picture where they belong.
+ *
+ * Home Assistant's picture cards fill better another way: given the tile's
+ * shape as their `aspect_ratio`, they crop the picture alone, and badges,
+ * placed as a share of the card, stay inside it. So `cover` does that for
+ * them, unless the card sets its own `aspect_ratio`.
  */
 export class LuxFrameCardTile extends LitElement {
   static properties = {
@@ -69,6 +78,8 @@ export class LuxFrameCardTile extends LitElement {
   /** Watches the tile and the card, to keep a scaled card fitted. */
   private _observer?: ResizeObserver;
   private _observed?: CardElement;
+  /** The tile's shape (height ÷ width) last given to a picture card. */
+  private _shape?: number;
 
   constructor() {
     super();
@@ -85,6 +96,16 @@ export class LuxFrameCardTile extends LitElement {
   private get _fit(): 'stretch' | 'cover' | 'contain' {
     const fit = this.config?.fit;
     return fit === 'cover' || fit === 'contain' ? fit : 'stretch';
+  }
+
+  /** A picture card in `cover` crops its picture to the tile instead of being scaled. */
+  private get _cropsPicture(): boolean {
+    const card = this.config?.card;
+    return (
+      this._fit === 'cover' &&
+      PICTURE_CARDS.has(String(card?.type)) &&
+      (card?.aspect_ratio === undefined || card.aspect_ratio === null || card.aspect_ratio === '')
+    );
   }
 
   protected willUpdate(changed: PropertyValues): void {
@@ -118,6 +139,7 @@ export class LuxFrameCardTile extends LitElement {
     const width = box.clientWidth;
     const height = box.clientHeight;
     if (element.style.width !== `${width}px`) element.style.width = `${width}px`;
+    if (width && height) this._shapePicture(element, height / width);
     // The card's own height at that width; a transform doesn't change it.
     const natural = element.offsetHeight;
     if (!width || !height || !natural) return;
@@ -126,6 +148,23 @@ export class LuxFrameCardTile extends LitElement {
     const x = (width - width * scale) / 2;
     const y = (height - natural * scale) / 2;
     element.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+  }
+
+  /**
+   * Gives a picture card the tile's shape, or takes it back when it's no
+   * longer cropping. Only a real change (half a percent) reconfigures it.
+   */
+  private _shapePicture(element: CardElement, shape: number): void {
+    const card = this.config?.card;
+    if (!card || !element.setConfig) return;
+    if (!this._cropsPicture) {
+      if (this._shape !== undefined) element.setConfig(card);
+      this._shape = undefined;
+      return;
+    }
+    if (this._shape !== undefined && Math.abs(shape - this._shape) < 0.005) return;
+    this._shape = shape;
+    element.setConfig({ ...card, aspect_ratio: `${(shape * 100).toFixed(2)}%` });
   }
 
   private async _build(): Promise<void> {
@@ -150,6 +189,7 @@ export class LuxFrameCardTile extends LitElement {
     }
     const element = (await loading).createCardElement(card);
     if (this._built !== key) return;
+    this._shape = undefined;
     element.hass = this.hass;
     // Cards that know Home Assistant's sections grid fill their cell in it.
     if (stretch) element.layout = 'grid';

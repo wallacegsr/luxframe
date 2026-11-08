@@ -6,6 +6,14 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- `fit: cover` on Home Assistant's picture cards (`picture`,
+  `picture-entity`, `picture-glance`, `picture-elements`) crops the picture
+  to the tile's shape instead of scaling the whole card, so badges near the
+  edges stay inside the tile. It follows the tile when it's resized or the
+  tablet turns. A card with its own `aspect_ratio` is scaled as before.
+
 ## [0.5.0] - 2026-11-07
 
 ### Added
