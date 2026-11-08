@@ -265,7 +265,7 @@ export class LuxFrameCardTile extends LitElement {
     // on a dashboard. Scrolling and cover's trimming still need the edge.
     const free = !glassy && this._fit !== 'scroll' && this._fit !== 'cover';
     return html`<div class="tile ${glassy ? 'glass themed' : ''} ${free ? 'free' : ''}">
-      <div class="card ${this._scaled ? 'scaled' : this._fit === 'stretch' ? 'held' : ''}">${this._element ?? nothing}</div>
+      <div class="card ${this._scaled ? 'scaled' : this._fit === 'stretch' ? 'held' : 'scrolls'}">${this._element ?? nothing}</div>
     </div>`;
   }
 
@@ -281,17 +281,21 @@ export class LuxFrameCardTile extends LitElement {
       }
 
       /*
-       * With "fit: scroll", a card taller than its tile scrolls up and down,
-       * and stops at its ends rather than scrolling the page. A sideways swipe isn't the
-       * card's: it goes on to turn the page, as it does on LuxFrame's tiles.
+       * A card is no scroller of its own, so swiping up or down on it scrolls
+       * the page, and sideways turns it, as on LuxFrame's tiles. Only with
+       * "fit: scroll" does a card taller than its tile scroll up and down;
+       * past its ends, the page scrolls on.
        */
       .card {
         display: flex;
         flex-direction: column;
         height: 100%;
+        overflow: hidden;
+      }
+
+      .card.scrolls {
         overflow-x: hidden;
         overflow-y: auto;
-        overscroll-behavior: auto contain;
         scrollbar-width: none;
       }
 

@@ -6,6 +6,13 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Swiping up or down on a Home Assistant card tile scrolls the page again.
+  Every card tile kept vertical swipes to itself, even one with nothing to
+  scroll; now only a `fit: scroll` card scrolls, and past its ends the page
+  scrolls on.
+
 ## [0.8.7] - 2026-11-08
 
 ### Fixed
