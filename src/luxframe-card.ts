@@ -503,6 +503,13 @@ export class LuxFrameCard extends LitElement {
     this._showToast(describe(result));
   }
 
+  /** Turns to a page, by its place in the config, once it's drawn. */
+  private async _showPage(index: number): Promise<void> {
+    await this.updateComplete;
+    const at = this._visible.findIndex(({ i }) => i === index);
+    if (at >= 0) this.goTo(at);
+  }
+
   private _useDashboardLayout(): void {
     if (!this._base) return;
     clearLocal(this._base);
@@ -621,6 +628,7 @@ export class LuxFrameCard extends LitElement {
           .page=${this._visible[this._index]?.i ?? 0}
           ?local=${this._local}
           @change=${(e: CustomEvent) => (this._draft = e.detail.config)}
+          @show-page=${(e: CustomEvent<{ page: number }>) => this._showPage(e.detail.page)}
           @reset=${this._useDashboardLayout}
           @pin=${() => (this._sheet = { kind: 'pin' })}
         ></luxframe-customize>

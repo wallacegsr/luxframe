@@ -232,10 +232,14 @@ tile.
   the end, adds one: a card from one of your dashboards, a widget such as a
   clock, a room, or any entity, searchable by name or room. Thermostats and
   weather entities get their own tile kinds.
-- **Customize** sets the page's title, columns and rows; shows, hides,
+- **Customize** sets the page's columns and rows; renames, shows, hides,
   reorders, adds and deletes pages; adds a page for each room in Home
   Assistant that doesn't have one; and sets the theme, wallpaper and glass
-  tint.
+  tint. A page's name is its heading, typed straight into the list of pages:
+  tile pages, rooms, Calendar, Cameras and Scenes have one, while Weather,
+  Clock, Photos and Night fill the screen and don't. **+ Blank page** adds an
+  empty page of tiles, turns to it and asks for its name; then **+ Add tile**
+  fills it.
 - **Done** saves, **Cancel** drops the changes.
 
 Where Done saves:

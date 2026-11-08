@@ -41,11 +41,28 @@ export function tileLabel(hass: HomeAssistant | undefined, raw: GridTileConfig |
   }
 }
 
+/** What kind of page it is, as the editor names it: "Tiles", "Calendar"… */
+export function kindLabel(page: PageConfig): string {
+  return PAGE_KINDS.find((k) => k.type === page.type)?.label ?? page.type;
+}
+
 export function pageLabel(page: PageConfig, index: number): string {
   if ('title' in page && page.title) return page.title;
-  const kind = PAGE_KINDS.find((k) => k.type === page.type)?.label ?? page.type;
-  return `${kind} · page ${index + 1}`;
+  return `${kindLabel(page)} · page ${index + 1}`;
 }
+
+/**
+ * The heading a page shows when it has no title of its own, for the pages
+ * that show one. Tiles show none until given a title; a room always has one.
+ * Weather, clock, photos and night pages are full-screen and have no heading.
+ */
+export const TITLE_DEFAULTS: Partial<Record<PageConfig['type'], string>> = {
+  grid: '',
+  calendar: 'Calendar',
+  cameras: 'Cameras',
+  scenes: 'Scenes',
+  room: '',
+};
 
 /** Pages that can be added on the tablet, blank or with their defaults. */
 export const PAGE_KINDS: Array<{ type: PageConfig['type']; label: string; blank?: PageConfig }> = [

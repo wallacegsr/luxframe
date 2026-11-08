@@ -2,7 +2,7 @@ import { LitElement, css, html, nothing } from 'lit';
 import { define } from '../define';
 import { resolve } from '../entity';
 import type { GridPageConfig, HomeAssistant, LuxFrameConfig, PageConfig, QuickPanelConfig } from '../types';
-import { PAGE_KINDS, pageLabel, suggestPages } from './layout';
+import { PAGE_KINDS, TITLE_DEFAULTS, kindLabel, pageLabel, suggestPages } from './layout';
 import { editorStyles } from './sheet';
 
 const THEMES: Array<{ value: NonNullable<LuxFrameConfig['theme']>; label: string }> = [
@@ -13,10 +13,11 @@ const THEMES: Array<{ value: NonNullable<LuxFrameConfig['theme']>; label: string
 ];
 
 /**
- * The frame's settings while editing: the current grid page's title, columns
- * and rows; which pages show and in what order; suggested pages from Home
- * Assistant's areas; and the look (theme, wallpaper, tint). Fires `change`
- * with the whole new config, and `reset` to drop this tablet's own layout.
+ * The frame's settings while editing: the current grid page's columns and
+ * rows; the pages, with their names, which show and in what order; suggested
+ * pages from Home Assistant's areas; and the look (theme, wallpaper, tint).
+ * Fires `change` with the whole new config, `show-page` with a page just
+ * added, and `reset` to drop this tablet's own layout.
  */
 export class LuxFrameCustomize extends LitElement {
   static properties = {
@@ -33,10 +34,22 @@ export class LuxFrameCustomize extends LitElement {
   /** True when this tablet is showing its own saved layout. */
   declare local: boolean;
 
+  /** A page just added whose name field wants the focus once it's drawn. */
+  private _focusTitle?: number;
+
   constructor() {
     super();
     this.page = 0;
     this.local = false;
+  }
+
+  protected updated(): void {
+    if (this._focusTitle === undefined) return;
+    const input = this.renderRoot.querySelector<HTMLInputElement>(`input.title[data-page="${this._focusTitle}"]`);
+    if (!input) return;
+    this._focusTitle = undefined;
+    input.focus();
+    input.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
 
   private _change(config: LuxFrameConfig): void {
@@ -68,6 +81,28 @@ export class LuxFrameCustomize extends LitElement {
     this._setPages(pages);
   }
 
+  /**
+   * Adds a page and shows it behind the sheet. A blank page of tiles has
+   * nothing to tell it apart yet, so its name field is ready to type in.
+   */
+  private _addPage(page: PageConfig): void {
+    const index = this.config!.pages.length;
+    this._setPages([...this.config!.pages, structuredClone(page)]);
+    if (page.type === 'grid') this._focusTitle = index;
+    this.dispatchEvent(new CustomEvent('show-page', { detail: { page: index } }));
+  }
+
+  private _rename(index: number, input: HTMLInputElement): void {
+    const page = this.config!.pages[index];
+    const title = input.value.trim();
+    // A room keeps a name: it has no other heading to fall back on.
+    if (!title && page.type === 'room') {
+      input.value = page.title;
+      return;
+    }
+    this._setPage(index, { title });
+  }
+
   private _removePage(index: number): void {
     const pages = [...this.config!.pages];
     pages.splice(index, 1);
@@ -93,13 +128,6 @@ export class LuxFrameCustomize extends LitElement {
     const rows = page.rows ?? 3;
     return html`
       <h3>This page</h3>
-      <input
-        type="text"
-        aria-label="Page title"
-        placeholder="Title (optional)"
-        .value=${page.title ?? ''}
-        @change=${(e: Event) => this._setPage(this.page, { title: (e.target as HTMLInputElement).value.trim() })}
-      />
       <div class="settings">
         ${this._stepper('Columns', page.columns ?? 4, 1, 8, (columns) => this._setPage(this.page, { columns }))}
         ${this._stepper('Rows', rows, 1, 8, (v) => this._setPage(this.page, { rows: v }))}
@@ -117,11 +145,24 @@ export class LuxFrameCustomize extends LitElement {
     return html`
       <h3>Pages</h3>
       <ul class="list">
-        ${pages.map(
-          (page, i) => html`<li class="item page ${page.hidden ? 'hidden' : ''}">
+        ${pages.map((page, i) => {
+          const status = page.hidden ? 'Hidden' : i === this.page ? 'Showing now' : '';
+          const fallback = TITLE_DEFAULTS[page.type];
+          return html`<li class="item page ${page.hidden ? 'hidden' : ''}">
             <span class="text">
-              <span class="name">${pageLabel(page, i)}</span>
-              <div class="sub">${page.hidden ? 'Hidden' : i === this.page ? 'Showing now' : ''}</div>
+              ${fallback === undefined
+                ? html`<span class="name">${pageLabel(page, i)}</span>
+                    <div class="sub">${status}</div>`
+                : html`<input
+                      type="text"
+                      class="title"
+                      data-page=${i}
+                      aria-label="Name of page ${i + 1}, ${kindLabel(page)}"
+                      placeholder=${fallback || (page.type === 'grid' ? 'Add a title' : kindLabel(page))}
+                      .value=${(page as { title?: string }).title ?? ''}
+                      @change=${(e: Event) => this._rename(i, e.target as HTMLInputElement)}
+                    />
+                    <div class="sub">${[kindLabel(page), status].filter(Boolean).join(' · ')}</div>`}
             </span>
             <button class="mini" aria-label="${page.hidden ? 'Show' : 'Hide'} ${pageLabel(page, i)}"
               ?disabled=${!page.hidden && shown <= 1}
@@ -137,14 +178,14 @@ export class LuxFrameCustomize extends LitElement {
                   ?disabled=${pages.length <= 1 || (!page.hidden && shown <= 1)}
                   @click=${() => this._removePage(i)}>✕</button>`
               : html`<span class="mini-space"></span>`}
-          </li>`,
-        )}
+          </li>`;
+        })}
       </ul>
       <div class="row add" role="group" aria-label="Add a page">
         <span class="label">Add a page</span>
         ${PAGE_KINDS.filter((k) => k.blank).map(
-          (k) => html`<button class="chip" @click=${() => this._setPages([...pages, structuredClone(k.blank!)])}>
-            + ${k.label}
+          (k) => html`<button class="chip" @click=${() => this._addPage(k.blank!)}>
+            + ${k.type === 'grid' ? 'Blank page' : k.label}
           </button>`,
         )}
       </div>
@@ -276,8 +317,18 @@ export class LuxFrameCustomize extends LitElement {
         padding-right: 0;
       }
 
-      .page.hidden .name {
+      .page.hidden .name,
+      .page.hidden input.title {
         opacity: 0.55;
+      }
+
+      /* A page's name, edited where it's listed. */
+      .page input.title {
+        min-height: 40px;
+        margin-bottom: 2px;
+        padding: 0 10px;
+        font-weight: 500;
+        background: rgb(255 255 255 / 8%);
       }
 
       .mini {

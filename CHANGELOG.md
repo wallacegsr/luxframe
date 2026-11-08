@@ -6,6 +6,21 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Pages can be renamed from Customize, straight in the list of pages: tile
+  pages, rooms, Calendar, Cameras and Scenes, which show their name as a
+  heading. Clearing a name brings back the default heading; a room keeps its
+  name.
+- **+ Blank page** (formerly **+ Tiles**) adds an empty page of tiles, turns
+  to it and puts its name field ready to type in. Any page added from
+  Customize is turned to.
+
+### Changed
+
+- The title field moved from Customize's This page section into the list
+  of pages, where every page that has a heading can be named.
+
 ## [0.5.3] - 2026-11-07
 
 ### Fixed
