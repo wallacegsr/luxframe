@@ -6,6 +6,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.8.5] - 2026-11-08
+
 ### Added
 
 - A page can place and style its badges its own way: `badge_align` and
@@ -295,7 +297,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.8.4...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.8.5...HEAD
+[0.8.5]: https://github.com/wallacegsr/luxframe/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/wallacegsr/luxframe/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/wallacegsr/luxframe/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/wallacegsr/luxframe/compare/v0.8.1...v0.8.2
