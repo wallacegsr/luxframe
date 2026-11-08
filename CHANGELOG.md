@@ -6,6 +6,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.8.8] - 2026-11-08
+
 ### Fixed
 
 - Swiping up or down on a Home Assistant card tile scrolls the page again.
@@ -323,7 +325,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.8.7...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.8.8...HEAD
+[0.8.8]: https://github.com/wallacegsr/luxframe/compare/v0.8.7...v0.8.8
 [0.8.7]: https://github.com/wallacegsr/luxframe/compare/v0.8.6...v0.8.7
 [0.8.6]: https://github.com/wallacegsr/luxframe/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/wallacegsr/luxframe/compare/v0.8.4...v0.8.5
