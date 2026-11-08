@@ -6,6 +6,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-07
+
 ### Added
 
 - Pages can be renamed from Customize, straight in the list of pages: tile
@@ -183,7 +185,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.5.3...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/wallacegsr/luxframe/compare/v0.5.3...v0.6.0
 [0.5.3]: https://github.com/wallacegsr/luxframe/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/wallacegsr/luxframe/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/wallacegsr/luxframe/compare/v0.5.0...v0.5.1
