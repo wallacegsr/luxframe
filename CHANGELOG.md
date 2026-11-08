@@ -6,6 +6,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.8.6] - 2026-11-08
+
 ### Changed
 
 - Holding a badge for a second starts editing, as holding a tile does,
@@ -305,7 +307,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.8.5...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.8.6...HEAD
+[0.8.6]: https://github.com/wallacegsr/luxframe/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/wallacegsr/luxframe/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/wallacegsr/luxframe/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/wallacegsr/luxframe/compare/v0.8.2...v0.8.3
