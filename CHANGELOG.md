@@ -6,6 +6,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-08
+
 ### Added
 
 - Tapping what's playing, on a tile or in the quick panel, opens the
@@ -368,7 +370,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/wallacegsr/luxframe/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/wallacegsr/luxframe/compare/v0.8.8...v0.9.0
 [0.8.8]: https://github.com/wallacegsr/luxframe/compare/v0.8.7...v0.8.8
 [0.8.7]: https://github.com/wallacegsr/luxframe/compare/v0.8.6...v0.8.7
