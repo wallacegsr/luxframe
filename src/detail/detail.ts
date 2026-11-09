@@ -8,14 +8,6 @@ const CLOSE_MS = 180;
 // A swipe that starts on one of these belongs to the control, not the sheet.
 const CONTROLS = 'button, luxframe-slider, luxframe-confirm-button, [data-no-swipe]';
 
-/**
- * The full-screen detail view LuxFrame opens over its pages. It blurs the
- * page behind, shows the entity's name and area, and the view for its kind.
- * Close with ✕, Escape, or by swiping down. ⋯ hands over to Home Assistant's
- * own dialog for settings LuxFrame doesn't show.
- *
- * Fires `close`, and `more` with the entity id.
- */
 /** The controls for an entity's kind: a light's brightness and color, a lock's button. */
 export function renderEntityView(hass: HomeAssistant | undefined, stateObj: HassEntity | undefined) {
   if (!stateObj) return html`<div class="missing">This device isn't in Home Assistant anymore.</div>`;
@@ -30,11 +22,21 @@ export function renderEntityView(hass: HomeAssistant | undefined, stateObj: Hass
       return html`<luxframe-climate-detail .hass=${hass} .stateObj=${stateObj}></luxframe-climate-detail>`;
     case 'lock':
       return html`<luxframe-lock-detail .hass=${hass} .stateObj=${stateObj}></luxframe-lock-detail>`;
+    case 'media_player':
+      return html`<luxframe-media-detail .hass=${hass} .stateObj=${stateObj}></luxframe-media-detail>`;
     default:
       return html`<luxframe-generic-detail .hass=${hass} .stateObj=${stateObj}></luxframe-generic-detail>`;
   }
 }
 
+/**
+ * The full-screen detail view LuxFrame opens over its pages. It blurs the
+ * page behind, shows the entity's name and area, and the view for its kind.
+ * Close with ✕, Escape, or by swiping down. ⋯ hands over to Home Assistant's
+ * own dialog for settings LuxFrame doesn't show.
+ *
+ * Fires `close`, and `more` with the entity id.
+ */
 export class LuxFrameDetail extends LitElement {
   static properties = {
     hass: { attribute: false },
@@ -158,7 +160,7 @@ export class LuxFrameDetail extends LitElement {
             </svg>
           </button>
         </header>
-        <main>${this._renderView()}</main>
+        <main class=${domainOf(this.entityId) === 'media_player' ? 'fill' : ''}>${this._renderView()}</main>
         <div class="grabber" aria-hidden="true"></div>
       </div>
     `;
@@ -266,6 +268,13 @@ export class LuxFrameDetail extends LitElement {
       align-items: center;
       justify-content: center;
       padding: 16px 0;
+    }
+
+    /* A speaker fills the sheet: its lists scroll inside it. */
+    main.fill {
+      align-items: stretch;
+      min-height: 0;
+      padding-bottom: 0;
     }
 
     .missing {

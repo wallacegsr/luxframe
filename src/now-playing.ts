@@ -1,6 +1,6 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { define } from './define';
-import { resolve } from './entity';
+import { openDetail, resolve } from './entity';
 import { icon } from './icons';
 import { MEDIA, pickPlayer, supports } from './media';
 import { Pending, near } from './pending';
@@ -9,7 +9,8 @@ import type { HomeAssistant, TileSize } from './types';
 /**
  * What a speaker is playing: artwork, title, artist, previous / play-pause /
  * next and volume, with buttons the speaker can't use dimmed. Follows
- * `entity`, or whichever speaker is playing (Music Assistant's first).
+ * `entity`, or whichever speaker is playing (Music Assistant's first). A tap
+ * on the artwork or title opens the speaker's details.
  *
  * `size` trims it for small tiles: `s` keeps the artwork and play/pause, `w`
  * drops the volume.
@@ -36,6 +37,12 @@ export class LuxFrameNowPlaying extends LitElement {
     this.hass?.callService('media_player', service, { entity_id: entityId, ...data });
   }
 
+  private _openKey(e: KeyboardEvent, entityId: string): void {
+    if (e.target !== e.currentTarget || (e.key !== 'Enter' && e.key !== ' ')) return;
+    e.preventDefault();
+    openDetail(this, entityId);
+  }
+
   protected render() {
     const player = pickPlayer(this.hass, this.entity);
     if (!player) return html`<div class="empty muted">No speakers</div>`;
@@ -55,13 +62,27 @@ export class LuxFrameNowPlaying extends LitElement {
     const id = player.entity_id;
 
     const playPause = html`<button class="round big" aria-label=${playing ? 'Pause' : 'Play'}
-      ?disabled=${off || !canPlayPause} @click=${() => this._call(id, 'media_play_pause')}>
+      ?disabled=${off || !canPlayPause}
+      @click=${(e: Event) => {
+        e.stopPropagation();
+        this._call(id, 'media_play_pause');
+      }}>
       ${icon(playing ? 'pause' : 'play', 30)}
     </button>`;
 
+    // Swipes pass through what opens the details, so the quick panel can still be swiped away there.
     if (this.size === 's') {
       return html`
-        <div class="small" style=${art ? `background-image: url("${art}")` : ''}>
+        <div
+          class="small"
+          role="button"
+          tabindex="0"
+          aria-label="${name}: ${title}"
+          data-swipe
+          style=${art ? `background-image: url("${art}")` : ''}
+          @click=${() => openDetail(this, id)}
+          @keydown=${(e: KeyboardEvent) => this._openKey(e, id)}
+        >
           <div class="shade"></div>
           <div class="title one">${title}</div>
           ${playPause}
@@ -70,7 +91,7 @@ export class LuxFrameNowPlaying extends LitElement {
     }
 
     return html`
-      <div class="now">
+      <button class="now" data-swipe @click=${() => openDetail(this, id)}>
         <div class="art" style=${art ? `background-image: url("${art}")` : ''}>
           ${art ? nothing : icon('speaker', 30)}
         </div>
@@ -79,7 +100,7 @@ export class LuxFrameNowPlaying extends LitElement {
           ${artist ? html`<div class="muted line">${artist}</div>` : nothing}
           <div class="muted line small-text">${name}</div>
         </div>
-      </div>
+      </button>
       <div class="transport" role="group" aria-label="Playback">
         <button class="round" aria-label="Previous" ?disabled=${!active || !supports(player, MEDIA.PREVIOUS)}
           @click=${() => this._call(id, 'media_previous_track')}>${icon('previous')}</button>
@@ -140,6 +161,24 @@ export class LuxFrameNowPlaying extends LitElement {
       align-items: center;
       gap: 16px;
       min-width: 0;
+      margin: 0;
+      padding: 0;
+      border-radius: 14px;
+      text-align: left;
+      background: none;
+    }
+
+    :host([size='w']) .now {
+      flex: 1 1 auto;
+    }
+
+    .now:active .art,
+    .small:active {
+      transform: scale(0.98);
+    }
+
+    .art {
+      transition: transform 0.15s;
     }
 
     .art {
@@ -244,6 +283,8 @@ export class LuxFrameNowPlaying extends LitElement {
     /* A small tile: the artwork fills it, play/pause in the corner. */
     .small {
       position: relative;
+      cursor: pointer;
+      transition: transform 0.15s;
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -264,6 +305,11 @@ export class LuxFrameNowPlaying extends LitElement {
 
     .small > :not(.shade) {
       position: relative;
+    }
+
+    .small:focus-visible {
+      outline: 3px solid var(--lf-accent);
+      outline-offset: -3px;
     }
 
     .small .round.big {

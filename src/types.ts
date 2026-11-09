@@ -18,6 +18,8 @@ export interface HassEntityRegistryEntry {
   entity_category?: string | null;
   /** The integration that made it, e.g. `music_assistant`. */
   platform?: string;
+  /** What the integration calls this kind of entity, e.g. `favorite_now_playing`. */
+  translation_key?: string;
 }
 
 export interface HassDevice {

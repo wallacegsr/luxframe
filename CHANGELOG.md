@@ -6,6 +6,20 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Tapping what's playing, on a tile or in the quick panel, opens the
+  speaker's details: big artwork, a bar to drag through the song, shuffle,
+  repeat, and volume with mute. Beside it are your speakers: tick one to play
+  along, set each one's volume, or tap one to show it instead.
+- With Music Assistant, a speaker's details also have a heart that adds the
+  song to its favorites, what's up next, **Move here** to take the music,
+  queue and all, to another speaker, and a library: your favorites,
+  playlists, albums, artists and radio, and a search, each a tap from
+  playing.
+- A speaker in the quick panel's dock shows what's playing on it, with the
+  artwork as its icon.
+
 ## [0.9.0] - 2026-11-08
 
 ### Added

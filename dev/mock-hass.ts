@@ -11,6 +11,25 @@ const entity = (entity_id: string, state: string, attributes: Record<string, any
 
 const DIMMABLE = { supported_color_modes: ['brightness'] };
 
+/** Everything a Music Assistant speaker can do: pause, seek, volume, mute, tracks, power, play media, shuffle, browse, repeat, grouping. */
+const MASS_FEATURES = 1 | 2 | 4 | 8 | 16 | 32 | 128 | 256 | 512 | 16384 | 32768 | 131072 | 262144 | 524288;
+const mass = (attributes: Record<string, any>) => ({
+  mass_player_type: 'player',
+  device_class: 'speaker',
+  supported_features: MASS_FEATURES,
+  shuffle: false,
+  repeat: 'off',
+  is_volume_muted: false,
+  group_members: [],
+  ...attributes,
+});
+
+/** Artwork for the mock library: a gradient per item. */
+const cover = (hue: number) =>
+  `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='hsl(${hue} 65% 58%)'/><stop offset='1' stop-color='hsl(${(hue + 60) % 360} 60% 28%)'/></linearGradient></defs><rect width='100' height='100' fill='url(#g)'/><circle cx='50' cy='50' r='16' fill='none' stroke='white' stroke-opacity='.55' stroke-width='3'/></svg>`,
+  )}`;
+
 const initial: HassEntity[] = [
   entity('weather.home', 'partlycloudy', {
     friendly_name: 'Home',
@@ -82,14 +101,24 @@ const initial: HassEntity[] = [
   entity('scene.dinner', 'scening', { friendly_name: 'Dinner' }),
   entity('scene.goodnight', 'scening', { friendly_name: 'Good night' }),
   entity('script.leave_home', 'off', { friendly_name: 'Leave home' }),
-  entity('media_player.living_room', 'playing', {
-    friendly_name: 'Living Room Speaker',
-    media_title: 'Slow Harbour',
-    media_artist: 'The Lanterns',
-    media_album_name: 'Low Tide',
-    entity_picture: './cover.svg',
-    volume_level: 0.35,
-    supported_features: 1 | 4 | 16 | 32 | 16384,
+  entity(
+    'media_player.living_room',
+    'playing',
+    mass({
+      friendly_name: 'Living Room Speaker',
+      media_title: 'Slow Harbour',
+      media_artist: 'The Lanterns',
+      media_album_name: 'Low Tide',
+      media_content_id: 'library://track/1',
+      media_duration: 245,
+      media_position: 61,
+      media_position_updated_at: new Date().toISOString(),
+      entity_picture: './cover.svg',
+      volume_level: 0.35,
+    }),
+  ),
+  entity('button.living_room_speaker_favorite_current_song', 'unknown', {
+    friendly_name: 'Living Room Speaker Favorite current song',
   }),
   entity('calendar.family', 'off', { friendly_name: 'Family' }),
   entity('calendar.work', 'off', { friendly_name: 'Work' }),
@@ -100,24 +129,215 @@ const initial: HassEntity[] = [
     next_rising: new Date(Date.now() + 14 * 3600_000).toISOString(),
     next_setting: new Date(Date.now() + 3 * 3600_000).toISOString(),
   }),
-  entity('media_player.kitchen_speaker', 'idle', {
-    friendly_name: 'Kitchen Speaker',
-    volume_level: 0.2,
-    supported_features: 1 | 4 | 16384,
-  }),
+  entity('media_player.kitchen_speaker', 'idle', mass({ friendly_name: 'Kitchen Speaker', volume_level: 0.2 })),
+  entity('media_player.bedroom_speaker', 'off', mass({ friendly_name: 'Bedroom Speaker', volume_level: 0.25 })),
+  entity(
+    'media_player.patio',
+    'paused',
+    mass({
+      friendly_name: 'Patio',
+      media_title: 'Paper Moons',
+      media_artist: 'Ida Fell',
+      media_album_name: 'Northbound',
+      media_content_id: 'library://track/2',
+      media_duration: 198,
+      media_position: 40,
+      media_position_updated_at: new Date().toISOString(),
+      entity_picture: cover(200),
+      volume_level: 0.5,
+    }),
+  ),
 ];
 
 const TRACKS = [
-  { media_title: 'Slow Harbour', media_artist: 'The Lanterns', media_album_name: 'Low Tide' },
-  { media_title: 'Paper Moons', media_artist: 'Ida Fell', media_album_name: 'Northbound' },
-  { media_title: 'Copper Sky', media_artist: 'The Lanterns', media_album_name: 'Low Tide' },
+  { media_title: 'Slow Harbour', media_artist: 'The Lanterns', media_album_name: 'Low Tide', media_duration: 245 },
+  { media_title: 'Paper Moons', media_artist: 'Ida Fell', media_album_name: 'Northbound', media_duration: 198 },
+  { media_title: 'Copper Sky', media_artist: 'The Lanterns', media_album_name: 'Low Tide', media_duration: 231 },
 ];
 
 /** The integration behind each entity, where it matters. */
 const PLATFORM: Record<string, string> = {
   'media_player.living_room': 'music_assistant',
-  'media_player.kitchen_speaker': 'cast',
+  'media_player.kitchen_speaker': 'music_assistant',
+  'media_player.bedroom_speaker': 'music_assistant',
+  'media_player.patio': 'music_assistant',
+  'button.living_room_speaker_favorite_current_song': 'music_assistant',
 };
+
+/** Entities that share a device, and what their integration calls them. */
+const DEVICE_OF: Record<string, string> = {
+  'media_player.living_room': 'dev-living-room-speaker',
+  'button.living_room_speaker_favorite_current_song': 'dev-living-room-speaker',
+};
+const TRANSLATION_KEY: Record<string, string> = {
+  'button.living_room_speaker_favorite_current_song': 'favorite_now_playing',
+};
+
+// ---- A small Music Assistant library -------------------------------------------
+
+interface MockItem {
+  media_type: string;
+  uri: string;
+  name: string;
+  version: string;
+  image: string | null;
+  favorite: boolean;
+  artists?: Array<{ media_type: string; uri: string; name: string; version: string; image: null }>;
+}
+
+const ARTISTS = ['The Lanterns', 'Ida Fell', 'Morning Static', 'Harbor Lights', 'June Avenue', 'Oslo Bloom', 'Velvet Coast', 'North Wind'];
+
+const shelf = (type: string, names: string[], favorites: number[], byArtist = false): MockItem[] =>
+  names.map((name, i) => ({
+    media_type: type,
+    uri: `library://${type}/${i + 1}`,
+    name,
+    version: '',
+    // Every fifth has no artwork, as some don't.
+    image: i % 5 === 4 ? null : cover((i * 47 + type.length * 31) % 360),
+    favorite: favorites.includes(i),
+    ...(byArtist
+      ? {
+          artists: [
+            {
+              media_type: 'artist',
+              uri: `library://artist/${(i % ARTISTS.length) + 1}`,
+              name: ARTISTS[i % ARTISTS.length],
+              version: '',
+              image: null,
+            },
+          ],
+        }
+      : {}),
+  }));
+
+const LIBRARY: Record<string, MockItem[]> = {
+  playlist: shelf(
+    'playlist',
+    [
+      'Morning Coffee',
+      'Dinner Party',
+      'Deep Focus',
+      'Road Trip',
+      'Rainy Day',
+      'Kids Mix',
+      'Sunday Jazz',
+      'Workout',
+      ...Array.from({ length: 62 }, (_, i) => `Daily Mix ${i + 1}`),
+    ],
+    [0, 2, 6],
+  ),
+  album: shelf(
+    'album',
+    ['Low Tide', 'Northbound', 'Static Mornings', 'Lights Out', 'Avenue', 'Bloom', 'Coastline', 'Windward', 'Paper Houses', 'Slow Days'],
+    [0, 1],
+    true,
+  ),
+  artist: shelf('artist', ARTISTS, [0, 1, 4]),
+  radio: shelf('radio', ['City FM', 'Jazz Hour', 'Lo-fi Radio', 'Classic Rock', 'Radio Six'], [1, 2]),
+  track: shelf(
+    'track',
+    ['Slow Harbour', 'Paper Moons', 'Copper Sky', 'Static', 'Avenue Lights', 'Bloom Again', 'Coastline', 'Windward', 'Glass House', 'Late Train', 'Satellite', 'Undertow'],
+    [0, 3],
+    true,
+  ),
+};
+
+const libraryItem = (uri: string) => Object.values(LIBRARY).flat().find((item) => item.uri === uri);
+const byName = (a: MockItem, b: MockItem) => a.name.localeCompare(b.name, undefined, { numeric: true });
+
+/**
+ * Music Assistant's side of the websocket: its config entry, and the actions
+ * that answer (library, search, queue). Undefined for anything else.
+ */
+export function mockMusicWS(message: Record<string, any>, hass: HomeAssistant): unknown {
+  if (message.type === 'config/entity_registry/get') {
+    const mine = PLATFORM[message.entity_id] === 'music_assistant';
+    return { entity_id: message.entity_id, config_entry_id: mine ? 'mass-dev' : null };
+  }
+  if (message.type === 'config_entries/get' && message.domain === 'music_assistant') {
+    return [{ entry_id: 'mass-dev', domain: 'music_assistant', title: 'Music Assistant', state: 'loaded' }];
+  }
+  if (message.type !== 'call_service' || message.domain !== 'music_assistant' || !message.return_response) return undefined;
+  const data = message.service_data ?? {};
+  if (message.service === 'get_library') {
+    let items = [...(LIBRARY[data.media_type] ?? [])].sort(byName);
+    if (data.favorite) items = items.filter((item) => item.favorite);
+    const offset = data.offset ?? 0;
+    const limit = data.limit ?? 25;
+    return {
+      context: {},
+      response: { items: items.slice(offset, offset + limit), limit, offset, order_by: data.order_by ?? 'name', media_type: data.media_type },
+    };
+  }
+  if (message.service === 'search') {
+    const query = String(data.name).toLowerCase();
+    const found = (type: string) =>
+      (LIBRARY[type] ?? [])
+        .filter((item) => item.name.toLowerCase().includes(query) || item.artists?.some((a) => a.name.toLowerCase().includes(query)))
+        .slice(0, data.limit ?? 5);
+    return {
+      context: {},
+      response: {
+        artists: found('artist'),
+        albums: found('album'),
+        tracks: found('track'),
+        playlists: found('playlist'),
+        radio: found('radio'),
+        audiobooks: [],
+        podcasts: [],
+      },
+    };
+  }
+  if (message.service === 'get_queue') {
+    const id = message.target?.entity_id as string;
+    const title = hass.states[id]?.attributes.media_title;
+    const at = TRACKS.findIndex((t) => t.media_title === title);
+    const next = at < 0 ? undefined : TRACKS[(at + 1) % TRACKS.length];
+    return {
+      context: {},
+      response: {
+        [id]: {
+          queue_id: id,
+          active: true,
+          name: 'Queue',
+          items: 12,
+          shuffle_enabled: false,
+          repeat_mode: 'off',
+          current_index: Math.max(0, at),
+          elapsed_time: 0,
+          current_item: null,
+          next_item: next
+            ? { queue_item_id: 'next', name: `${next.media_artist} - ${next.media_title}`, duration: next.media_duration, media_item: null }
+            : null,
+        },
+      },
+    };
+  }
+  return undefined;
+}
+
+/** What a speaker is playing, to hand on to another. */
+const NOW_PLAYING = [
+  'media_title',
+  'media_artist',
+  'media_album_name',
+  'media_content_id',
+  'media_duration',
+  'media_position',
+  'media_position_updated_at',
+  'entity_picture',
+];
+const playingOf = (s: HassEntity) => Object.fromEntries(NOW_PLAYING.map((key) => [key, s.attributes[key]]));
+const NOTHING_PLAYING = Object.fromEntries(NOW_PLAYING.map((key) => [key, undefined]));
+
+/** Where a speaker is in its song, counting on while it plays. */
+function positionOf(s: HassEntity): number {
+  const a = s.attributes;
+  const since = Date.parse(a.media_position_updated_at ?? '');
+  const extra = s.state === 'playing' && !Number.isNaN(since) ? (Date.now() - since) / 1000 : 0;
+  return Math.min(a.media_duration ?? Infinity, (a.media_position ?? 0) + extra);
+}
 
 const areas = {
   living_room: { area_id: 'living_room', name: 'Living Room' },
@@ -143,7 +363,9 @@ const AREA_OF: Record<string, string> = {
   'light.island': 'kitchen',
   'switch.coffee': 'kitchen',
   'media_player.living_room': 'living_room',
+  'button.living_room_speaker_favorite_current_song': 'living_room',
   'media_player.kitchen_speaker': 'kitchen',
+  'media_player.bedroom_speaker': 'bedroom',
   'sensor.living_temperature': 'living_room',
   'sensor.bedroom_temperature': 'bedroom',
   'camera.front_door': 'entry',
@@ -170,9 +392,21 @@ export function createMockHass(onChange: (hass: HomeAssistant) => void): HomeAss
   const entities: Record<string, HassEntityRegistryEntry> = Object.fromEntries(
     initial.map((s) => [
       s.entity_id,
-      { entity_id: s.entity_id, area_id: AREA_OF[s.entity_id] ?? null, platform: PLATFORM[s.entity_id] ?? 'demo' },
+      {
+        entity_id: s.entity_id,
+        area_id: AREA_OF[s.entity_id] ?? null,
+        platform: PLATFORM[s.entity_id] ?? 'demo',
+        device_id: DEVICE_OF[s.entity_id] ?? null,
+        translation_key: TRANSLATION_KEY[s.entity_id],
+      },
     ]),
   );
+
+  /** A speaker's group, itself first; just itself when it plays alone. */
+  const groupOf = (id: string): string[] => {
+    const members = states[id]?.attributes.group_members;
+    return Array.isArray(members) && members.length > 1 ? members : [id];
+  };
 
   const update = (id: string, state: string, attributes: Record<string, any>) => {
     states[id] = { ...states[id], state, attributes: { ...states[id].attributes, ...attributes } };
@@ -269,11 +503,70 @@ export function createMockHass(onChange: (hass: HomeAssistant) => void): HomeAss
         // The list itself lives in dev/main.ts; the count is the entity's state.
         update(id, String(Math.max(0, Number(current.state) - 1)), {});
       } else if (kind === 'media_player.media_play_pause') {
-        update(id, current.state === 'playing' ? 'paused' : 'playing', {});
+        // A group plays and pauses together.
+        const now = new Date().toISOString();
+        const next = current.state === 'playing' ? 'paused' : 'playing';
+        for (const member of groupOf(id)) {
+          update(member, next, { media_position: Math.round(positionOf(states[member])), media_position_updated_at: now });
+        }
       } else if (kind === 'media_player.media_next_track' || kind === 'media_player.media_previous_track') {
         const at = TRACKS.findIndex((t) => t.media_title === current.attributes.media_title);
         const step = service === 'media_next_track' ? 1 : TRACKS.length - 1;
-        update(id, 'playing', TRACKS[(Math.max(0, at) + step) % TRACKS.length]);
+        const track = TRACKS[(Math.max(0, at) + step) % TRACKS.length];
+        const now = new Date().toISOString();
+        for (const member of groupOf(id)) {
+          update(member, 'playing', { ...track, entity_picture: './cover.svg', media_position: 0, media_position_updated_at: now });
+        }
+      } else if (kind === 'media_player.media_seek') {
+        const now = new Date().toISOString();
+        for (const member of groupOf(id)) {
+          update(member, states[member].state, { media_position: data!.seek_position, media_position_updated_at: now });
+        }
+      } else if (kind === 'media_player.shuffle_set') {
+        update(id, current.state, { shuffle: data!.shuffle });
+      } else if (kind === 'media_player.repeat_set') {
+        update(id, current.state, { repeat: data!.repeat });
+      } else if (kind === 'media_player.volume_mute') {
+        update(id, current.state, { is_volume_muted: data!.is_volume_muted });
+      } else if (kind === 'media_player.join') {
+        const leader = states[id];
+        const group = [...new Set([id, ...groupOf(id), ...(data!.group_members as string[])])];
+        for (const member of group) {
+          if (member === id) update(member, leader.state, { group_members: group });
+          else update(member, leader.state === 'off' ? 'idle' : leader.state, { ...playingOf(leader), group_members: group });
+        }
+      } else if (kind === 'media_player.unjoin') {
+        const rest = groupOf(id).filter((member) => member !== id);
+        for (const member of rest) update(member, states[member].state, { group_members: rest.length > 1 ? rest : [] });
+        update(id, 'idle', { ...NOTHING_PLAYING, group_members: [] });
+      } else if (kind === 'music_assistant.transfer_queue') {
+        const from = data!.source_player as string;
+        if (states[from]) {
+          update(id, 'playing', {
+            ...playingOf(states[from]),
+            media_position: Math.round(positionOf(states[from])),
+            media_position_updated_at: new Date().toISOString(),
+          });
+          update(from, 'idle', NOTHING_PLAYING);
+        }
+      } else if (kind === 'music_assistant.play_media') {
+        const item = libraryItem(String(data!.media_id));
+        update(id, 'playing', {
+          media_title: item?.name ?? String(data!.media_id),
+          media_artist: item?.artists?.[0]?.name,
+          media_album_name: undefined,
+          media_content_id: data!.media_id,
+          media_duration: 210,
+          media_position: 0,
+          media_position_updated_at: new Date().toISOString(),
+          entity_picture: item?.image ?? './cover.svg',
+        });
+      } else if (kind === 'button.press') {
+        // Music Assistant's Favorite current song: nothing to show for it here.
+      } else if (kind === 'media_player.turn_on') {
+        update(id, 'idle', {});
+      } else if (kind === 'media_player.turn_off') {
+        update(id, 'off', { ...NOTHING_PLAYING, group_members: [] });
       } else if (kind === 'media_player.volume_set') {
         update(id, current.state, { volume_level: data!.volume_level });
       } else if (service === 'turn_on' || service === 'turn_off') {

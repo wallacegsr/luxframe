@@ -1,7 +1,7 @@
 import '../src/luxframe';
 import type { LuxFrameCard } from '../src/luxframe-card';
 import type { LuxFrameConfig } from '../src/types';
-import { createMockHass } from './mock-hass';
+import { createMockHass, mockMusicWS } from './mock-hass';
 
 const params = new URLSearchParams(location.search);
 
@@ -34,6 +34,7 @@ const config: LuxFrameConfig = {
     pinned: ['light.porch', 'lock.front_door', 'scene.movie'],
     dock: [
       'media',
+      'media_player.patio',
       'climate.living_room',
       { name: 'Brew', icon: 'mdi:coffee', card: { type: 'button', name: 'Start Brew', glow: true } },
       { name: 'Front door', tile: { type: 'camera', entity: 'camera.front_door' } },
@@ -341,6 +342,8 @@ hass.callWS = (async (message: Record<string, any>) => {
   if (message.type === 'media_source/resolve_media') {
     return { url: `./photos/${String(message.media_content_id).split('/').pop()}` };
   }
+  const music = mockMusicWS(message, hass);
+  if (music !== undefined) return music;
   throw new Error(`Unknown command ${message.type}`);
 }) as typeof hass.callWS;
 // To-do items, calendar events and forecasts, made up around today.

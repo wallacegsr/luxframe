@@ -28,6 +28,16 @@ const ICONS = {
   drop: svg`<path d="M12 3s6 7 6 11.5a6 6 0 0 1-12 0C6 10 12 3 12 3z" />`,
   grid: svg`<rect x="4" y="4" width="7" height="7" rx="1.5" /><rect x="13" y="4" width="7" height="7" rx="1.5" /><rect x="4" y="13" width="7" height="7" rx="1.5" /><rect x="13" y="13" width="7" height="7" rx="1.5" />`,
   clock: svg`<circle cx="12" cy="12" r="8.5" /><path d="M12 7v5l3 2" />`,
+  shuffle: svg`<path d="M4 7h3c2 0 3 1 4 2.5l2 3c1 1.5 2 2.5 4 2.5h3M17 12l3 3-3 3M4 15h3c1 0 1.8-.3 2.5-.9M14.5 7.9c.7-.6 1.5-.9 2.5-.9h3M17 4l3 3-3 3" />`,
+  repeat: svg`<path d="M17 3l3 3-3 3M20 6H8a4 4 0 0 0-4 4v1M7 21l-3-3 3-3M4 18h12a4 4 0 0 0 4-4v-1" />`,
+  'repeat-one': svg`<path d="M17 3l3 3-3 3M20 6H8a4 4 0 0 0-4 4v1M7 21l-3-3 3-3M4 18h12a4 4 0 0 0 4-4v-1M11 10.5l1.5-1v5" />`,
+  heart: svg`<path d="M12 20s-7.5-4.6-7.5-10A4.4 4.4 0 0 1 12 7.3 4.4 4.4 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z" />`,
+  'heart-filled': svg`<path fill="currentColor" d="M12 20s-7.5-4.6-7.5-10A4.4 4.4 0 0 1 12 7.3 4.4 4.4 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z" />`,
+  mute: svg`<path d="M4 9h4l5-4v14l-5-4H4zM16.5 9.5l5 5M21.5 9.5l-5 5" />`,
+  search: svg`<circle cx="11" cy="11" r="6.5" /><path d="M16 16l4.5 4.5" />`,
+  person: svg`<circle cx="12" cy="8" r="4" /><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0" />`,
+  radio: svg`<rect x="3" y="8" width="18" height="12" rx="2.5" /><path d="M7.5 8l9-4.5M7 12.5h4M7 16h4" /><circle cx="16" cy="14" r="2.5" />`,
+  music: svg`<path d="M9 18V6l11-2v12" /><circle cx="6.5" cy="18" r="2.5" /><circle cx="17.5" cy="16" r="2.5" />`,
   fan: svg`<circle cx="12" cy="12" r="1.5" /><path d="M12 10.5c0-4 1-7 4-7 2 0 2.5 3 0 4.5M13.5 12c4 0 7 1 7 4 0 2-3 2.5-4.5 0M12 13.5c0 4-1 7-4 7-2 0-2.5-3 0-4.5M10.5 12c-4 0-7-1-7-4 0-2 3-2.5 4.5 0" />`,
 };
 

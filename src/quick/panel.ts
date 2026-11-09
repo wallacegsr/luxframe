@@ -2,7 +2,7 @@ import { LitElement, css, html, nothing } from 'lit';
 import { keyed } from 'lit/directives/keyed.js';
 import { define } from '../define';
 import { renderEntityView } from '../detail/detail';
-import { isActive } from '../entity';
+import { domainOf, isActive } from '../entity';
 import { icon } from '../icons';
 import { pickPlayer } from '../media';
 import '../now-playing';
@@ -155,6 +155,8 @@ export class LuxFrameQuickPanel extends LitElement {
     for (const el of e.composedPath()) {
       if (el === panel) break;
       if (!(el instanceof Element)) continue;
+      // Taps there open something, but a swipe still puts the panel away.
+      if (el.matches('[data-swipe]')) return false;
       if (el.matches(CONTROLS)) return true;
       if (getComputedStyle(el).touchAction === 'none') return true;
     }
@@ -247,9 +249,17 @@ export class LuxFrameQuickPanel extends LitElement {
     this._picked = open ? null : index;
   }
 
-  /** What's playing's artwork, for the media icon. */
-  private _artwork(): string | undefined {
-    const player = pickPlayer(this.hass, this.config?.media_player);
+  /** The speaker a dock item shows: what's playing, or a speaker of its own. */
+  private _player(item: QuickDockConfig) {
+    const kind = dockKind(item);
+    if (kind === 'media') return pickPlayer(this.hass, this.config?.media_player);
+    if (kind === 'entity' && domainOf(item.entity!) === 'media_player') return this.hass?.states[item.entity!];
+    return undefined;
+  }
+
+  /** What's playing's artwork, for a speaker's icon. */
+  private _artwork(item: QuickDockConfig): string | undefined {
+    const player = this._player(item);
     const playing = player?.state === 'playing' || player?.state === 'paused';
     return playing ? (player?.attributes.entity_picture as string | undefined) : undefined;
   }
@@ -259,7 +269,7 @@ export class LuxFrameQuickPanel extends LitElement {
       ${entries.map(({ item, index }) => {
         const on = current?.index === index;
         const label = dockLabel(this.hass, item);
-        const art = dockKind(item) === 'media' ? this._artwork() : undefined;
+        const art = this._artwork(item);
         const entity = dockEntity(item);
         const lit = !!entity && isActive(this.hass?.states[entity]);
         return html`<button
@@ -284,6 +294,11 @@ export class LuxFrameQuickPanel extends LitElement {
         return html`<luxframe-now-playing class="card media" .hass=${this.hass} .entity=${this.config?.media_player}>
         </luxframe-now-playing>`;
       case 'entity':
+        // A speaker shows what it's playing; a tap there opens it in full.
+        if (domainOf(item.entity!) === 'media_player') {
+          return html`<luxframe-now-playing class="card media" .hass=${this.hass} .entity=${item.entity}>
+          </luxframe-now-playing>`;
+        }
         return html`<div class="card view">
           ${renderEntityView(this.hass, this.hass?.states[item.entity!])}
         </div>`;

@@ -193,7 +193,7 @@ are medium (large from four columns), and one column is small however tall.
 | `clock`        |                                           | `s`          |
 | `analog-clock` | Drawn on the background, with no glass    | `s`          |
 | `calendar`     | `entities` (default: every calendar), `view`: `upcoming` or `month`. A tap opens the calendar page. | `m` |
-| `now-playing`  | `entity` (default: whichever speaker is playing, Music Assistant first) | `w` |
+| `now-playing`  | `entity` (default: whichever speaker is playing, Music Assistant first). A tap opens the [speaker's details](#detail-pages). | `w` |
 | `camera`       | `entity`. A tap streams it in Home Assistant's dialog. | `m` |
 | `photo`        | `folder`, `interval` (seconds, default 30) | `m`         |
 | `sun`          | `entity` (default `sun.sun`). Next sunrise or sunset; an arc on bigger tiles. | `s` |
@@ -319,6 +319,15 @@ Details open on a LuxFrame glass page over the frame:
 - **Thermostat**: a large target with ▼/▲ (Low and High for a range), its
   modes, and its fan modes, presets and swing where it has them.
 - **Lock**: Lock at once; Unlock only after a second tap.
+- **Speaker**: big artwork, a bar to drag through the song, shuffle,
+  previous / play-pause / next, repeat, and volume with mute. Beside it are
+  your speakers: where they can group, tick one to play along, and each one
+  playing gets its own volume. Tap a speaker to show it instead. Tapping
+  what's playing, on a tile or in the quick panel, opens it.
+- **Speaker, with Music Assistant**: a heart adds the song to its favorites,
+  the next song shows under the controls, and **Move here** takes the music,
+  queue and all, to another speaker. **Library** plays your favorites,
+  playlists, albums, artists and radio, and searches Music Assistant.
 - **Anything else**: its state, when it last changed, and Turn On/Off or Run.
 
 Close with ✕, by swiping down, or with Escape. **⋯** opens Home Assistant's own
@@ -379,10 +388,12 @@ fold the stage away. The dock can hold:
 - **What's playing** (`media`): artwork, title and artist, previous /
   play-pause / next, and volume. It follows whichever speaker is playing,
   Music Assistant's players first, unless you set `media_player`. Buttons the
-  speaker can't use are dimmed, and the icon shows the artwork.
+  speaker can't use are dimmed, and the icon shows the artwork. Tap the
+  artwork or title for the [speaker's details](#detail-pages).
 - **A device's controls** (its entity id): the same controls as its details
   page, a little smaller, such as a thermostat's temperature and modes or a
-  light's brightness and color.
+  light's brightness and color. A speaker shows what's playing on it, like
+  What's playing does.
 - **Any Home Assistant card** (`card`), custom cards too, in LuxFrame's glass
   at its own height. `glass: false` keeps the card's own look.
 - **Any LuxFrame tile** (`tile`), such as a camera, the weather or a room.

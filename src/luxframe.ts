@@ -20,6 +20,7 @@ import './detail/fan';
 import './detail/cover';
 import './detail/climate';
 import './detail/lock';
+import './detail/media';
 import './detail/generic';
 import './luxframe-card';
 import { kiosk } from './kiosk';
