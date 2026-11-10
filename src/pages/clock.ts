@@ -126,7 +126,7 @@ export class LuxFrameClock extends LitElement {
       }
 
       .condition {
-        font-size: 18px;
+        font-size: 17px;
         color: var(--lf-muted);
       }
 

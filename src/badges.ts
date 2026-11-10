@@ -375,20 +375,19 @@ export class LuxFrameBadges extends LitElement {
       border-radius: 999px;
       background: var(--lf-badge-bg, color-mix(in srgb, var(--lf-text) 8%, transparent));
       color: var(--lf-text);
-      font: 500 16px var(--lf-font);
+      font: 500 15px var(--lf-font);
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
-      transition: background 0.2s;
+      transition:
+        background var(--lf-move),
+        transform var(--lf-fast);
     }
 
     .badge:active {
       background: var(--lf-badge-press, color-mix(in srgb, var(--lf-text) 16%, transparent));
-    }
-
-    .badge:not(.add):active {
-      opacity: 0.7;
+      transform: scale(0.96);
     }
 
     /* Icon only, or words only: even padding all round. */
@@ -410,7 +409,7 @@ export class LuxFrameBadges extends LitElement {
 
     .stack .name {
       color: var(--lf-muted);
-      font-size: 12px;
+      font-size: 13px;
     }
 
     .icon {
@@ -439,7 +438,7 @@ export class LuxFrameBadges extends LitElement {
     }
 
     .done {
-      background: var(--lf-badge-done-bg, color-mix(in srgb, #30d158 28%, transparent));
+      background: var(--lf-badge-done-bg, color-mix(in srgb, var(--lf-success) 28%, transparent));
     }
 
     .done .label {

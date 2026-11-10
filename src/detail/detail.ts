@@ -1,6 +1,7 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { define } from '../define';
 import { domainOf, resolve } from '../entity';
+import { controls } from '../theme';
 import type { HassEntity, HomeAssistant } from '../types';
 
 const CLOSE_DISTANCE = 120;
@@ -136,8 +137,9 @@ export class LuxFrameDetail extends LitElement {
         @pointerup=${this._up}
         @pointercancel=${this._up}
       >
+        <div class="grabber" aria-hidden="true"></div>
         <header>
-          <button class="round close" aria-label="Close" @click=${this.close}>
+          <button class="round small glass close" aria-label="Close" @click=${this.close}>
             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
               <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4"
                 stroke-linecap="round" />
@@ -148,7 +150,7 @@ export class LuxFrameDetail extends LitElement {
             ${area ? html`<div class="area">${area}</div>` : nothing}
           </div>
           <button
-            class="round more"
+            class="round small glass more"
             aria-label="More settings in Home Assistant"
             @click=${() =>
               this.dispatchEvent(new CustomEvent('more', { detail: { entityId: this.entityId } }))}
@@ -161,12 +163,13 @@ export class LuxFrameDetail extends LitElement {
           </button>
         </header>
         <main class=${domainOf(this.entityId) === 'media_player' ? 'fill' : ''}>${this._renderView()}</main>
-        <div class="grabber" aria-hidden="true"></div>
       </div>
     `;
   }
 
-  static styles = css`
+  static styles = [
+    controls,
+    css`
     :host {
       position: absolute;
       inset: 0;
@@ -181,7 +184,7 @@ export class LuxFrameDetail extends LitElement {
       background: color-mix(in srgb, var(--lf-tint, #000) 30%, rgb(0 0 0 / 38%));
       -webkit-backdrop-filter: var(--lf-blur-strong);
       backdrop-filter: var(--lf-blur-strong);
-      animation: fade 200ms ease-out;
+      animation: fade var(--lf-move) ease-out;
     }
 
     .sheet {
@@ -193,8 +196,10 @@ export class LuxFrameDetail extends LitElement {
       padding: var(--lf-pad);
       padding-top: max(16px, calc(var(--lf-pad) / 2));
       overflow-y: auto;
-      transition: transform 220ms ease-out, opacity 180ms;
-      animation: rise 220ms ease-out;
+      transition:
+        transform var(--lf-move) var(--lf-ease),
+        opacity var(--lf-move);
+      animation: rise var(--lf-move) var(--lf-ease);
       touch-action: pan-x;
     }
 
@@ -204,7 +209,7 @@ export class LuxFrameDetail extends LitElement {
 
     .closing.backdrop {
       opacity: 0;
-      transition: opacity 180ms;
+      transition: opacity var(--lf-move);
     }
 
     .closing.sheet {
@@ -240,53 +245,34 @@ export class LuxFrameDetail extends LitElement {
       color: var(--lf-muted);
     }
 
-    .round {
-      flex: none;
-      display: grid;
-      place-items: center;
-      width: 48px;
-      height: 48px;
-      padding: 0;
-      border: 0;
-      border-radius: 50%;
-      color: var(--lf-text);
-      background: var(--lf-surface);
-      -webkit-backdrop-filter: var(--lf-blur);
-      backdrop-filter: var(--lf-blur);
-      box-shadow: var(--lf-shadow);
-      cursor: pointer;
-    }
-
-    .round:focus-visible {
-      outline: 3px solid var(--lf-accent);
-      outline-offset: 2px;
-    }
-
+    /* The view fills the sheet: its status under the header, its controls centered below. */
     main {
       flex: 1;
       display: flex;
-      align-items: center;
+      align-items: stretch;
       justify-content: center;
       padding: 16px 0;
     }
 
-    /* A speaker fills the sheet: its lists scroll inside it. */
+    /* A speaker's lists scroll inside it. */
     main.fill {
-      align-items: stretch;
       min-height: 0;
       padding-bottom: 0;
     }
 
     .missing {
-      font-size: 18px;
+      align-self: center;
+      font-size: 17px;
       color: var(--lf-muted);
     }
 
+    /* Swipe down to close; the handle says so, as on a sheet. */
     .grabber {
+      flex: none;
       align-self: center;
       width: 44px;
       height: 5px;
-      margin-top: 4px;
+      margin: -4px 0 12px;
       border-radius: 3px;
       background: var(--lf-faint);
     }
@@ -311,7 +297,8 @@ export class LuxFrameDetail extends LitElement {
         transition: none;
       }
     }
-  `;
+  `,
+  ];
 }
 
 define('luxframe-detail', LuxFrameDetail);

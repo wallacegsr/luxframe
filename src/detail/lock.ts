@@ -1,7 +1,7 @@
 import { LitElement, html, nothing } from 'lit';
 import '../confirm-button';
 import { define } from '../define';
-import { stateLabel } from '../entity';
+import { kindColor, stateLabel } from '../entity';
 import { stateIcon } from '../icon';
 import type { HassEntity, HomeAssistant } from '../types';
 import { detailStyles } from './styles';
@@ -29,19 +29,23 @@ export class LuxFrameLockDetail extends LitElement {
 
     return html`
       <div class="status" aria-live="polite">${stateLabel(this.hass, s)}</div>
-      <div class="orb glass ${locked ? '' : 'on'}" aria-hidden="true">
-        ${stateIcon(this.hass, s, undefined, locked ? 'L' : 'U')}
+      <div class="layout">
+        <div class="orb glass ${locked ? '' : 'on'}" style="--tile-color: ${kindColor(s.entity_id)}" aria-hidden="true">
+          ${stateIcon(this.hass, s, undefined, locked ? 'L' : 'U')}
+        </div>
+        <div class="side">
+          ${locked
+            ? html`<luxframe-confirm-button
+                label="Unlock"
+                confirm-label="Tap again to unlock"
+                ?disabled=${unavailable}
+                @confirm=${() => this._call('unlock')}
+              ></luxframe-confirm-button>`
+            : html`<button class="pill on" ?disabled=${busy || unavailable} @click=${() => this._call('lock')}>
+                Lock
+              </button>`}
+        </div>
       </div>
-      ${locked
-        ? html`<luxframe-confirm-button
-            label="Unlock"
-            confirm-label="Tap again to unlock"
-            ?disabled=${unavailable}
-            @confirm=${() => this._call('unlock')}
-          ></luxframe-confirm-button>`
-        : html`<button class="pill on" ?disabled=${busy || unavailable} @click=${() => this._call('lock')}>
-            Lock
-          </button>`}
     `;
   }
 

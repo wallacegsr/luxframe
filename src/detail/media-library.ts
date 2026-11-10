@@ -2,6 +2,7 @@ import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { define } from '../define';
 import { icon, type IconName } from '../icons';
 import { massLibrary, massPlay, massSearch, type MassItem, type MassSearch, type MassType } from '../media';
+import { controls, sectionLabel } from '../theme';
 import type { HomeAssistant } from '../types';
 
 type View = 'favorites' | 'playlist' | 'album' | 'artist' | 'radio';
@@ -274,7 +275,10 @@ export class LuxFrameMediaLibrary extends LitElement {
     `;
   }
 
-  static styles = css`
+  static styles = [
+    controls,
+    sectionLabel,
+    css`
     :host {
       display: flex;
       flex-direction: column;
@@ -287,25 +291,6 @@ export class LuxFrameMediaLibrary extends LitElement {
       display: none;
     }
 
-    button {
-      font: inherit;
-      color: inherit;
-      border: 0;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    button:disabled {
-      opacity: 0.35;
-      cursor: default;
-    }
-
-    button:focus-visible,
-    input:focus-visible {
-      outline: 3px solid var(--lf-accent);
-      outline-offset: 2px;
-    }
-
     .search {
       display: flex;
       align-items: center;
@@ -314,7 +299,7 @@ export class LuxFrameMediaLibrary extends LitElement {
       padding: 0 16px;
       border-radius: 999px;
       color: var(--lf-muted);
-      background: rgb(255 255 255 / 12%);
+      background: var(--lf-control);
     }
 
     .search input {
@@ -348,31 +333,15 @@ export class LuxFrameMediaLibrary extends LitElement {
 
     .chip {
       flex: none;
-      min-height: 40px;
-      padding: 0 16px;
-      border-radius: 999px;
-      font-size: 15px;
-      font-weight: 500;
-      background: rgb(255 255 255 / 10%);
-    }
-
-    .chip.on {
-      color: var(--lf-text-active);
-      background: var(--lf-surface-active);
     }
 
     h4 {
       margin: 8px 0 -4px;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--lf-muted);
     }
 
     .note {
       margin: 8px 4px;
-      font-size: 16px;
+      font-size: 17px;
       color: var(--lf-muted);
     }
 
@@ -402,9 +371,10 @@ export class LuxFrameMediaLibrary extends LitElement {
       width: 100%;
       aspect-ratio: 1;
       overflow: hidden;
-      border-radius: 14px;
+      border-radius: var(--lf-radius-icon);
       color: var(--lf-muted);
-      background: rgb(255 255 255 / 10%);
+      background: var(--lf-control);
+      transition: transform var(--lf-fast);
     }
 
     .cover.round {
@@ -426,11 +396,11 @@ export class LuxFrameMediaLibrary extends LitElement {
       place-items: center;
       color: #fff;
       background: rgb(0 0 0 / 45%);
-      animation: fade 200ms ease-out;
+      animation: fade var(--lf-move) ease-out;
     }
 
     .card:active .cover {
-      transform: scale(0.97);
+      transform: scale(0.96);
     }
 
     .name {
@@ -470,18 +440,18 @@ export class LuxFrameMediaLibrary extends LitElement {
       width: 100%;
       min-height: 56px;
       padding: 6px;
-      border-radius: 12px;
+      border-radius: var(--lf-radius-s);
       text-align: left;
       background: none;
     }
 
     .song:active {
-      background: rgb(255 255 255 / 10%);
+      background: var(--lf-control);
     }
 
     .song .cover {
       width: 44px;
-      border-radius: 8px;
+      border-radius: calc(var(--lf-radius-icon) / 2);
     }
 
     .song .text {
@@ -506,7 +476,8 @@ export class LuxFrameMediaLibrary extends LitElement {
         opacity: 0;
       }
     }
-  `;
+  `,
+  ];
 }
 
 define('luxframe-media-library', LuxFrameMediaLibrary);

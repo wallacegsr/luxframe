@@ -3,6 +3,7 @@ import { define } from '../define';
 import { icon } from '../icons';
 import { MEDIA, favoriteButton, formatTime, isMusicAssistant, massUpNext, mediaPosition, supports } from '../media';
 import { Pending, near } from '../pending';
+import { controls, sectionLabel } from '../theme';
 import type { HassEntity, HomeAssistant } from '../types';
 import './media-library';
 import './media-speakers';
@@ -315,9 +316,9 @@ export class LuxFrameMediaDetail extends LitElement {
         <section class="more">
           ${mass
             ? html`<div class="tabs" role="tablist" aria-label="Speakers and library">
-                <button role="tab" class="tab ${tab === 'speakers' ? 'on' : ''}" aria-selected=${tab === 'speakers'}
+                <button role="tab" class="chip tab ${tab === 'speakers' ? 'on' : ''}" aria-selected=${tab === 'speakers'}
                   @click=${() => this._showTab('speakers')}>Speakers</button>
-                <button role="tab" class="tab ${tab === 'library' ? 'on' : ''}" aria-selected=${tab === 'library'}
+                <button role="tab" class="chip tab ${tab === 'library' ? 'on' : ''}" aria-selected=${tab === 'library'}
                   @click=${() => this._showTab('library')}>Library</button>
               </div>`
             : html`<h3>Speakers</h3>`}
@@ -334,7 +335,10 @@ export class LuxFrameMediaDetail extends LitElement {
     `;
   }
 
-  static styles = css`
+  static styles = [
+    controls,
+    sectionLabel,
+    css`
     :host {
       flex: 1;
       align-self: stretch;
@@ -395,7 +399,7 @@ export class LuxFrameMediaDetail extends LitElement {
       aspect-ratio: 1;
       border-radius: 24px;
       color: var(--lf-muted);
-      background: rgb(255 255 255 / 12%) center / cover no-repeat;
+      background: var(--lf-control) center / cover no-repeat;
       box-shadow: 0 18px 44px rgb(0 0 0 / 28%);
     }
 
@@ -496,7 +500,7 @@ export class LuxFrameMediaDetail extends LitElement {
 
     .line {
       margin-top: 4px;
-      font-size: 18px;
+      font-size: 17px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -512,7 +516,7 @@ export class LuxFrameMediaDetail extends LitElement {
       grid-template-columns: 4.2ch minmax(0, 1fr) 4.2ch;
       align-items: center;
       gap: 12px;
-      font-size: 14px;
+      font-size: 13px;
       font-variant-numeric: tabular-nums;
       color: var(--lf-muted);
     }
@@ -534,7 +538,7 @@ export class LuxFrameMediaDetail extends LitElement {
 
     .bar:focus-visible {
       box-shadow: 0 0 0 3px var(--lf-accent);
-      border-radius: 10px;
+      border-radius: var(--lf-radius-s);
     }
 
     .rail {
@@ -546,7 +550,7 @@ export class LuxFrameMediaDetail extends LitElement {
       margin-top: -3px;
       overflow: hidden;
       border-radius: 3px;
-      background: rgb(255 255 255 / 18%);
+      background: var(--lf-control);
     }
 
     .fill {
@@ -573,50 +577,9 @@ export class LuxFrameMediaDetail extends LitElement {
       gap: clamp(10px, 2vw, 24px);
     }
 
-    button {
-      font: inherit;
-      color: inherit;
-      border: 0;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    button:disabled {
-      opacity: 0.35;
-      cursor: default;
-    }
-
-    button:focus-visible {
-      outline: 3px solid var(--lf-accent);
-      outline-offset: 2px;
-    }
-
-    .round {
-      flex: none;
-      display: grid;
-      place-items: center;
-      width: 60px;
-      height: 60px;
-      padding: 0;
-      border-radius: 50%;
-      background: rgb(255 255 255 / 12%);
-    }
-
     .round.big {
-      width: 80px;
-      height: 80px;
       color: var(--lf-text-active);
       background: var(--lf-surface-active);
-    }
-
-    .round.small {
-      width: 48px;
-      height: 48px;
-    }
-
-    .round.plain {
-      background: none;
-      color: var(--lf-muted);
     }
 
     .round.plain.lit {
@@ -627,7 +590,7 @@ export class LuxFrameMediaDetail extends LitElement {
     .heart.faved,
     .heart.faved:disabled {
       opacity: 1;
-      color: #ff6b81;
+      color: var(--lf-danger);
     }
 
     .volume {
@@ -654,12 +617,6 @@ export class LuxFrameMediaDetail extends LitElement {
 
     .pill {
       align-self: center;
-      min-width: 200px;
-      min-height: 56px;
-      padding: 0 28px;
-      border-radius: 999px;
-      font-size: 18px;
-      font-weight: 600;
       color: var(--lf-text-active);
       background: var(--lf-surface-active);
     }
@@ -687,26 +644,7 @@ export class LuxFrameMediaDetail extends LitElement {
     }
 
     .tab {
-      min-height: 44px;
-      padding: 0 20px;
-      border-radius: 999px;
-      font-size: 16px;
       font-weight: 600;
-      background: rgb(255 255 255 / 12%);
-    }
-
-    .tab.on {
-      color: var(--lf-text-active);
-      background: var(--lf-surface-active);
-    }
-
-    h3 {
-      margin: 0;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--lf-muted);
     }
 
     /* Lists scroll here, up and down, without moving the sheet. */
@@ -722,7 +660,8 @@ export class LuxFrameMediaDetail extends LitElement {
     .pane::-webkit-scrollbar {
       display: none;
     }
-  `;
+  `,
+  ];
 }
 
 define('luxframe-media-detail', LuxFrameMediaDetail);

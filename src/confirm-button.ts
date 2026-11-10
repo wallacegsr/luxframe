@@ -1,5 +1,6 @@
 import { LitElement, css, html } from 'lit';
 import { define } from './define';
+import { controls } from './theme';
 
 const ARMED_MS = 3000;
 
@@ -50,7 +51,7 @@ export class LuxFrameConfirmButton extends LitElement {
   protected render() {
     return html`
       <button
-        class=${this._armed ? 'armed' : ''}
+        class="pill ${this._armed ? 'danger' : 'on'}"
         ?disabled=${this.disabled}
         aria-live="polite"
         @click=${this._click}
@@ -60,35 +61,15 @@ export class LuxFrameConfirmButton extends LitElement {
     `;
   }
 
-  static styles = css`
-    button {
-      min-width: 220px;
-      min-height: 56px;
-      padding: 0 28px;
-      border: 0;
-      border-radius: 999px;
-      font: 600 18px var(--lf-font);
-      color: var(--lf-text-active);
-      background: var(--lf-surface-active);
-      cursor: pointer;
-      transition: background 160ms, color 160ms;
-    }
-
-    button.armed {
-      color: #fff;
-      background: #d9452b;
-    }
-
-    button:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
-
-    button:focus-visible {
-      outline: 3px solid var(--lf-accent);
-      outline-offset: 2px;
-    }
-  `;
+  static styles = [
+    controls,
+    css`
+      :host {
+        display: inline-block;
+        font-family: var(--lf-font);
+      }
+    `,
+  ];
 }
 
 define('luxframe-confirm-button', LuxFrameConfirmButton);

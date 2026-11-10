@@ -15,6 +15,11 @@ const THEMES: Array<{ value: NonNullable<LuxFrameConfig['theme']>; label: string
   { value: 'ha', label: 'HA theme' },
 ];
 
+const TILE_STYLES: Array<{ value: NonNullable<LuxFrameConfig['tile_style']>; label: string }> = [
+  { value: 'center', label: 'Centered' },
+  { value: 'corner', label: 'Icon in the corner' },
+];
+
 /**
  * The frame's settings while editing: the current grid page's columns and
  * rows; the pages, with their names, which show and in what order; suggested
@@ -404,6 +409,14 @@ export class LuxFrameCustomize extends LitElement {
             @click=${() => this._set({ theme: t.value === 'auto' ? undefined : t.value })}>${t.label}</button>`,
         )}
       </div>
+      <div class="row tiles" role="group" aria-label="Tiles">
+        <span>Tiles</span>
+        ${TILE_STYLES.map(
+          (t) => html`<button class="chip ${(config.tile_style ?? 'center') === t.value ? 'on' : ''}"
+            aria-pressed=${(config.tile_style ?? 'center') === t.value}
+            @click=${() => this._set({ tile_style: t.value === 'center' ? undefined : t.value })}>${t.label}</button>`,
+        )}
+      </div>
       <label class="field">
         Wallpaper: an image under /local/ or any CSS background
         <input
@@ -474,26 +487,33 @@ export class LuxFrameCustomize extends LitElement {
 
       /* A page's name, edited where it's listed. */
       .page input.title {
-        min-height: 40px;
+        min-height: 44px;
         margin-bottom: 2px;
         padding: 0 10px;
         font-weight: 500;
-        background: rgb(255 255 255 / 8%);
+        background: var(--lf-control-row);
       }
 
       .mini {
         flex: none;
         min-width: 44px;
-        height: 40px;
+        height: 44px;
         padding: 0 12px;
         border-radius: 999px;
         font-size: 15px;
-        background: rgb(255 255 255 / 12%);
+        background: var(--lf-control);
+        transition:
+          transform var(--lf-fast),
+          background var(--lf-move);
+      }
+
+      .mini:active:not(:disabled) {
+        transform: scale(0.96);
       }
 
       .mini.home.on {
         background: var(--lf-accent);
-        color: #1c1c1e;
+        color: var(--lf-text-active);
       }
 
       .mini-space {
@@ -525,13 +545,18 @@ export class LuxFrameCustomize extends LitElement {
         margin-top: 14px;
       }
 
-      .tint {
+      .tint,
+      .tiles {
         margin-top: 14px;
         font-size: 17px;
       }
 
       .tint span {
         flex: 1;
+      }
+
+      .tiles span {
+        width: 100%;
       }
 
       .players {
@@ -548,7 +573,7 @@ export class LuxFrameCustomize extends LitElement {
         height: 44px;
         padding: 0;
         border: 0;
-        border-radius: 12px;
+        border-radius: var(--lf-radius-s);
         background: none;
         cursor: pointer;
       }

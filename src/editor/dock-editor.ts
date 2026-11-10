@@ -287,7 +287,7 @@ export class LuxFrameDockEditor extends LitElement {
     css`
       .hint {
         margin: 8px 0 0;
-        font-size: 14px;
+        font-size: 15px;
       }
 
       .end {

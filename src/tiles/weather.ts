@@ -111,12 +111,12 @@ export class LuxFrameWeatherTile extends LitElement {
       }
 
       .condition {
-        font-size: 16px;
+        font-size: 17px;
         font-weight: 600;
       }
 
       .muted {
-        font-size: 14px;
+        font-size: 15px;
       }
     `,
   ];

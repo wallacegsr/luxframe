@@ -174,7 +174,7 @@ export class LuxFrameSlider extends LitElement {
       position: absolute;
       inset: auto 0 0 0;
       background: var(--slider-fill, var(--lf-surface-active));
-      transition: height 120ms ease-out;
+      transition: height var(--lf-fast) ease-out;
     }
 
     /* Horizontal and filled: a wide pill filling from the left. */
@@ -184,23 +184,23 @@ export class LuxFrameSlider extends LitElement {
 
     :host([filled]:not([vertical])) .track {
       overflow: hidden;
-      border-radius: 18px;
-      background: var(--slider-track, rgb(255 255 255 / 14%));
+      border-radius: var(--lf-radius-icon);
+      background: var(--slider-track, var(--lf-control));
       box-shadow: none;
     }
 
     :host([filled]:not([vertical])) .fill {
       inset: 0 auto 0 0;
-      transition: width 120ms ease-out;
+      transition: width var(--lf-fast) ease-out;
     }
 
-    /* Horizontal: a colored track with a thumb. */
+    /* Horizontal: a colored track with a thumb, the same shape as a filled one. */
     :host(:not([vertical])) {
-      height: 44px;
+      height: 56px;
     }
 
     :host(:not([vertical])) .track {
-      border-radius: 22px;
+      border-radius: var(--lf-radius-icon);
       background: var(--slider-track, var(--lf-surface));
       box-shadow: var(--lf-shadow);
     }

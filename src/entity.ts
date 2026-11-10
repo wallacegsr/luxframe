@@ -46,6 +46,22 @@ export function isActive(stateObj: HassEntity | undefined): boolean {
   return !INACTIVE.has(stateObj.state);
 }
 
+const KIND_COLORS: Record<string, string> = {
+  light: 'var(--lf-color-light)',
+  fan: 'var(--lf-color-fan)',
+  switch: 'var(--lf-color-switch)',
+  input_boolean: 'var(--lf-color-switch)',
+  lock: 'var(--lf-color-lock)',
+  cover: 'var(--lf-color-cover)',
+  media_player: 'var(--lf-color-media)',
+  humidifier: 'var(--lf-color-cover)',
+};
+
+/** The color an entity's icon takes when it's on, by its kind; the accent for the rest. */
+export function kindColor(entityId: string | undefined): string {
+  return (entityId && KIND_COLORS[domainOf(entityId)]) || 'var(--lf-accent)';
+}
+
 export function isMomentary(stateObj: HassEntity | undefined): boolean {
   const domain = stateObj ? domainOf(stateObj.entity_id) : '';
   return domain === 'scene' || domain === 'script';

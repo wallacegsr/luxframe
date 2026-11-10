@@ -210,7 +210,7 @@ export class LuxFrameThermostatTile extends LitElement {
       .mode {
         width: 44px;
         height: 44px;
-        font-size: 16px;
+        font-size: 17px;
         font-weight: 600;
         background: color-mix(in srgb, currentColor 10%, transparent);
       }
@@ -258,7 +258,7 @@ export class LuxFrameThermostatTile extends LitElement {
       }
 
       .name {
-        font-size: 16px;
+        font-size: 17px;
         font-weight: 600;
         white-space: nowrap;
         overflow: hidden;
@@ -266,7 +266,7 @@ export class LuxFrameThermostatTile extends LitElement {
       }
 
       .label .muted {
-        font-size: 14px;
+        font-size: 15px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -280,6 +280,7 @@ export class LuxFrameThermostatTile extends LitElement {
       }
 
       button {
+        position: relative;
         display: grid;
         place-items: center;
         padding: 0;
@@ -288,15 +289,32 @@ export class LuxFrameThermostatTile extends LitElement {
         background: none;
         color: inherit;
         cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition:
+          background var(--lf-move),
+          transform var(--lf-fast);
       }
 
       button:active {
         background: color-mix(in srgb, currentColor 12%, transparent);
+        transform: scale(0.96);
+      }
+
+      button:focus-visible {
+        outline: 3px solid var(--lf-accent);
+        outline-offset: 2px;
       }
 
       :host([size='s']) .step,
       :host([size='s']) .spacer {
         width: 32px;
+      }
+
+      /* Narrower on a small tile, but a finger still gets 44px. */
+      :host([size='s']) .step::before {
+        content: '';
+        position: absolute;
+        inset: 0 -6px;
       }
     `,
   ];

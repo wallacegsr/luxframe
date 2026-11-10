@@ -220,7 +220,7 @@ export class LuxFrameCalendarTile extends LitElement {
       }
 
       .when {
-        font-size: 14px;
+        font-size: 15px;
       }
 
       :host([size='w']) ul {
@@ -247,7 +247,7 @@ export class LuxFrameCalendarTile extends LitElement {
       }
 
       .wd {
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 600;
       }
 
@@ -261,13 +261,13 @@ export class LuxFrameCalendarTile extends LitElement {
         width: 100%;
         max-width: 34px;
         border-radius: 50%;
-        font-size: 14px;
+        font-size: 15px;
       }
 
       .day.today {
         color: var(--lf-text-active);
         background: var(--lf-surface-active);
-        font-weight: 700;
+        font-weight: 600;
       }
 
       .day.busy::after {

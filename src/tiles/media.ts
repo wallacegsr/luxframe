@@ -1,29 +1,14 @@
-import { LitElement, css, html } from 'lit';
+import { css, html } from 'lit';
 import { cameraStill } from '../data';
 import { define } from '../define';
 import { openMoreInfo, resolve } from '../entity';
 import '../now-playing';
 import '../slideshow';
 import { glass, tileBase } from '../theme';
-import type { CameraTileConfig, HomeAssistant, NowPlayingTileConfig, PhotoTileConfig, TileSize } from '../types';
+import type { CameraTileConfig, NowPlayingTileConfig, PhotoTileConfig } from '../types';
+import { SizedTile } from './sized';
 
 const CAMERA_REFRESH_MS = 10_000;
-
-class SizedTile extends LitElement {
-  static properties = {
-    hass: { attribute: false },
-    config: { attribute: false },
-    size: { reflect: true },
-  };
-
-  declare hass?: HomeAssistant;
-  declare size: TileSize;
-
-  constructor() {
-    super();
-    this.size = 's';
-  }
-}
 
 /** A speaker's now playing, on glass. */
 export class LuxFrameNowPlayingTile extends SizedTile {
@@ -136,7 +121,7 @@ export class LuxFrameCameraTile extends SizedTile {
         bottom: 10px;
         padding: 4px 10px;
         border-radius: 999px;
-        font-size: 14px;
+        font-size: 15px;
         font-weight: 600;
         color: #fff;
         background: rgb(0 0 0 / 45%);

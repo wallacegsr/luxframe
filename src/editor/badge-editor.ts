@@ -220,7 +220,7 @@ export class LuxFrameBadgeEditor extends LitElement {
     css`
       .hint {
         margin: 8px 0 0;
-        font-size: 14px;
+        font-size: 15px;
       }
 
       .end {
@@ -264,7 +264,7 @@ export class LuxFrameBadgeEditor extends LitElement {
 
       .error {
         margin: 8px 0 0;
-        color: #ff6961;
+        color: var(--lf-danger);
         font-size: 15px;
       }
     `,

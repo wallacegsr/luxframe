@@ -1,5 +1,6 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { define } from '../define';
+import { controls, sectionLabel } from '../theme';
 
 /**
  * A glass panel over the frame for the editor: a title, a Done button, and
@@ -56,7 +57,7 @@ export class LuxFrameSheet extends LitElement {
       <section class="panel" role="dialog" aria-modal="true" aria-label=${this.heading}>
         <header>
           <h2>${this.heading}</h2>
-          <button class="done" @click=${this._close}>Done</button>
+          <button class="chip on done" @click=${this._close}>Done</button>
         </header>
         <div class="body"><slot></slot></div>
       </section>
@@ -64,7 +65,9 @@ export class LuxFrameSheet extends LitElement {
     `;
   }
 
-  static styles = css`
+  static styles = [
+    controls,
+    css`
     :host {
       position: absolute;
       inset: 0;
@@ -80,7 +83,7 @@ export class LuxFrameSheet extends LitElement {
       position: absolute;
       inset: 0;
       background: rgb(0 0 0 / 28%);
-      animation: fade 160ms ease-out;
+      animation: fade var(--lf-fast) ease-out;
     }
 
     .panel {
@@ -94,7 +97,7 @@ export class LuxFrameSheet extends LitElement {
       -webkit-backdrop-filter: var(--lf-blur-strong);
       backdrop-filter: var(--lf-blur-strong);
       box-shadow: 0 24px 60px rgb(0 0 0 / 35%);
-      animation: pop 200ms ease-out;
+      animation: pop var(--lf-move) var(--lf-ease);
       overflow: hidden;
     }
 
@@ -121,20 +124,7 @@ export class LuxFrameSheet extends LitElement {
     }
 
     .done {
-      min-height: 44px;
-      padding: 0 20px;
-      border: 0;
-      border-radius: 999px;
-      font: inherit;
       font-weight: 600;
-      color: var(--lf-text-active);
-      background: var(--lf-surface-active);
-      cursor: pointer;
-    }
-
-    .done:focus-visible {
-      outline: 3px solid var(--lf-accent);
-      outline-offset: 2px;
     }
 
     .body {
@@ -162,13 +152,17 @@ export class LuxFrameSheet extends LitElement {
         animation: none;
       }
     }
-  `;
+  `,
+  ];
 }
 
 define('luxframe-sheet', LuxFrameSheet);
 
 /** Controls inside editor sheets: section labels, chips, steppers, fields, list rows. */
-export const editorStyles = css`
+export const editorStyles = [
+  controls,
+  sectionLabel,
+  css`
   :host {
     display: block;
     color: var(--lf-text);
@@ -177,11 +171,6 @@ export const editorStyles = css`
 
   h3 {
     margin: 18px 0 8px;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--lf-muted);
   }
 
   h3:first-child {
@@ -195,66 +184,28 @@ export const editorStyles = css`
     gap: 10px;
   }
 
-  button {
-    font: inherit;
-    color: inherit;
-    border: 0;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  button:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-
-  button:focus-visible,
-  input:focus-visible {
-    outline: 3px solid var(--lf-accent);
-    outline-offset: 2px;
-  }
-
-  .chip {
-    min-height: 44px;
-    padding: 0 18px;
-    border-radius: 999px;
-    font-size: 16px;
-    font-weight: 500;
-    background: rgb(255 255 255 / 14%);
-  }
-
-  .chip.on {
-    color: var(--lf-text-active);
-    background: var(--lf-surface-active);
-  }
-
-  .danger {
-    color: #fff;
-    background: #d9473f;
-  }
-
   .stepper {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     border-radius: 999px;
-    background: rgb(255 255 255 / 10%);
+    background: var(--lf-control-row);
     padding: 4px;
   }
 
   .stepper button {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     font-size: 22px;
     line-height: 1;
-    background: rgb(255 255 255 / 14%);
+    background: var(--lf-control);
   }
 
   .stepper output {
     min-width: 2ch;
     text-align: center;
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
@@ -274,11 +225,11 @@ export const editorStyles = css`
     min-height: 46px;
     padding: 0 14px;
     border: 0;
-    border-radius: 12px;
+    border-radius: var(--lf-radius-s);
     font: inherit;
     font-size: 17px;
     color: var(--lf-text);
-    background: rgb(255 255 255 / 12%);
+    background: var(--lf-control);
   }
 
   input::placeholder {
@@ -301,7 +252,7 @@ export const editorStyles = css`
     width: 100%;
     min-height: 54px;
     padding: 6px 12px;
-    border-radius: 12px;
+    border-radius: var(--lf-radius-s);
     text-align: left;
     background: transparent;
     box-sizing: border-box;
@@ -309,7 +260,7 @@ export const editorStyles = css`
 
   button.item:hover,
   button.item:active {
-    background: rgb(255 255 255 / 10%);
+    background: var(--lf-control);
   }
 
   .item .icon {
@@ -336,19 +287,16 @@ export const editorStyles = css`
   }
 
   .item .sub {
-    font-size: 14px;
+    font-size: 15px;
     color: var(--lf-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  .muted {
-    color: var(--lf-muted);
-  }
-
   .glyph {
     font-size: 17px;
     font-weight: 600;
   }
-`;
+`,
+];

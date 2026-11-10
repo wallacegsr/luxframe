@@ -377,9 +377,11 @@ LuxFrame says so and stays in editing, so nothing is lost.
 
 ### Quick panel and Assist
 
-**Pull down from the top edge**, or tap the small handle there, for the quick
-panel. The whole band above the page title counts, and a short flick is
-enough.
+**Pull down** for the quick panel: anywhere on a page that's scrolled to its
+top, or from the band above the page title, which works however far the page
+is scrolled. A tap on the small handle there opens it too, and a short flick
+is enough. A pull on a light's or shade's tile still sets its level, and a
+swipe across still turns the page.
 
 Along its top runs the **dock**, a row of glass icons, each opening its own
 view on the stage under it. Tap another icon to switch, or the open one to
@@ -480,6 +482,7 @@ icon and card, whether it opens first, and its YAML.
 | `badge_style` | `pill`                                    | `plain` shows badges with no background. A page's own `badge_style` wins. |
 | `assist`     | `true`                                     | `false` hides Ask; `{agent_id}` picks the conversation agent. |
 | `style`      | `auto`                                     | `glass`, or `flat` for solid tiles with no blur. `auto` goes flat on a device that can't blur, or blurs below 30 frames a second (checked once per tablet). |
+| `tile_style` | `center`                                   | `corner` lays tiles out as Apple's Home app does: the icon in a circle at the top left, the name and state at the bottom left. Also under Customize → Look. |
 
 ## Theming
 
@@ -488,6 +491,11 @@ blurred tiles over a soft gradient, white text, and bright tiles for anything
 that's on. It looks best over a photo, so try setting `background` to a
 wallpaper in `/local/`. The glass then takes on the wallpaper's color
 automatically. Set `tint` to choose that color yourself.
+
+Icons of things that are on take a color by kind, as in Apple's Home app:
+lights yellow, fans light blue, switches green, locks blue, shades and blinds
+sky blue, speakers purple, and a thermostat the color of what it's doing.
+Scenes, scripts and everything else use the accent.
 
 - `theme: auto` uses the glass look and picks light or dark from Kiosk
   Satellite, then Home Assistant, then the device. `light` and `dark` force one.
@@ -526,8 +534,12 @@ My theme:
 | `luxframe-faint`             | Page dots and the version label        |
 | `luxframe-text-active`       | Text on an "on" tile                   |
 | `luxframe-muted-active`      | State text on an "on" tile             |
-| `luxframe-accent`            | Icons of things that are on            |
+| `luxframe-accent`            | Icons of things that are on, when their kind has no color of its own |
+| `luxframe-color-light`, `-fan`, `-switch`, `-lock`, `-cover`, `-media` | Icons of lights, fans, switches, locks, shades and speakers that are on |
+| `luxframe-danger`, `luxframe-success` | Remove and confirm buttons; a badge that ran |
+| `luxframe-control`           | Buttons, chips and fields on glass and sheets |
 | `luxframe-radius`            | Tile corner radius                     |
+| `luxframe-radius-s`, `luxframe-radius-icon` | Fields and list rows; icon squares such as the dock's and artwork |
 | `luxframe-font`              | Font family                            |
 
 ## Kiosk Satellite

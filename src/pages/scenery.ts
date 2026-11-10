@@ -14,7 +14,7 @@ export class LuxFrameCamerasPage extends LitElement {
     hass: { attribute: false },
     config: { attribute: false },
     badges: { attribute: false },
-    editing: { type: Boolean },
+    editing: { type: Boolean, reflect: true },
   };
 
   declare hass?: HomeAssistant;

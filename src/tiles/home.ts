@@ -1,64 +1,45 @@
-import { LitElement, css, html, nothing, svg } from 'lit';
+import { css, html, nothing, svg } from 'lit';
 import { entitiesInArea, fetchTodo, findArea, type TodoItem } from '../data';
 import { define } from '../define';
 import { domainOf, openDetail } from '../entity';
 import { icon } from '../icons';
-import { glass, tileBase } from '../theme';
+import { controls, glass, tileBase } from '../theme';
 import { formatClock } from '../time';
-import type { HomeAssistant, RoomTileConfig, SunTileConfig, TileSize, TodoTileConfig } from '../types';
+import type { RoomTileConfig, SunTileConfig, TileSize, TodoTileConfig } from '../types';
 import { goTo } from './goto';
+import { SizedTile } from './sized';
 
-class SizedTile extends LitElement {
-  static properties = {
-    hass: { attribute: false },
-    config: { attribute: false },
-    size: { reflect: true },
-  };
+const shared = [
+  controls,
+  css`
+    .tile {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 6px;
+      padding: 14px 16px;
+      outline: none;
+    }
 
-  declare hass?: HomeAssistant;
-  declare size: TileSize;
+    .tile:focus-visible {
+      box-shadow: 0 0 0 3px var(--lf-accent);
+    }
 
-  constructor() {
-    super();
-    this.size = 's';
-  }
-}
+    .message {
+      align-items: center;
+      text-align: center;
+    }
 
-const shared = css`
-  .tile {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 6px;
-    padding: 14px 16px;
-    outline: none;
-  }
+    button {
+      background: none;
+      padding: 0;
+    }
 
-  .tile:focus-visible {
-    box-shadow: 0 0 0 3px var(--lf-accent);
-  }
-
-  .message {
-    align-items: center;
-    text-align: center;
-  }
-
-  button {
-    font: inherit;
-    color: inherit;
-    border: 0;
-    background: none;
-    padding: 0;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  button:focus-visible {
-    outline: 3px solid var(--lf-accent);
-    outline-offset: 2px;
-    border-radius: 8px;
-  }
-`;
+    button:focus-visible {
+      border-radius: 8px;
+    }
+  `,
+];
 
 // ---- Sunrise and sunset ---------------------------------------------------------
 
@@ -140,7 +121,7 @@ export class LuxFrameSunTile extends SizedTile {
       }
 
       .muted {
-        font-size: 14px;
+        font-size: 15px;
       }
 
       .arc {
@@ -265,7 +246,7 @@ export class LuxFrameTodoTile extends SizedTile {
       .name {
         flex: 1;
         min-width: 0;
-        font-size: 16px;
+        font-size: 17px;
         font-weight: 600;
         white-space: nowrap;
         overflow: hidden;
@@ -302,22 +283,22 @@ export class LuxFrameTodoTile extends SizedTile {
         align-items: center;
         gap: 8px;
         min-width: 0;
-        min-height: 40px;
+        min-height: 44px;
       }
 
       .check {
         flex: none;
         display: grid;
         place-items: center;
-        width: 40px;
-        height: 40px;
-        margin: -4px -4px -4px -8px;
+        width: 44px;
+        height: 44px;
+        margin: -6px -6px -6px -10px;
         color: var(--lf-muted);
       }
 
       .summary {
         min-width: 0;
-        font-size: 16px;
+        font-size: 17px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -325,7 +306,7 @@ export class LuxFrameTodoTile extends SizedTile {
 
       .more {
         padding-left: 32px;
-        font-size: 14px;
+        font-size: 15px;
       }
     `,
   ];
@@ -393,7 +374,9 @@ export class LuxFrameRoomTile extends SizedTile {
         text-align: center;
         gap: 8px;
         cursor: pointer;
-        transition: background 220ms, color 220ms;
+        transition:
+          background var(--lf-move),
+          color var(--lf-move);
       }
 
       .icon {
@@ -403,24 +386,52 @@ export class LuxFrameRoomTile extends SizedTile {
         height: 52px;
         margin: -6px;
         border-radius: 50%;
+        transition: transform var(--lf-fast);
+      }
+
+      .icon:active:not(:disabled) {
+        transform: scale(0.96);
       }
 
       .icon:disabled {
         cursor: inherit;
+        opacity: 1;
       }
 
       .active .icon {
-        color: var(--lf-accent);
+        color: var(--lf-color-light);
       }
 
       .name {
-        font-size: 16px;
+        font-size: 17px;
         font-weight: 600;
       }
 
       .muted {
-        font-size: 14px;
+        font-size: 15px;
         font-variant-numeric: tabular-nums;
+      }
+
+      /* tile_style: corner, as Apple's Home app lays its tiles out. */
+      @container style(--lf-tile-style: corner) {
+        .tile {
+          align-items: flex-start;
+          justify-content: space-between;
+          text-align: left;
+        }
+
+        .icon {
+          margin: -4px 0 0 -4px;
+          background: var(--lf-control);
+        }
+
+        .active .icon {
+          background: color-mix(in srgb, var(--lf-color-light) 18%, transparent);
+        }
+
+        .name {
+          margin-top: auto;
+        }
       }
     `,
   ];

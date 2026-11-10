@@ -4,6 +4,7 @@ import { openDetail } from '../entity';
 import { icon } from '../icons';
 import { MEDIA, groupOf, isMusicAssistant, massTransfer, playerName, speakers, supports } from '../media';
 import { Pending, near } from '../pending';
+import { controls } from '../theme';
 import type { HassEntity, HomeAssistant } from '../types';
 
 /** How long a tick shows before the group says it changed. */
@@ -118,7 +119,7 @@ export class LuxFrameMediaSpeakers extends LitElement {
           <span class="name">${name}</span>
           <span class="status">${statusOf(hass, s, me, joined)}</span>
         </button>
-        ${canMove ? html`<button class="move" @click=${() => this._move(id)}>Move here</button>` : nothing}
+        ${canMove ? html`<button class="chip move" @click=${() => this._move(id)}>Move here</button>` : nothing}
       </div>
       ${showVolume
         ? html`<div class="volume">
@@ -156,7 +157,9 @@ export class LuxFrameMediaSpeakers extends LitElement {
     `;
   }
 
-  static styles = css`
+  static styles = [
+    controls,
+    css`
     :host {
       display: block;
       color: var(--lf-text);
@@ -182,12 +185,12 @@ export class LuxFrameMediaSpeakers extends LitElement {
       gap: 10px;
       padding: 10px 14px;
       border-radius: var(--lf-radius);
-      background: rgb(255 255 255 / 8%);
+      background: var(--lf-control-row);
     }
 
     .speaker.me,
     .speaker.joined {
-      background: rgb(255 255 255 / 14%);
+      background: var(--lf-control);
     }
 
     .row {
@@ -197,30 +200,22 @@ export class LuxFrameMediaSpeakers extends LitElement {
       min-height: 52px;
     }
 
-    button {
-      font: inherit;
-      color: inherit;
-      border: 0;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    button:focus-visible {
-      outline: 3px solid var(--lf-accent);
-      outline-offset: 2px;
-    }
-
     /* A round tick: empty, or full with a check while it plays along. */
     .check {
       flex: none;
       display: grid;
       place-items: center;
-      width: 36px;
-      height: 36px;
+      width: 44px;
+      height: 44px;
       padding: 0;
       border-radius: 50%;
       background: none;
       box-shadow: inset 0 0 0 2px var(--lf-faint);
+      transition: transform var(--lf-fast);
+    }
+
+    .check:active:not(:disabled) {
+      transform: scale(0.96);
     }
 
     .check.on {
@@ -258,7 +253,7 @@ export class LuxFrameMediaSpeakers extends LitElement {
 
     .name {
       max-width: 100%;
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 600;
       white-space: nowrap;
       overflow: hidden;
@@ -276,12 +271,7 @@ export class LuxFrameMediaSpeakers extends LitElement {
 
     .move {
       flex: none;
-      min-height: 44px;
-      padding: 0 16px;
-      border-radius: 999px;
-      font-size: 15px;
       font-weight: 600;
-      background: rgb(255 255 255 / 14%);
     }
 
     .volume {
@@ -293,21 +283,22 @@ export class LuxFrameMediaSpeakers extends LitElement {
 
     /* Under the name, past the tick. */
     .ticks .volume {
-      padding-left: 48px;
+      padding-left: 56px;
     }
 
     .volume luxframe-slider {
       flex: 1;
-      height: 40px;
+      height: 44px;
       --slider-fill: var(--lf-surface-active);
     }
 
     .hint {
       margin: 12px 4px 0;
-      font-size: 14px;
+      font-size: 15px;
       color: var(--lf-muted);
     }
-  `;
+  `,
+  ];
 }
 
 define('luxframe-media-speakers', LuxFrameMediaSpeakers);

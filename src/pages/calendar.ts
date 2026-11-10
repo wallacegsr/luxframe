@@ -24,7 +24,7 @@ export class LuxFrameCalendarPage extends LitElement {
     hass: { attribute: false },
     config: { attribute: false },
     badges: { attribute: false },
-    editing: { type: Boolean },
+    editing: { type: Boolean, reflect: true },
     _events: { state: true },
   };
 
@@ -189,7 +189,7 @@ export class LuxFrameCalendarPage extends LitElement {
       }
 
       .where {
-        font-size: 14px;
+        font-size: 15px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;

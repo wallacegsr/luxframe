@@ -38,12 +38,12 @@ export class LuxFrameClimateDetail extends LitElement {
     const disabled = s.state === 'unavailable' || value === undefined;
     return html`
       <div class="stepper ${size}" role="group" aria-label=${label}>
-        <button class="round glass" aria-label="Lower ${label}" ?disabled=${disabled}
+        <button class="round glass ${size === 'large' ? 'big' : ''}" aria-label="Lower ${label}" ?disabled=${disabled}
           @click=${() => setter.step(this.hass, s, reported, -1)}>
           ${chevron(false, 30)}
         </button>
         <div class="value" aria-live="polite">${value !== undefined ? formatTemp(value) : '–'}°</div>
-        <button class="round glass" aria-label="Raise ${label}" ?disabled=${disabled}
+        <button class="round glass ${size === 'large' ? 'big' : ''}" aria-label="Raise ${label}" ?disabled=${disabled}
           @click=${() => setter.step(this.hass, s, reported, 1)}>
           ${chevron(true, 30)}
         </button>
@@ -121,7 +121,7 @@ export class LuxFrameClimateDetail extends LitElement {
   }
 
   static styles = [
-    detailStyles,
+    ...detailStyles,
     css`
       .stepper {
         display: flex;
@@ -140,11 +140,6 @@ export class LuxFrameClimateDetail extends LitElement {
       /* Not .big: that's the sliders' size, shared by every detail view. */
       .large .value {
         font-size: var(--lf-detail-temp-size, clamp(88px, 14vw, 160px));
-      }
-
-      .large .round {
-        width: 76px;
-        height: 76px;
       }
 
       .small .value {

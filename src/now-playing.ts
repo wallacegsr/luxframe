@@ -4,6 +4,7 @@ import { openDetail, resolve } from './entity';
 import { icon } from './icons';
 import { MEDIA, pickPlayer, supports } from './media';
 import { Pending, near } from './pending';
+import { controls } from './theme';
 import type { HomeAssistant, TileSize } from './types';
 
 /**
@@ -128,7 +129,9 @@ export class LuxFrameNowPlaying extends LitElement {
     `;
   }
 
-  static styles = css`
+  static styles = [
+    controls,
+    css`
     :host {
       display: flex;
       flex-direction: column;
@@ -163,7 +166,7 @@ export class LuxFrameNowPlaying extends LitElement {
       min-width: 0;
       margin: 0;
       padding: 0;
-      border-radius: 14px;
+      border-radius: var(--lf-radius-icon);
       text-align: left;
       background: none;
     }
@@ -174,11 +177,11 @@ export class LuxFrameNowPlaying extends LitElement {
 
     .now:active .art,
     .small:active {
-      transform: scale(0.98);
+      transform: scale(0.96);
     }
 
     .art {
-      transition: transform 0.15s;
+      transition: transform var(--lf-fast);
     }
 
     .art {
@@ -187,15 +190,14 @@ export class LuxFrameNowPlaying extends LitElement {
       place-items: center;
       width: 88px;
       height: 88px;
-      border-radius: 14px;
-      background: rgb(255 255 255 / 14%) center / cover no-repeat;
+      border-radius: var(--lf-radius-icon);
+      background: var(--lf-control) center / cover no-repeat;
       color: var(--lf-muted);
     }
 
     :host([size='w']) .art {
       width: 64px;
       height: 64px;
-      border-radius: 12px;
     }
 
     .info {
@@ -211,14 +213,14 @@ export class LuxFrameNowPlaying extends LitElement {
     }
 
     .line {
-      font-size: 16px;
+      font-size: 17px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .small-text {
-      font-size: 14px;
+      font-size: 15px;
     }
 
     .transport {
@@ -232,38 +234,7 @@ export class LuxFrameNowPlaying extends LitElement {
       gap: 10px;
     }
 
-    button {
-      font: inherit;
-      color: inherit;
-      border: 0;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    button:disabled {
-      opacity: 0.35;
-      cursor: default;
-    }
-
-    button:focus-visible {
-      outline: 3px solid var(--lf-accent);
-      outline-offset: 2px;
-    }
-
-    .round {
-      flex: none;
-      display: grid;
-      place-items: center;
-      width: 52px;
-      height: 52px;
-      padding: 0;
-      border-radius: 50%;
-      background: rgb(255 255 255 / 12%);
-    }
-
     .round.big {
-      width: 64px;
-      height: 64px;
       color: var(--lf-text-active);
       background: var(--lf-surface-active);
     }
@@ -284,7 +255,7 @@ export class LuxFrameNowPlaying extends LitElement {
     .small {
       position: relative;
       cursor: pointer;
-      transition: transform 0.15s;
+      transition: transform var(--lf-fast);
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -321,7 +292,8 @@ export class LuxFrameNowPlaying extends LitElement {
       max-width: 100%;
       font-size: 15px;
     }
-  `;
+  `,
+  ];
 }
 
 define('luxframe-now-playing', LuxFrameNowPlaying);

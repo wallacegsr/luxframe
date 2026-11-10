@@ -17,7 +17,7 @@ import './quick/panel';
 import { readBrightness, veilOpacity, writeBrightness } from './screen';
 import { detectFlat } from './perf';
 import type { GotoTarget } from './tiles/goto';
-import { tokens } from './theme';
+import { controls, tokens } from './theme';
 import { newerInstalled } from './update';
 import { averageColor, backgroundUrl } from './tint';
 import type {
@@ -41,6 +41,8 @@ const PAGE_HOLD_TOLERANCE = 10;
  * and the tap is dropped.
  */
 const HOLDS_OWN = 'luxframe-tile, input, select, textarea, [role="slider"]';
+/** What takes a finger's up-and-down movement for itself, whatever its touch-action says. */
+const DRAGS_OWN = 'input, select, textarea, [role="slider"], luxframe-slider';
 
 const DEFAULT_HOME_AFTER = 120;
 
@@ -170,16 +172,26 @@ export class LuxFrameCard extends LitElement {
   /** This device can't blur, or blurs too slowly: `style: auto` goes flat. */
   declare _slow: boolean;
 
+  /** A pull on the quick panel: from the strip along the top edge, or down a page that's at its top. */
   private _edge?: {
+    from: 'edge' | 'page';
+    x: number;
     y: number;
     id: number;
-    timer: number;
+    /** The edge's hold for Assist. */
+    timer?: number;
     pulling: boolean;
     height: number;
     dy: number;
     /** The last move, to tell a flick from a slow drag. */
     at: number;
     speed: number;
+    /** Where the pages were, to tell a page swipe from a pull. */
+    left: number;
+    /** What the pull started on; a page pull stops once something there scrolls. */
+    path: Element[];
+    /** Keeps a mouse pull's events coming once the panel is under the pointer. */
+    capture?: () => void;
   };
   /** The config as the dashboard has it; edits are saved against this. */
   private _base?: LuxFrameConfig;
@@ -228,6 +240,9 @@ export class LuxFrameCard extends LitElement {
     }
     if (config.style && !['auto', 'glass', 'flat'].includes(config.style)) {
       throw new Error(`Unknown style "${config.style}". Use auto, glass or flat.`);
+    }
+    if (config.tile_style && !['center', 'corner'].includes(config.tile_style)) {
+      throw new Error(`Unknown tile_style "${config.tile_style}". Use center or corner.`);
     }
     this._base = config;
     const local = loadLocal(config);
@@ -480,34 +495,87 @@ export class LuxFrameCard extends LitElement {
     } catch {
       // Pointer already gone.
     }
-    this._edge = {
-      y: e.clientY,
-      id: e.pointerId,
-      pulling: false,
-      height: 0,
-      dy: 0,
-      at: e.timeStamp,
-      speed: 0,
-      timer: window.setTimeout(() => {
+    this._pullArm('edge', e.clientX, e.clientY, e.pointerId, e.timeStamp, []);
+    if (this._edge) {
+      this._edge.timer = window.setTimeout(() => {
         if (!this._edge || this._edge.pulling) return;
         this._edge = undefined;
         if (this._assistEnabled) this._openAssist();
-      }, EDGE_HOLD_MS),
-    };
+      }, EDGE_HOLD_MS);
+    }
   }
 
   private _edgeMove(e: PointerEvent): void {
+    if (this._edge?.from === 'edge') this._pullMove(e.clientX, e.clientY, e.pointerId, e.timeStamp);
+  }
+
+  private _edgeUp(e: PointerEvent): void {
+    if (this._edge?.from === 'edge') this._pullEnd(e.pointerId, e.timeStamp);
+  }
+
+  // ---- Pulling the panel down a page ---------------------------------------
+  //
+  // A page that's scrolled to its top can be pulled down anywhere for the
+  // panel, as its top edge always can. A swipe across still turns the page,
+  // and a swipe on something with a drag of its own (a light's brightness, a
+  // slider) still belongs to it. Touch comes as touch events, which keep
+  // arriving while the browser considers scrolling; the mouse as pointer
+  // events.
+
+  /** Whether a finger moving up and down there would scroll or drag something. */
+  private _ownsVertical(path: Element[]): boolean {
+    return path.some((el) => {
+      if (el.matches(DRAGS_OWN)) return true;
+      const style = getComputedStyle(el);
+      const action = style.touchAction;
+      if (action === 'none' || (action !== 'auto' && !/pan-y|pan-up|pan-down|manipulation/.test(action))) return true;
+      return /auto|scroll/.test(style.overflowY) && el.scrollTop > 0;
+    });
+  }
+
+  /** The elements a gesture started on, from the target up to the track. */
+  private _pathTo(e: Event): Element[] {
+    const path: Element[] = [];
+    for (const el of e.composedPath()) {
+      if (!(el instanceof Element)) continue;
+      if (el.classList.contains('track') && el.getRootNode() === this.renderRoot) break;
+      path.push(el);
+    }
+    return path;
+  }
+
+  private _pullArm(from: 'edge' | 'page', x: number, y: number, id: number, at: number, path: Element[]): void {
+    if (this._edge?.pulling || !this._quickConfig || this._editing) return;
+    if (from === 'page') {
+      if (this._quick || this._detail || this._sheet || this._assist) return;
+      if (this._ownsVertical(path)) return;
+    }
+    const track = this.renderRoot.querySelector('.track');
+    this._edge = { from, x, y, id, pulling: false, height: 0, dy: 0, at, speed: 0, left: track?.scrollLeft ?? 0, path };
+  }
+
+  private _pullMove(x: number, y: number, id: number, at: number): void {
     const edge = this._edge;
-    if (!edge || e.pointerId !== edge.id) return;
-    const dy = Math.max(0, e.clientY - edge.y);
-    const elapsed = e.timeStamp - edge.at;
+    if (!edge || id !== edge.id) return;
+    const dy = Math.max(0, y - edge.y);
+    const elapsed = at - edge.at;
     if (elapsed > 0) edge.speed = (dy - edge.dy) / elapsed;
-    edge.at = e.timeStamp;
+    edge.at = at;
     edge.dy = dy;
     if (!edge.pulling) {
+      if (edge.from === 'page') {
+        // Across, or something there scrolled: that's not a pull.
+        const track = this.renderRoot.querySelector('.track');
+        const dx = Math.abs(x - edge.x);
+        if (dx > dy || Math.abs((track?.scrollLeft ?? 0) - edge.left) > 1 || this._ownsVertical(edge.path)) {
+          this._edge = undefined;
+          return;
+        }
+      }
       if (edge.dy < PULL_START) return;
       window.clearTimeout(edge.timer);
       edge.pulling = true;
+      edge.capture?.();
       this._pull = 2000; // fully hidden until its height is known
       this._quick = true;
       return;
@@ -516,22 +584,46 @@ export class LuxFrameCard extends LitElement {
     this._pull = Math.max(0, edge.height - edge.dy);
   }
 
-  private _edgeUp(e: PointerEvent): void {
+  private _pullEnd(id: number, at: number): void {
     const edge = this._edge;
-    if (!edge || e.pointerId !== edge.id) return;
+    if (!edge || id !== edge.id) return;
     window.clearTimeout(edge.timer);
     this._edge = undefined;
+    // The release after a pull isn't a tap on what it started on.
+    if (edge.pulling && edge.from === 'page') this._swallowClick = true;
     if (!edge.pulling) {
       // A tap on the edge opens it too.
-      this._pull = 0;
-      this._quick = true;
-    } else if (edge.dy >= PULL_OPEN || (edge.speed >= PULL_FLICK && e.timeStamp - edge.at < 100)) {
+      if (edge.from === 'edge') {
+        this._pull = 0;
+        this._quick = true;
+      }
+    } else if (edge.dy >= PULL_OPEN || (edge.speed >= PULL_FLICK && at - edge.at < 100)) {
       this._pull = 0;
     } else {
       this._quick = false;
       this._pull = 0;
     }
   }
+
+  private _pageTouch = {
+    passive: true,
+    handleEvent: (e: TouchEvent): void => {
+      if (e.type === 'touchstart') {
+        if (e.touches.length !== 1) {
+          if (this._edge?.from === 'page') this._edge = undefined;
+          return;
+        }
+        const t = e.touches[0];
+        this._pullArm('page', t.clientX, t.clientY, t.identifier, e.timeStamp, this._pathTo(e));
+        return;
+      }
+      if (this._edge?.from !== 'page') return;
+      const touch = [...e.changedTouches].find((t) => t.identifier === this._edge!.id);
+      if (!touch) return;
+      if (e.type === 'touchmove') this._pullMove(touch.clientX, touch.clientY, touch.identifier, e.timeStamp);
+      else this._pullEnd(touch.identifier, e.timeStamp);
+    },
+  };
 
   private _openAssist(): void {
     this._quick = false;
@@ -559,6 +651,20 @@ export class LuxFrameCard extends LitElement {
     this._pageUp();
     this._swallowClick = false;
     if (this._editing || e.button !== 0 || !this._config) return;
+    // Touch pulls come as touch events; see _pageTouch.
+    if (e.pointerType !== 'touch') {
+      this._pullArm('page', e.clientX, e.clientY, e.pointerId, e.timeStamp, this._pathTo(e));
+      const track = e.currentTarget as HTMLElement;
+      if (this._edge?.from === 'page') {
+        this._edge.capture = () => {
+          try {
+            track.setPointerCapture(e.pointerId);
+          } catch {
+            // Pointer already gone.
+          }
+        };
+      }
+    }
     const own = e
       .composedPath()
       .some((el) => el instanceof Element && (el.localName === 'luxframe-grid' || el.matches(HOLDS_OWN)));
@@ -577,11 +683,15 @@ export class LuxFrameCard extends LitElement {
   private _pageMove = (e: PointerEvent): void => {
     const hold = this._pageHold;
     if (hold && Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > PAGE_HOLD_TOLERANCE) this._pageUp();
+    if (e.pointerType !== 'touch' && this._edge?.from === 'page') {
+      this._pullMove(e.clientX, e.clientY, e.pointerId, e.timeStamp);
+    }
   };
 
-  private _pageUp = (): void => {
+  private _pageUp = (e?: PointerEvent): void => {
     if (this._pageHold) window.clearTimeout(this._pageHold.timer);
     this._pageHold = undefined;
+    if (e && e.pointerType !== 'touch' && this._edge?.from === 'page') this._pullEnd(e.pointerId, e.timeStamp);
   };
 
   private _pageClick = {
@@ -867,15 +977,15 @@ export class LuxFrameCard extends LitElement {
       <div class="editbar" role="toolbar" aria-label="Editing">
         <div class="group">
           ${onGrid
-            ? html`<button class="bar-btn" @click=${() => (this._sheet = { kind: 'add', page: current.i })}>
+            ? html`<button class="chip glass bar-btn" @click=${() => (this._sheet = { kind: 'add', page: current.i })}>
                 + Add tile
               </button>`
             : nothing}
-          <button class="bar-btn" @click=${() => (this._sheet = { kind: 'customize' })}>Customize</button>
+          <button class="chip glass bar-btn" @click=${() => (this._sheet = { kind: 'customize' })}>Customize</button>
         </div>
         <div class="group">
-          <button class="bar-btn" ?disabled=${this._saving} @click=${this._cancelEditing}>Cancel</button>
-          <button class="bar-btn primary" ?disabled=${this._saving} @click=${this._finishEditing}>
+          <button class="chip glass bar-btn" ?disabled=${this._saving} @click=${this._cancelEditing}>Cancel</button>
+          <button class="chip on bar-btn" ?disabled=${this._saving} @click=${this._finishEditing}>
             ${this._saving ? 'Saving…' : 'Done'}
           </button>
         </div>
@@ -1080,6 +1190,7 @@ export class LuxFrameCard extends LitElement {
     const style = [
       `height: ${height}`,
       config.background ? `--lf-backdrop: ${config.background}` : '',
+      config.tile_style === 'corner' ? '--lf-tile-style: corner' : '',
     ]
       .filter(Boolean)
       .join('; ');
@@ -1094,6 +1205,10 @@ export class LuxFrameCard extends LitElement {
           @pointermove=${this._pageMove}
           @pointerup=${this._pageUp}
           @pointercancel=${this._pageUp}
+          @touchstart=${this._pageTouch}
+          @touchmove=${this._pageTouch}
+          @touchend=${this._pageTouch}
+          @touchcancel=${this._pageTouch}
           @click=${this._pageClick}
           @contextmenu=${(e: Event) => this._pageHold && e.preventDefault()}
         >
@@ -1176,6 +1291,7 @@ export class LuxFrameCard extends LitElement {
 
   static styles = [
     tokens,
+    controls,
     css`
       :host {
         display: block;
@@ -1184,6 +1300,8 @@ export class LuxFrameCard extends LitElement {
       .frame {
         position: relative;
         overflow: hidden;
+        /* A pull down a page that's at its top is LuxFrame's, not the browser's refresh. */
+        overscroll-behavior: contain;
         background: var(--lf-backdrop);
         color: var(--lf-text);
         font-family: var(--lf-font);
@@ -1239,7 +1357,9 @@ export class LuxFrameCard extends LitElement {
         height: 7px;
         border-radius: 50%;
         background: var(--lf-faint);
-        transition: background 200ms, transform 200ms;
+        transition:
+          background var(--lf-move),
+          transform var(--lf-move);
       }
 
       .dot.on::after {
@@ -1282,7 +1402,7 @@ export class LuxFrameCard extends LitElement {
         z-index: 50;
         background: #000;
         pointer-events: none;
-        transition: opacity 150ms;
+        transition: opacity var(--lf-fast);
       }
 
       .editbar {
@@ -1303,35 +1423,11 @@ export class LuxFrameCard extends LitElement {
         pointer-events: auto;
       }
 
+      /* Chips on glass, over the page. */
       .bar-btn {
         min-height: 48px;
         padding: 0 22px;
-        border: 0;
-        border-radius: 999px;
-        font: inherit;
-        font-size: 17px;
         font-weight: 600;
-        color: var(--lf-text);
-        background: var(--lf-surface);
-        -webkit-backdrop-filter: var(--lf-blur);
-        backdrop-filter: var(--lf-blur);
-        box-shadow: var(--lf-shadow);
-        cursor: pointer;
-      }
-
-      .bar-btn.primary {
-        color: var(--lf-text-active);
-        background: var(--lf-surface-active);
-      }
-
-      .bar-btn:disabled {
-        opacity: 0.6;
-        cursor: default;
-      }
-
-      .bar-btn:focus-visible {
-        outline: 3px solid var(--lf-accent);
-        outline-offset: 2px;
       }
 
       .toast {
@@ -1343,12 +1439,12 @@ export class LuxFrameCard extends LitElement {
         max-width: min(560px, calc(100% - 32px));
         padding: 12px 22px;
         border-radius: 999px;
-        font-size: 16px;
+        font-size: 17px;
         text-align: center;
         color: var(--lf-text-active);
         background: var(--lf-surface-active);
         box-shadow: 0 8px 24px rgb(0 0 0 / 25%);
-        animation: toast 220ms ease-out;
+        animation: toast var(--lf-move) var(--lf-ease);
       }
 
       .update {
@@ -1360,16 +1456,12 @@ export class LuxFrameCard extends LitElement {
       }
 
       .update-btn {
-        min-width: 40px;
-        height: 40px;
+        min-width: 44px;
+        height: 44px;
         padding: 0 14px;
-        border: 0;
         border-radius: 999px;
-        font: inherit;
         font-weight: 600;
-        color: inherit;
-        background: rgb(127 127 127 / 18%);
-        cursor: pointer;
+        background: color-mix(in srgb, currentColor 14%, transparent);
       }
 
       .update-btn.primary {

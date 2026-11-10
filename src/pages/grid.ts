@@ -431,11 +431,6 @@ export class LuxFrameGrid extends LitElement {
         padding-bottom: max(var(--lf-pad), 48px);
       }
 
-      :host([editing]) {
-        /* Room for the edit bar above the tiles. */
-        padding-top: max(var(--lf-pad), 84px);
-      }
-
       .head {
         margin-bottom: 20px;
       }
@@ -516,8 +511,8 @@ export class LuxFrameGrid extends LitElement {
         padding: 0;
         border: 0;
         border-radius: 50%;
-        color: #1c1b1a;
-        background: rgb(255 255 255 / 92%);
+        color: var(--lf-text-active);
+        background: var(--lf-surface-active);
         box-shadow: 0 2px 6px rgb(0 0 0 / 25%);
         cursor: pointer;
       }
@@ -538,8 +533,8 @@ export class LuxFrameGrid extends LitElement {
         width: 30px;
         height: 30px;
         border-radius: 50%;
-        color: #1c1b1a;
-        background: rgb(255 255 255 / 92%);
+        color: var(--lf-text-active);
+        background: var(--lf-surface-active);
         box-shadow: 0 2px 6px rgb(0 0 0 / 25%);
         cursor: nwse-resize;
         touch-action: none;
@@ -560,8 +555,8 @@ export class LuxFrameGrid extends LitElement {
         transform: translate(-50%, -50%);
         padding: 8px 16px;
         border-radius: 999px;
-        color: #1c1b1a;
-        background: rgb(255 255 255 / 92%);
+        color: var(--lf-text-active);
+        background: var(--lf-surface-active);
         font: 600 20px/1 var(--lf-font);
         font-variant-numeric: tabular-nums;
         pointer-events: none;

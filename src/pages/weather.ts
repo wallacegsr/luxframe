@@ -243,7 +243,7 @@ export class LuxFrameWeatherPage extends LitElement {
       }
 
       .days li + li {
-        border-top: 1px solid rgb(255 255 255 / 10%);
+        border-top: 1px solid var(--lf-control-row);
       }
 
       .day {
@@ -264,7 +264,7 @@ export class LuxFrameWeatherPage extends LitElement {
         position: relative;
         height: 6px;
         border-radius: 3px;
-        background: rgb(255 255 255 / 14%);
+        background: var(--lf-control);
       }
 
       .range span {

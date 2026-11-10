@@ -7,6 +7,7 @@ import { icon } from '../icons';
 import { pickPlayer } from '../media';
 import '../now-playing';
 import { MIN_BRIGHTNESS } from '../screen';
+import { controls } from '../theme';
 import { renderTile } from '../tiles/render';
 import type { HomeAssistant, QuickDockConfig, QuickPanelConfig, TileSize } from '../types';
 import { dockEntity, dockIcon, dockKind, dockLabel, dockOf, dockShows, normalizeDock } from './dock';
@@ -348,7 +349,7 @@ export class LuxFrameQuickPanel extends LitElement {
             </div>`
           : nothing}
         ${this.assist
-          ? html`<button class="ask" @click=${() => this._fire('ask')}>
+          ? html`<button class="pill ask" @click=${() => this._fire('ask')}>
               ${icon('ask', 22)} Ask Home Assistant
             </button>`
           : nothing}
@@ -404,7 +405,9 @@ export class LuxFrameQuickPanel extends LitElement {
     `;
   }
 
-  static styles = css`
+  static styles = [
+    controls,
+    css`
     :host {
       position: absolute;
       inset: 0;
@@ -417,8 +420,8 @@ export class LuxFrameQuickPanel extends LitElement {
       position: absolute;
       inset: 0;
       background: rgb(0 0 0 / 22%);
-      animation: fade 200ms ease-out;
-      transition: opacity 200ms;
+      animation: fade var(--lf-move) ease-out;
+      transition: opacity var(--lf-move);
     }
 
     .backdrop.closing {
@@ -448,7 +451,7 @@ export class LuxFrameQuickPanel extends LitElement {
       -webkit-backdrop-filter: var(--lf-blur-strong);
       backdrop-filter: var(--lf-blur-strong);
       box-shadow: 0 20px 50px rgb(0 0 0 / 30%);
-      transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      transition: transform var(--lf-move) var(--lf-ease);
       touch-action: pan-y;
     }
 
@@ -461,7 +464,7 @@ export class LuxFrameQuickPanel extends LitElement {
     }
 
     .panel.drop {
-      animation: drop 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      animation: drop var(--lf-move) var(--lf-ease);
     }
 
     @keyframes drop {
@@ -514,11 +517,14 @@ export class LuxFrameQuickPanel extends LitElement {
       place-items: center;
       width: 60px;
       height: 60px;
-      border-radius: 18px;
+      border-radius: var(--lf-radius-icon);
       color: var(--lf-text);
-      background: rgb(255 255 255 / 10%) center / cover no-repeat;
+      background: var(--lf-control) center / cover no-repeat;
       --mdc-icon-size: 28px;
-      transition: background-color 0.2s, color 0.2s, transform 0.15s;
+      transition:
+        background-color var(--lf-move),
+        color var(--lf-move),
+        transform var(--lf-fast);
     }
 
     .dock-icon.lit {
@@ -536,7 +542,7 @@ export class LuxFrameQuickPanel extends LitElement {
     }
 
     .dock-item:active .dock-icon {
-      transform: scale(0.94);
+      transform: scale(0.96);
     }
 
     .glyph {
@@ -559,7 +565,7 @@ export class LuxFrameQuickPanel extends LitElement {
 
     .stage {
       min-width: 0;
-      animation: stage-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      animation: stage-in var(--lf-move) var(--lf-ease);
     }
 
     @keyframes stage-in {
@@ -575,7 +581,7 @@ export class LuxFrameQuickPanel extends LitElement {
       gap: 16px;
       padding: 18px;
       border-radius: var(--lf-radius);
-      background: rgb(255 255 255 / 10%);
+      background: var(--lf-control-row);
     }
 
     /* A Home Assistant card brings its own padding. */
@@ -596,28 +602,6 @@ export class LuxFrameQuickPanel extends LitElement {
 
     .tile-box {
       display: block;
-    }
-
-    .muted {
-      color: var(--lf-muted);
-    }
-
-    button {
-      font: inherit;
-      color: inherit;
-      border: 0;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    button:disabled {
-      opacity: 0.35;
-      cursor: default;
-    }
-
-    button:focus-visible {
-      outline: 3px solid var(--lf-accent);
-      outline-offset: 2px;
     }
 
     .labelled {
@@ -654,11 +638,7 @@ export class LuxFrameQuickPanel extends LitElement {
       align-items: center;
       justify-content: center;
       gap: 10px;
-      min-height: 56px;
-      border-radius: 999px;
-      font-size: 17px;
-      font-weight: 600;
-      background: rgb(255 255 255 / 14%);
+      min-width: 0;
     }
 
     .grabber {
@@ -697,7 +677,8 @@ export class LuxFrameQuickPanel extends LitElement {
         animation: none;
       }
     }
-  `;
+  `,
+  ];
 }
 
 define('luxframe-quick-panel', LuxFrameQuickPanel);

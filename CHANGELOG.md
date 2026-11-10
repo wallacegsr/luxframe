@@ -6,6 +6,40 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `tile_style: corner`, also under Customize → Look, lays tiles out as
+  Apple's Home app does: the icon in a circle at the top left, the name and
+  state at the bottom left.
+- Themes can set `luxframe-color-light`, `-fan`, `-switch`, `-lock`,
+  `-cover` and `-media`, `luxframe-danger`, `luxframe-success`,
+  `luxframe-control`, `luxframe-radius-s` and `luxframe-radius-icon`.
+
+### Changed
+
+- The quick panel pulls down from anywhere on a page that's scrolled to its
+  top, not only from the band above the title. A page scrolled down still
+  scrolls back up first; the band above the title works as before, however
+  far the page is scrolled. Tiles with a drag of their own (a light's
+  brightness, a shade) keep it, and a swipe across still turns the page.
+- Icons of things that are on take a color by kind, as in Apple's Home app:
+  lights yellow, fans light blue, switches green, locks blue, shades sky
+  blue, speakers purple. Scenes and the rest keep the accent.
+- One set of buttons everywhere: chips, pills and round buttons share one
+  size, tint, press and focus look across tiles, details, the quick panel,
+  the media sheet and the editor, with every button at least 44px to tap.
+  Text settles on four sizes (13, 15, 17 and titles), corners on three
+  radii, and motion on two durations.
+- Details: the handle sits at the top, where a swipe down closes the sheet,
+  and the status line sits under the name with the controls centered below.
+- The hue and warmth sliders are the same height and shape as the filled
+  ones.
+
+### Fixed
+
+- Editing a room, scenes, calendar or cameras page no longer puts the
+  Customize bar over the page's title.
+
 ## [0.10.0] - 2026-11-08
 
 ### Added

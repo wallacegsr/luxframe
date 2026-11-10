@@ -338,6 +338,8 @@ export interface LuxFrameConfig {
   assist?: boolean | { agent_id?: string };
   /** `glass` blurs; `flat` uses solid tiles; `auto` (default) goes flat on slow devices. */
   style?: 'auto' | 'glass' | 'flat';
+  /** How a tile lays out: `center` (default) stacks icon, name and state; `corner` puts the icon top left and the words bottom left, as Apple's Home app does. */
+  tile_style?: 'center' | 'corner';
   /** Badges on every page that has a title bar, after the page's own. */
   badges?: Badge[];
   /** Where badges sit in the title bar, on pages that don't say. Default `right`. */

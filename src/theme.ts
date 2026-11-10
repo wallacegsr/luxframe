@@ -45,8 +45,27 @@ export const tokens = css`
     --lf-text-active: var(--luxframe-text-active, #1c1b1a);
     --lf-muted-active: var(--luxframe-muted-active, #66615a);
     --lf-accent: var(--luxframe-accent, #ff9f0a);
+    --lf-danger: var(--luxframe-danger, #ff453a);
+    --lf-success: var(--luxframe-success, #30d158);
+    /* Icons of things that are on, by kind, as Apple's Home app colors them. */
+    --lf-color-light: var(--luxframe-color-light, #ffd60a);
+    --lf-color-fan: var(--luxframe-color-fan, #5ac8fa);
+    --lf-color-switch: var(--luxframe-color-switch, #30d158);
+    --lf-color-lock: var(--luxframe-color-lock, #0a84ff);
+    --lf-color-cover: var(--luxframe-color-cover, #64d2ff);
+    --lf-color-media: var(--luxframe-color-media, #bf5af2);
+    /* A button, chip or field on glass or a sheet; a list row pressed. */
+    --lf-control: var(--luxframe-control, rgb(255 255 255 / 12%));
+    --lf-control-row: var(--luxframe-control-row, rgb(255 255 255 / 8%));
 
     --lf-radius: var(--luxframe-radius, 22px);
+    /* Fields, list rows and small artwork; icon squares such as the dock's. */
+    --lf-radius-s: var(--luxframe-radius-s, 12px);
+    --lf-radius-icon: var(--luxframe-radius-icon, 16px);
+    /* A press or a fade; something moving into place. */
+    --lf-fast: 150ms;
+    --lf-move: 220ms;
+    --lf-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
     --lf-font: var(
       --luxframe-font,
       'Inter',
@@ -115,10 +134,144 @@ export const tokens = css`
       --luxframe-accent,
       var(--state-icon-active-color, var(--state-light-active-color, var(--primary-color)))
     );
+    --lf-danger: var(--luxframe-danger, var(--error-color, #ff453a));
+    --lf-success: var(--luxframe-success, var(--success-color, #30d158));
+    --lf-color-light: var(--luxframe-color-light, var(--state-light-active-color, #ffd60a));
+    --lf-color-fan: var(--luxframe-color-fan, var(--state-fan-active-color, #5ac8fa));
+    --lf-color-switch: var(--luxframe-color-switch, var(--state-switch-active-color, #30d158));
+    --lf-color-lock: var(--luxframe-color-lock, var(--state-lock-unlocked-color, #0a84ff));
+    --lf-color-cover: var(--luxframe-color-cover, var(--state-cover-active-color, #64d2ff));
+    --lf-color-media: var(--luxframe-color-media, var(--state-media_player-active-color, #bf5af2));
+    --lf-control: var(--luxframe-control, color-mix(in srgb, var(--lf-text) 10%, transparent));
+    --lf-control-row: var(--luxframe-control-row, color-mix(in srgb, var(--lf-text) 6%, transparent));
     --lf-radius: var(--luxframe-radius, var(--ha-card-border-radius, 12px));
+    --lf-radius-s: var(--luxframe-radius-s, min(12px, var(--lf-radius)));
+    --lf-radius-icon: var(--luxframe-radius-icon, min(16px, var(--lf-radius)));
     --lf-font: var(--luxframe-font, var(--ha-font-family-body, Roboto, sans-serif));
 
     color-scheme: normal;
+  }
+`;
+
+/**
+ * The buttons every part of LuxFrame shares: chips (a choice), pills (the
+ * main action), round ones (an icon), and how they press, disable and focus.
+ * `.on` is the chosen or active one; `.glass` makes one frosted instead of
+ * flat.
+ */
+export const controls = css`
+  button {
+    font: inherit;
+    color: inherit;
+    border: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  button:focus-visible,
+  input:focus-visible {
+    outline: 3px solid var(--lf-accent);
+    outline-offset: 2px;
+  }
+
+  .chip,
+  .pill,
+  .round {
+    transition:
+      transform var(--lf-fast),
+      background-color var(--lf-move),
+      color var(--lf-move);
+  }
+
+  .chip:active:not(:disabled),
+  .pill:active:not(:disabled),
+  .round:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+
+  .chip {
+    min-height: 44px;
+    padding: 0 18px;
+    border-radius: 999px;
+    font-size: 17px;
+    font-weight: 500;
+    background: var(--lf-control);
+  }
+
+  .pill {
+    min-width: 220px;
+    min-height: 56px;
+    padding: 0 28px;
+    border-radius: 999px;
+    font-size: 17px;
+    font-weight: 600;
+    background: var(--lf-control);
+  }
+
+  .round {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    padding: 0;
+    border-radius: 50%;
+    background: var(--lf-control);
+  }
+
+  .round.small {
+    width: 44px;
+    height: 44px;
+  }
+
+  .round.big {
+    width: 72px;
+    height: 72px;
+  }
+
+  /* An icon button with nothing behind it. */
+  .round.plain {
+    background: none;
+    color: var(--lf-muted);
+  }
+
+  .on {
+    color: var(--lf-text-active);
+    background: var(--lf-surface-active);
+  }
+
+  .glass {
+    background: var(--lf-surface);
+    -webkit-backdrop-filter: var(--lf-blur);
+    backdrop-filter: var(--lf-blur);
+    box-shadow: var(--lf-shadow);
+  }
+
+  .danger {
+    color: #fff;
+    background: var(--lf-danger);
+  }
+
+  .muted {
+    color: var(--lf-muted);
+  }
+`;
+
+/** A small uppercase label over a group of controls. */
+export const sectionLabel = css`
+  h3,
+  h4 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--lf-muted);
   }
 `;
 
@@ -173,8 +326,14 @@ export const pageStyles = css`
     height: 100%;
     padding: var(--lf-pad);
     overflow-y: auto;
+    overscroll-behavior-y: contain;
     color: var(--lf-text);
     font-family: var(--lf-font);
+  }
+
+  /* Room for the edit bar above the title. */
+  :host([editing]) {
+    padding-top: max(var(--lf-pad), 84px);
   }
 
   .head {

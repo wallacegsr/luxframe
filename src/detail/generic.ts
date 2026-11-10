@@ -1,6 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { define } from '../define';
-import { changedAgo, domainOf, isActive, isMomentary, stateLabel } from '../entity';
+import { changedAgo, domainOf, isActive, isMomentary, kindColor, stateLabel } from '../entity';
 import { stateIcon } from '../icon';
 import type { HassEntity, HomeAssistant } from '../types';
 import { detailStyles } from './styles';
@@ -42,12 +42,16 @@ export class LuxFrameGenericDetail extends LitElement {
     }
 
     return html`
-      <div class="orb glass ${on ? 'on' : ''}" aria-hidden="true">
-        ${stateIcon(this.hass, s, undefined, s.attributes.friendly_name ?? '?')}
+      <div class="status" aria-live="polite">
+        ${stateLabel(this.hass, s)}
+        ${ago && !isMomentary(s) ? html`<span class="muted">· changed ${ago}</span>` : nothing}
       </div>
-      <div class="status" aria-live="polite">${stateLabel(this.hass, s)}</div>
-      ${ago && !isMomentary(s) ? html`<div class="muted">Changed ${ago}</div>` : nothing}
-      ${action}
+      <div class="layout">
+        <div class="orb glass ${on ? 'on' : ''}" style="--tile-color: ${kindColor(s.entity_id)}" aria-hidden="true">
+          ${stateIcon(this.hass, s, undefined, s.attributes.friendly_name ?? '?')}
+        </div>
+        ${action === nothing ? nothing : html`<div class="side">${action}</div>`}
+      </div>
     `;
   }
 

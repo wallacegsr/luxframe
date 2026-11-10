@@ -318,7 +318,7 @@ export class LuxFrameTileEditor extends LitElement {
 
       .hint {
         margin: 8px 0 0;
-        font-size: 14px;
+        font-size: 15px;
       }
 
       .error {

@@ -1,7 +1,7 @@
 import { LitElement, html, nothing, svg } from 'lit';
 import '../confirm-button';
 import { define } from '../define';
-import { isGuardedCover, setLevel, stateLabel } from '../entity';
+import { isGuardedCover, kindColor, setLevel, stateLabel } from '../entity';
 import { stateIcon } from '../icon';
 import { Pending, near } from '../pending';
 import type { HassEntity, HomeAssistant } from '../types';
@@ -55,19 +55,23 @@ export class LuxFrameCoverDetail extends LitElement {
     const moving = s.state === 'opening' || s.state === 'closing';
     return html`
       <div class="status" aria-live="polite">${stateLabel(this.hass, s)}</div>
-      <div class="orb glass ${closed ? '' : 'on'}" aria-hidden="true">
-        ${stateIcon(this.hass, s, undefined, 'G')}
+      <div class="layout">
+        <div class="orb glass ${closed ? '' : 'on'}" style="--tile-color: ${kindColor(s.entity_id)}" aria-hidden="true">
+          ${stateIcon(this.hass, s, undefined, 'G')}
+        </div>
+        <div class="side">
+          ${closed
+            ? html`<luxframe-confirm-button
+                label="Open"
+                confirm-label="Tap again to open"
+                ?disabled=${s.state === 'unavailable'}
+                @confirm=${() => this._call('open_cover')}
+              ></luxframe-confirm-button>`
+            : html`<button class="pill on" ?disabled=${moving} @click=${() => this._call('close_cover')}>
+                Close
+              </button>`}
+        </div>
       </div>
-      ${closed
-        ? html`<luxframe-confirm-button
-            label="Open"
-            confirm-label="Tap again to open"
-            ?disabled=${s.state === 'unavailable'}
-            @confirm=${() => this._call('open_cover')}
-          ></luxframe-confirm-button>`
-        : html`<button class="pill on" ?disabled=${moving} @click=${() => this._call('close_cover')}>
-            Close
-          </button>`}
     `;
   }
 
@@ -105,7 +109,7 @@ export class LuxFrameCoverDetail extends LitElement {
               @input=${(e: CustomEvent<number>) => this._position.hold(e.detail)}
               @change=${(e: CustomEvent<number>) => this._setPosition(e.detail)}
             ></luxframe-slider>`
-          : html`<div class="orb glass ${s.state === 'closed' ? '' : 'on'}" aria-hidden="true">
+          : html`<div class="orb glass ${s.state === 'closed' ? '' : 'on'}" style="--tile-color: ${kindColor(s.entity_id)}" aria-hidden="true">
               ${stateIcon(this.hass, s, undefined, 'S')}
             </div>`}
         <div class="row">

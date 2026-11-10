@@ -4,6 +4,7 @@ import {
   domainOf,
   isActive,
   isMomentary,
+  kindColor,
   levelOf,
   openDetail,
   resolve,
@@ -187,7 +188,7 @@ export class LuxFrameTile extends LitElement {
         class="tile glass ${active ? 'active' : ''} ${this._flash ? 'flash' : ''} ${stateObj
           ? ''
           : 'missing'}"
-        style="touch-action: ${levelOf(stateObj) === null ? 'pan-x pan-y' : 'pan-x'}"
+        style="touch-action: ${levelOf(stateObj) === null ? 'pan-x pan-y' : 'pan-x'}; --tile-color: ${kindColor(stateObj?.entity_id)}"
         role="group"
         aria-label="${name}, ${status}"
         @pointerdown=${this._down}
@@ -237,7 +238,10 @@ export class LuxFrameTile extends LitElement {
         text-align: center;
         cursor: pointer;
         user-select: none;
-        transition: background 220ms, color 220ms, transform 120ms;
+        transition:
+          background var(--lf-move),
+          color var(--lf-move),
+          transform var(--lf-fast);
       }
 
       .tile.flash {
@@ -251,7 +255,7 @@ export class LuxFrameTile extends LitElement {
       .fill {
         position: absolute;
         inset: auto 0 0 0;
-        background: color-mix(in srgb, var(--lf-accent) 30%, transparent);
+        background: color-mix(in srgb, var(--tile-color, var(--lf-accent)) 30%, transparent);
         pointer-events: none;
       }
 
@@ -270,8 +274,8 @@ export class LuxFrameTile extends LitElement {
       }
 
       .active .icon {
-        color: var(--lf-accent);
-        --state-icon-color: var(--lf-accent);
+        color: var(--tile-color, var(--lf-accent));
+        --state-icon-color: var(--tile-color, var(--lf-accent));
       }
 
       .icon:active {
@@ -306,7 +310,7 @@ export class LuxFrameTile extends LitElement {
       }
 
       .name {
-        font-size: 16px;
+        font-size: 17px;
         font-weight: 600;
         line-height: 1.2;
         overflow: hidden;
@@ -318,7 +322,7 @@ export class LuxFrameTile extends LitElement {
 
       .sub {
         margin-top: 2px;
-        font-size: 14px;
+        font-size: 15px;
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
         overflow: hidden;
@@ -335,6 +339,36 @@ export class LuxFrameTile extends LitElement {
       :host([size='m']) .name,
       :host([size='l']) .name {
         font-size: 20px;
+      }
+
+      /*
+       * tile_style: corner, as Apple's Home app lays its tiles out: the icon
+       * in a circle at the top left, the name and state at the bottom left.
+       */
+      @container style(--lf-tile-style: corner) {
+        .tile {
+          align-items: flex-start;
+          justify-content: space-between;
+          text-align: left;
+          padding: 14px 16px;
+        }
+
+        .icon {
+          margin: -4px 0 0 -4px;
+          background: var(--lf-control);
+        }
+
+        .active .icon {
+          background: color-mix(in srgb, var(--tile-color, var(--lf-accent)) 18%, transparent);
+        }
+
+        .label {
+          width: 100%;
+        }
+
+        .name {
+          -webkit-line-clamp: 1;
+        }
       }
 
       @media (prefers-reduced-motion: reduce) {

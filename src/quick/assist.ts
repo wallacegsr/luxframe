@@ -134,7 +134,7 @@ export class LuxFrameAssist extends LitElement {
 
       .hint {
         margin: auto 0;
-        font-size: 16px;
+        font-size: 17px;
         text-align: center;
       }
 
@@ -156,12 +156,12 @@ export class LuxFrameAssist extends LitElement {
 
       .turn.home {
         align-self: flex-start;
-        background: rgb(255 255 255 / 14%);
+        background: var(--lf-control);
         border-bottom-left-radius: 6px;
       }
 
       .turn.error {
-        background: rgb(217 71 63 / 55%);
+        background: color-mix(in srgb, var(--lf-danger) 55%, transparent);
       }
 
       .busy {

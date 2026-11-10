@@ -1,6 +1,6 @@
 import { LitElement, html, nothing } from 'lit';
 import { define } from '../define';
-import { levelOf, setLevel } from '../entity';
+import { kindColor, levelOf, setLevel } from '../entity';
 import { stateIcon } from '../icon';
 import { Pending, near } from '../pending';
 import type { HassEntity, HomeAssistant } from '../types';
@@ -169,6 +169,7 @@ export class LuxFrameLightDetail extends LitElement {
             ></luxframe-slider>`
           : html`<button
               class="orb glass ${on ? 'on' : ''}"
+              style="--tile-color: ${kindColor(s.entity_id)}"
               aria-label=${on ? 'Turn off' : 'Turn on'}
               ?disabled=${unavailable}
               @click=${() => this._toggle(on)}
