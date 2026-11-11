@@ -14,11 +14,14 @@ export class LuxFrameConfirmButton extends LitElement {
     label: {},
     confirmLabel: { attribute: 'confirm-label' },
     disabled: { type: Boolean },
+    quiet: { type: Boolean },
     _armed: { state: true },
   };
 
   declare label: string;
   declare confirmLabel: string;
+  /** Glass until armed, for a button beside a more important one. */
+  declare quiet: boolean;
   declare disabled: boolean;
   declare _armed: boolean;
 
@@ -29,6 +32,7 @@ export class LuxFrameConfirmButton extends LitElement {
     this.label = '';
     this.confirmLabel = 'Tap again to confirm';
     this.disabled = false;
+    this.quiet = false;
     this._armed = false;
   }
 
@@ -51,7 +55,7 @@ export class LuxFrameConfirmButton extends LitElement {
   protected render() {
     return html`
       <button
-        class="pill ${this._armed ? 'danger' : 'on'}"
+        class="pill ${this._armed ? 'danger' : this.quiet ? 'glass' : 'on'}"
         ?disabled=${this.disabled}
         aria-live="polite"
         @click=${this._click}
@@ -67,6 +71,10 @@ export class LuxFrameConfirmButton extends LitElement {
       :host {
         display: inline-block;
         font-family: var(--lf-font);
+      }
+
+      .pill {
+        min-width: var(--luxframe-confirm-min-width, 220px);
       }
     `,
   ];

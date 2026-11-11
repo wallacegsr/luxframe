@@ -1,7 +1,7 @@
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { define } from '../define';
 import type { HomeAssistant, XBloomPageConfig } from '../types';
-import { studioEntities, type StudioEntities } from './xbloom-studio';
+import { studioEntities, type StudioEntities } from './xbloom-studio/index';
 
 /**
  * The xBloom machine as a page in the frame.
@@ -199,7 +199,8 @@ export class LuxFrameXBloomPage extends LitElement {
 
   protected render() {
     if (this._studio) {
-      return html`<luxframe-xbloom-studio .hass=${this.hass} .entities=${this._studio}></luxframe-xbloom-studio>`;
+      return html`<luxframe-xbloom-studio .hass=${this.hass} .entities=${this._studio}
+        .tab=${this.config?.tab === 'home' ? 'brew' : this.config?.tab}></luxframe-xbloom-studio>`;
     }
     switch (this._status) {
       case 'ready':

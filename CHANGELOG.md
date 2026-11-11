@@ -6,6 +6,30 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-11
+
+### Added
+
+- The xBloom page with xBloom Studio has the same four tabs as ha-xbloom's
+  panel: Brew, Recipes, Manual and Settings. Recipes lists your recipes as
+  cards to search and filter, each opening to its numbers and pours with Brew
+  this, Edit, Duplicate, Archive, Delete and writing it to an Easy slot; New
+  recipe and Edit open a recipe editor with each pour. Community searches
+  xBloom's recipe hub and imports a recipe into yours. Manual runs the
+  grinder, brewer and scale on their own. Settings has the connection, mode
+  and units, the Easy slots, archived recipes, descaling and scale
+  calibration how-tos, and the firmware. `tab` now works with xBloom Studio
+  too. ha-xbloom's Pods and Store aren't included: xBloom Studio has neither.
+
+### Changed
+
+- The xBloom page's Brew tab, with xBloom Studio, is laid out like the
+  ha-xbloom panel's: the weight in a ring that fills toward the recipe's
+  water, the brew's stages, and a recipe card with a banner, a recipe picker,
+  tiles for dose, ratio, water, grind and temperature, and the pours as
+  numbered steps with their running total, temperature, flow rate, pattern
+  and wait, then any bypass water. Tap Dose, Ratio or Grind to change it.
+
 ## [0.15.1] - 2026-11-11
 
 ### Added
@@ -541,7 +565,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.15.1...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/wallacegsr/luxframe/compare/v0.15.1...v0.16.0
 [0.15.1]: https://github.com/wallacegsr/luxframe/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/wallacegsr/luxframe/compare/v0.14.3...v0.15.0
 [0.14.3]: https://github.com/wallacegsr/luxframe/compare/v0.14.2...v0.14.3

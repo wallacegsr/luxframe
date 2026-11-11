@@ -205,7 +205,7 @@ views:
 | `cameras` | `entities` (default: every camera), `title`. Stills every 10 s; tap one to stream it. |
 | `photos` | `folder` (a media folder, default the whole local media folder) or `album` (an [Immich album](#photos-from-immich)), `interval` (seconds, default 30), `clock` (default `true`). Tap the right half for the next photo, the left half to go back. |
 | `night`  | `weather` (optional, for the temperature). A dim clock on black that drifts a little each minute. |
-| `xbloom` | Your [xBloom](#xbloom-page) coffee machine: LuxFrame's own view for xBloom Studio, or ha-xbloom's panel. With ha-xbloom: `tab` (`home`, `recipes`, `manual` or `settings`), `theme` (`auto`, `light`, `dark`), `backdrop` (default `false`). |
+| `xbloom` | Your [xBloom](#xbloom-page) coffee machine: LuxFrame's own view for xBloom Studio, or ha-xbloom's panel. `tab` (`home`, `recipes`, `manual` or `settings`). With ha-xbloom: `theme` (`auto`, `light`, `dark`), `backdrop` (default `false`). |
 
 Any page can have `hidden: true` to keep it in the config but out of the frame.
 The frame opens on the first page, and goes back to it after `home_after`
@@ -217,24 +217,42 @@ that one the start page instead.
 `type: xbloom` puts your xBloom coffee machine on a page. It works with either
 xBloom integration and picks the right view by itself.
 
-With [xBloom Studio](https://github.com/Alshekhi/xbloom-studio), the page is
-LuxFrame's own view of the machine, built from the integration's entities:
+With [xBloom Studio](https://github.com/Alshekhi/xbloom-studio), which has no
+panel of its own, the page is LuxFrame's own view of the machine, built from
+the integration's entities and services. It has the same four tabs as
+ha-xbloom's panel, in LuxFrame's style:
 
 ![The xBloom page brewing a recipe](docs/screenshots/xbloom.webp)
 
-- **Now** shows what the machine is doing. While it brews or grinds: the
-  recipe, the pour it's on, the time and the weight, with Pause, Resume and
-  Cancel. On the grinder or brewer screen: its settings as sliders, and Grind
-  or Pour. Otherwise: the scale, Tare, and buttons to open the grinder, brewer
-  or scale on the machine.
-- **The next brew**: the bag of coffee and how much is left, the recipes, the
-  dose, ratio and grind of the one picked, its pours, taste, and whether to
-  grind the beans. Start Brew lights up once the machine has the recipe
-  ready; until then, the page says what it's waiting for.
-- After a brew, Coffee Lab's question (how was it?) appears at the top, then
-  what was off, if anything.
+- **Brew** shows what the machine is doing: the weight in a ring that fills
+  toward the recipe's water, the stages (beans, grind, pour, enjoy), the pour
+  it's on and the time, with Pause, Resume and Cancel. On the grinder or
+  brewer screen: its settings as sliders. Beside it, the recipe card: a
+  banner with the dose, the recipe picker, tiles for dose, ratio, water, grind
+  and temperature (tap Dose, Ratio or Grind to change it), and each pour in
+  turn with its running total, temperature, flow rate, pattern and wait, then
+  any bypass water. Below that, the bag of coffee, taste, whether to grind
+  the beans, and Start Brew, which lights up once the machine has the recipe
+  ready. After a brew, Coffee Lab asks how it was.
+- **Recipes** has My recipes, as cards to search and filter by coffee or tea.
+  Open one for its numbers and pours, then Brew this, Edit, Duplicate,
+  Archive, Delete, or write it to one of the machine's Easy slots (A, B, C).
+  New recipe and Edit open an editor for the cup, dose, ratio, grind, grinder
+  speed, bypass water and each pour. **Community** searches the recipes others
+  shared on xBloom's hub, by most liked, most downloaded or newest; open one
+  for its origin, process, roast, flavors and pours, and Import it into My
+  recipes.
+- **Manual** runs the grinder, the brewer and the scale on their own, as on
+  the machine's own screens.
+- **Settings** has the connection, mode, water source and units; the three
+  Easy slots; refreshing recipes and restoring archived ones; how-tos for
+  descaling and calibrating the scale; and the firmware, with Install when
+  there's an update.
 - A banner says when the machine needs water or beans, and the header shows
   whether the machine is in range, with a button to connect or disconnect.
+
+ha-xbloom's Pods and Store tabs aren't here: xBloom Studio has no pod library
+or store to show. `tab` picks the tab to open on with either integration.
 
 With [ha-xbloom](https://github.com/saya6k/ha-xbloom), the page shows that
 integration's own panel: Brew, Recipes, Manual and Settings, looking and
