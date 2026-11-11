@@ -6,6 +6,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-10
+
 ### Added
 
 - `corner_radius`, also under Customize → Look, sets how round tiles, panels
@@ -420,7 +422,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/wallacegsr/luxframe/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/wallacegsr/luxframe/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/wallacegsr/luxframe/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/wallacegsr/luxframe/compare/v0.8.8...v0.9.0
