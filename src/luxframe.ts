@@ -14,6 +14,7 @@ import './pages/scenes';
 import './pages/weather';
 import './pages/calendar';
 import './pages/scenery';
+import './pages/xbloom';
 import './slider';
 import './detail/detail';
 import './detail/light';

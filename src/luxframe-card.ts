@@ -100,7 +100,7 @@ function badgeLook(page: PageConfig, config: LuxFrameConfig): string {
   const style = own.badge_style ?? config.badge_style ?? 'pill';
   return [BADGE_ALIGN[align] ?? '', style === 'plain' ? BADGE_PLAIN : ''].filter(Boolean).join('; ');
 }
-const PAGE_TYPES = ['clock', 'room', 'scenes', 'grid', 'weather', 'calendar', 'cameras', 'photos', 'night'];
+const PAGE_TYPES = ['clock', 'room', 'scenes', 'grid', 'weather', 'calendar', 'cameras', 'photos', 'night', 'xbloom'];
 const TOAST_MS = 4500;
 /** A pull from the top edge this far opens the quick panel. */
 const PULL_OPEN = 40;
@@ -1184,6 +1184,8 @@ export class LuxFrameCard extends LitElement {
         return html`<luxframe-photos-page .hass=${this.hass} .config=${page}></luxframe-photos-page>`;
       case 'night':
         return html`<luxframe-night-page .hass=${this.hass} .config=${page}></luxframe-night-page>`;
+      case 'xbloom':
+        return html`<luxframe-xbloom-page .hass=${this.hass} .config=${page}></luxframe-xbloom-page>`;
       case 'grid':
         return html`<luxframe-grid
           .hass=${this.hass}

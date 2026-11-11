@@ -406,6 +406,17 @@ export interface NightPageConfig {
   weather?: string;
 }
 
+/** The xBloom integration's own panel, as a page. */
+export interface XBloomPageConfig {
+  type: 'xbloom';
+  /** The tab it opens on. Default `home` (Brew). */
+  tab?: 'home' | 'recipes' | 'manual' | 'settings';
+  /** `auto` (default) follows Home Assistant's dark mode, as the sidebar panel does. */
+  theme?: 'auto' | 'light' | 'dark';
+  /** Show the frame's background behind the panel's cards. Default false. */
+  backdrop?: boolean;
+}
+
 export type PageConfig = (
   | ClockPageConfig
   | RoomPageConfig
@@ -416,6 +427,7 @@ export type PageConfig = (
   | CamerasPageConfig
   | PhotosPageConfig
   | NightPageConfig
+  | XBloomPageConfig
 ) & {
   /** Kept in the config but left out of the frame. */
   hidden?: boolean;

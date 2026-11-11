@@ -62,7 +62,7 @@ export function pageLabel(page: PageConfig, index: number): string {
 /**
  * The heading a page shows when it has no title of its own, for the pages
  * that show one. Tiles show none until given a title; a room always has one.
- * Weather, clock, photos and night pages are full-screen and have no heading.
+ * Weather, clock, photos, night and xBloom pages are full-screen and have no heading.
  */
 export const TITLE_DEFAULTS: Partial<Record<PageConfig['type'], string>> = {
   grid: '',
@@ -80,6 +80,7 @@ export const PAGE_KINDS: Array<{ type: PageConfig['type']; label: string; blank?
   { type: 'cameras', label: 'Cameras', blank: { type: 'cameras' } },
   { type: 'photos', label: 'Photos', blank: { type: 'photos' } },
   { type: 'night', label: 'Night', blank: { type: 'night' } },
+  { type: 'xbloom', label: 'xBloom', blank: { type: 'xbloom' } },
   { type: 'clock', label: 'Clock', blank: { type: 'clock' } },
   { type: 'room', label: 'Room' },
   { type: 'scenes', label: 'Scenes' },

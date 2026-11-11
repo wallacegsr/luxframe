@@ -42,8 +42,8 @@ the page dots, or the arrow keys.
 **Pages you swipe between.** Grids of tiles, a big clock with a greeting,
 the weather for the next hours and the week, a room's devices, scenes, a
 calendar agenda, cameras, a photo frame (a media folder or an Immich album),
-and a dim night clock. After two minutes without a touch the frame returns to
-its start page. See [Pages](#pages).
+a dim night clock, and your [xBloom](#xbloom-page) coffee machine. After two
+minutes without a touch the frame returns to its start page. See [Pages](#pages).
 
 <table><tr>
 <td><img src="docs/screenshots/clock.webp" alt="The clock page"></td>
@@ -205,11 +205,32 @@ views:
 | `cameras` | `entities` (default: every camera), `title`. Stills every 10 s; tap one to stream it. |
 | `photos` | `folder` (a media folder, default the whole local media folder) or `album` (an [Immich album](#photos-from-immich)), `interval` (seconds, default 30), `clock` (default `true`). Tap the right half for the next photo, the left half to go back. |
 | `night`  | `weather` (optional, for the temperature). A dim clock on black that drifts a little each minute. |
+| `xbloom` | `tab` (`home`, `recipes`, `manual` or `settings`), `theme` (`auto`, `light`, `dark`), `backdrop` (default `false`). The [xBloom](#xbloom-page) integration's own panel. |
 
 Any page can have `hidden: true` to keep it in the config but out of the frame.
 The frame opens on the first page, and goes back to it after `home_after`
 seconds without a touch (`0` turns that off); `home: true` on another page makes
 that one the start page instead.
+
+### xBloom page
+
+`type: xbloom` puts the [xBloom integration](https://github.com/saya6k/ha-xbloom)'s
+own panel on a page: Brew, Recipes, Manual and Settings, looking and working
+as the sidebar panel does. LuxFrame loads the panel the integration ships, so
+it keeps up with the integration's updates; it needs a release of the
+integration that has the sidebar panel.
+
+```yaml
+pages:
+  - type: xbloom
+    tab: home          # home | recipes | manual | settings
+    theme: auto        # auto follows Home Assistant's dark mode; or light, dark
+    backdrop: false    # true shows the frame's background behind the cards
+```
+
+The panel scrolls within its page. On a narrow screen its tabs sit along the
+bottom of the page, above the page dots. Until Home Assistant has the panel,
+the page says so instead.
 
 ### Badges
 

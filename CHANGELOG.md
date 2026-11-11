@@ -6,6 +6,14 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- An xBloom page, `type: xbloom`, shows the xBloom integration's own panel:
+  Brew, Recipes, Manual and Settings, as in Home Assistant's sidebar. `tab`
+  picks the tab it opens on, `theme` sets light or dark, and `backdrop: true`
+  shows the frame's background behind it. It's also under Add page while
+  editing.
+
 ## [0.14.3] - 2026-11-10
 
 ### Added
