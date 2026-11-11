@@ -6,6 +6,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-11
+
 ### Added
 
 - An xBloom page, `type: xbloom`, shows the xBloom integration's own panel:
@@ -520,7 +522,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.14.3...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/wallacegsr/luxframe/compare/v0.14.3...v0.15.0
 [0.14.3]: https://github.com/wallacegsr/luxframe/compare/v0.14.2...v0.14.3
 [0.14.2]: https://github.com/wallacegsr/luxframe/compare/v0.14.1...v0.14.2
 [0.14.1]: https://github.com/wallacegsr/luxframe/compare/v0.14.0...v0.14.1
