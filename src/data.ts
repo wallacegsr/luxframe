@@ -199,6 +199,7 @@ export async function fetchTodo(hass: HomeAssistant | undefined, entityId: strin
 export const DEFAULT_PHOTOS = 'media-source://media_source/local';
 
 interface BrowseItem {
+  title: string;
   media_content_id: string;
   media_class?: string;
   media_content_type?: string;
@@ -214,6 +215,68 @@ export async function listPhotos(hass: HomeAssistant | undefined, folder = DEFAU
   return (result.children ?? [])
     .filter((c) => c.media_class === 'image' || c.media_content_type?.startsWith('image/'))
     .map((c) => c.media_content_id);
+}
+
+/**
+ * Home Assistant's Immich integration lists each Immich server it's set up
+ * with (an API key per server, kept in Home Assistant) as a media source:
+ * its albums, people, tags and favorites become folders, and their photos
+ * reach the browser through Home Assistant, signed.
+ */
+export const IMMICH_ROOT = 'media-source://immich';
+
+export interface PhotoAlbum {
+  /** The album's media source folder. */
+  id: string;
+  title: string;
+}
+
+let albums: { at: number; list: Promise<PhotoAlbum[]> } | undefined;
+const ALBUMS_MS = 5 * 60_000;
+
+/** Every Immich album, plus each server's favorites; empty without the integration. */
+export function immichAlbums(hass: HomeAssistant | undefined): Promise<PhotoAlbum[]> {
+  const callWS = hass?.callWS?.bind(hass);
+  if (!callWS) return Promise.resolve([]);
+  if (albums && Date.now() - albums.at < ALBUMS_MS) return albums.list;
+  const browse = (id: string) =>
+    callWS<BrowseItem>({ type: 'media_source/browse_media', media_content_id: id });
+  const list = browse(IMMICH_ROOT)
+    .then(async (root) => {
+      const servers = root.children ?? [];
+      const found = await Promise.all(
+        servers.map(async (server) => {
+          const named = (title: string) => (servers.length > 1 ? `${title} (${server.title})` : title);
+          const inside = await browse(`${server.media_content_id}|albums`).catch(() => undefined);
+          return [
+            { id: `${server.media_content_id}|favorites|favorites`, title: named('Favorites') },
+            ...(inside?.children ?? []).map((a) => ({ id: a.media_content_id, title: named(a.title) })),
+          ];
+        }),
+      );
+      return found.flat();
+    })
+    .catch(() => []);
+  albums = { at: Date.now(), list };
+  return list;
+}
+
+/**
+ * The folder photos come from: an Immich album named by `album` (its name,
+ * any case, or its id), else `folder`. Throws when there's no such album.
+ */
+export async function photoFolder(
+  hass: HomeAssistant | undefined,
+  source: { folder?: string; album?: string },
+): Promise<string | undefined> {
+  const album = source.album?.trim();
+  if (!album) return source.folder;
+  const wanted = album.toLowerCase();
+  const found = (await immichAlbums(hass)).find(
+    (a) => a.title.toLowerCase() === wanted || a.id === album || a.id.endsWith(`|${album}`),
+  );
+  if (!found) throw new Error(`No Immich album called \u201c${album}\u201d`);
+  return found.id;
 }
 
 /** A signed URL for one photo, good for a few minutes. */

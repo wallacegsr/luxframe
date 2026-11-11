@@ -17,6 +17,7 @@ export const MAX_ROWS = 8;
 
 const DEFAULT_SIZE: Record<GridTileType, TileSize> = {
   entity: 's',
+  switch: 's',
   thermostat: 'm',
   weather: 's',
   clock: 's',

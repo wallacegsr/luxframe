@@ -1,6 +1,6 @@
 import { html } from 'lit';
 import { html as staticHtml, literal, type StaticValue } from 'lit/static-html.js';
-import type { GridTileConfig, GridTileType, HomeAssistant, TileSize } from '../types';
+import type { GridTileConfig, GridTileType, HomeAssistant, SwitchTileConfig, TileSize } from '../types';
 
 /** Tile kinds that are a plain element taking hass, config and size. */
 const TILE_TAGS: Partial<Record<GridTileType, StaticValue>> = {
@@ -25,6 +25,10 @@ export function renderTile(hass: HomeAssistant | undefined, tile: GridTileConfig
       return html`<luxframe-clock-tile .hass=${hass} size=${size}></luxframe-clock-tile>`;
     case 'analog-clock':
       return html`<luxframe-analog-clock-tile .hass=${hass} size=${size}></luxframe-analog-clock-tile>`;
+    case 'switch': {
+      const { entity, name, icon } = tile as SwitchTileConfig;
+      return html`<luxframe-tile toggles .hass=${hass} .entity=${{ entity, name, icon }} size=${size}></luxframe-tile>`;
+    }
     default: {
       const { entity, name, icon } = tile as { entity: string; name?: string; icon?: string };
       return html`<luxframe-tile .hass=${hass} .entity=${{ entity, name, icon }} size=${size}></luxframe-tile>`;

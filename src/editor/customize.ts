@@ -7,6 +7,8 @@ import { resolve } from '../entity';
 import type { BadgeLook, GridPageConfig, HomeAssistant, QuickDockItem, LuxFrameConfig, PageConfig, QuickPanelConfig } from '../types';
 import { PAGE_KINDS, TITLE_DEFAULTS, kindLabel, pageLabel, suggestPages } from './layout';
 import { editorStyles } from './sheet';
+import './photo-settings';
+import type { PhotoSettings } from './photo-settings';
 
 const THEMES: Array<{ value: NonNullable<LuxFrameConfig['theme']>; label: string }> = [
   { value: 'auto', label: 'Auto' },
@@ -117,7 +119,10 @@ export class LuxFrameCustomize extends LitElement {
     this._setPages(pages);
   }
 
-  private _setPage(index: number, changes: Partial<GridPageConfig> & { hidden?: boolean; home?: boolean }): void {
+  private _setPage(
+    index: number,
+    changes: Partial<GridPageConfig> & PhotoSettings & { hidden?: boolean; home?: boolean },
+  ): void {
     const pages = [...this.config!.pages];
     const next: Record<string, unknown> = { ...pages[index], ...changes };
     for (const [key, value] of Object.entries(changes)) if (value === undefined || value === '' || value === false) delete next[key];
@@ -210,6 +215,14 @@ export class LuxFrameCustomize extends LitElement {
     if (!page) return nothing;
     const grid = page.type === 'grid';
     const titled = hasTitleBar(page);
+    if (page.type === 'photos') {
+      return html`<h3>This page</h3>
+        <luxframe-photo-settings
+          .hass=${this.hass}
+          .value=${page}
+          @change=${(e: CustomEvent<PhotoSettings>) => this._setPage(this.page, e.detail)}
+        ></luxframe-photo-settings>`;
+    }
     if (!grid && !titled) return nothing;
     const rows = grid ? (page.rows ?? 3) : 0;
     const look = page as BadgeLook;

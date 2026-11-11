@@ -136,7 +136,7 @@ export class LuxFramePhotoTile extends SizedTile {
 
   protected render() {
     return html`<luxframe-slideshow class="tile" .hass=${this.hass} .folder=${this.config?.folder}
-      .interval=${this.config?.interval ?? 30}></luxframe-slideshow>`;
+      .album=${this.config?.album} .interval=${this.config?.interval ?? 30}></luxframe-slideshow>`;
   }
 
   static styles = [tileBase];

@@ -29,6 +29,9 @@ type Region = 'icon' | 'body';
  *   - drag up or down on a light, shade or fan: set its level
  *   - hold: fires `luxframe-hold`; a grid page starts editing, otherwise details
  * A sideways swipe is left to the frame, which turns the page.
+ *
+ * With `toggles` it's a light switch: a tap anywhere turns it on or off, and
+ * a dimmable light that's on shows its level as a fill from the bottom.
  */
 export class LuxFrameTile extends LitElement {
   static properties = {
@@ -36,6 +39,7 @@ export class LuxFrameTile extends LitElement {
     entity: { attribute: false },
     size: { reflect: true },
     subtitle: {},
+    toggles: { type: Boolean, reflect: true },
     _flash: { state: true },
   };
 
@@ -44,6 +48,8 @@ export class LuxFrameTile extends LitElement {
   declare size: TileSize;
   /** `area` (grid pages) or `state` (room pages, where the area is the page). */
   declare subtitle: 'area' | 'state';
+  /** A light switch: a tap anywhere toggles it, rather than opening details. */
+  declare toggles: boolean;
   declare _flash: boolean;
 
   private _press?: {
@@ -64,6 +70,7 @@ export class LuxFrameTile extends LitElement {
     super();
     this.size = 's';
     this.subtitle = 'area';
+    this.toggles = false;
     this._flash = false;
   }
 
@@ -147,7 +154,7 @@ export class LuxFrameTile extends LitElement {
 
   private _tap(region: Region): void {
     const stateObj = this._stateObj;
-    if (region === 'body' && !isMomentary(stateObj)) return this._detail();
+    if (region === 'body' && !isMomentary(stateObj) && !this.toggles) return this._detail();
     if (!this.hass || !tapAction(this.hass, stateObj)) return this._detail();
     this._level.clear();
     this._flash = true;
@@ -173,8 +180,10 @@ export class LuxFrameTile extends LitElement {
     const momentary = isMomentary(stateObj);
     const dragging = this._level.holding;
 
+    const dimmed = active && level !== null && level > 0 && level < 100;
     let sub: string;
     if (dragging) sub = `${level}%`;
+    else if (this.toggles) sub = dimmed ? `${level}%` : stateLabel(this.hass, stateObj);
     else if (this.subtitle === 'state' || !area) sub = stateLabel(this.hass, stateObj);
     else sub = active && level !== null && level > 0 && level < 100 ? `${area} · ${level}%` : area;
 
@@ -198,7 +207,9 @@ export class LuxFrameTile extends LitElement {
         @lostpointercapture=${this._up}
         @contextmenu=${(e: Event) => e.preventDefault()}
       >
-        ${dragging ? html`<div class="fill" style="height: ${level}%"></div>` : nothing}
+        ${dragging || (this.toggles && active && level !== null)
+          ? html`<div class="fill ${dragging ? '' : 'resting'}" style="height: ${level}%"></div>`
+          : nothing}
         <div
           class="icon ${spinning ? 'spin' : ''}"
           style=${spin}
@@ -213,7 +224,7 @@ export class LuxFrameTile extends LitElement {
           class="label"
           role="button"
           tabindex="0"
-          aria-label="${name} details"
+          aria-label=${this.toggles ? `${momentary ? 'Run' : 'Toggle'} ${name}` : `${name} details`}
           @keydown=${(e: KeyboardEvent) => this._key('body', e)}
         >
           <div class="name">${name}</div>
@@ -257,6 +268,10 @@ export class LuxFrameTile extends LitElement {
         inset: auto 0 0 0;
         background: color-mix(in srgb, var(--tile-color, var(--lf-accent)) 30%, transparent);
         pointer-events: none;
+      }
+
+      .fill.resting {
+        transition: height var(--lf-move) var(--lf-ease);
       }
 
       .icon {

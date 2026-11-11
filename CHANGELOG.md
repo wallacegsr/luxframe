@@ -6,6 +6,18 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A light switch tile (`type: switch`, or **Add tile → Widgets → Light
+  switch**): a tap anywhere turns the light on or off, a drag up or down dims
+  it, and a dimmed light shows its level as a fill. Editing a light's or
+  switch's tile, **A tap** turns any entity tile into one and back.
+- **Add tile → Widgets → Camera** asks which camera and adds its tile.
+- The photo tile and the photos page show an album from Immich, through Home
+  Assistant's Immich integration: pick it under **Photos from** while editing,
+  or name it with `album` in YAML. **Photos from** also sets the media folder,
+  and **Each photo for** how long each photo shows.
+
 ## [0.12.0] - 2026-11-10
 
 ### Added

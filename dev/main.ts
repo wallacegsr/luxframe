@@ -53,6 +53,7 @@ const config: LuxFrameConfig = {
       tiles: [
         { type: 'calendar' },
         { type: 'now-playing' },
+        { type: 'switch', entity: 'light.floor_lamp' },
         { type: 'sun' },
         { type: 'room', area: 'living_room' },
         { type: 'todo', entity: 'todo.shopping' },
@@ -330,6 +331,8 @@ hass.callWS = (async (message: Record<string, any>) => {
   if (message.type === 'conversation/process') return converse(message.text, message.conversation_id);
   if (message.type === 'todo/item/list') return { items: todo.filter((item) => item.status === 'needs_action') };
   if (message.type === 'media_source/browse_media') {
+    const immich = mockImmich(String(message.media_content_id));
+    if (immich) return immich;
     if (!String(message.media_content_id).endsWith('/photos')) return { children: [] };
     return {
       children: [1, 2, 3].map((n) => ({
@@ -340,12 +343,39 @@ hass.callWS = (async (message: Record<string, any>) => {
     };
   }
   if (message.type === 'media_source/resolve_media') {
+    const id = String(message.media_content_id);
+    if (id.startsWith('media-source://immich/')) return { url: `./photos/${id.split('|')[4]}` };
     return { url: `./photos/${String(message.media_content_id).split('/').pop()}` };
   }
   const music = mockMusicWS(message, hass);
   if (music !== undefined) return music;
   throw new Error(`Unknown command ${message.type}`);
 }) as typeof hass.callWS;
+// Home Assistant's Immich integration, as a media source: one server, two albums and favorites.
+function mockImmich(id: string): { children: Array<Record<string, string>> } | undefined {
+  const server = 'media-source://immich/demo';
+  const albums: Record<string, number[]> = { holidays: [1, 2], garden: [3], favorites: [2, 3] };
+  const photos = (album: string) =>
+    albums[album].map((n) => ({
+      title: `${n}.svg`,
+      media_content_id: `${server}|albums|${album}|asset${n}|${n}.svg|image/svg+xml`,
+      media_class: 'image',
+      media_content_type: 'image/svg+xml',
+    }));
+  if (id === 'media-source://immich') return { children: [{ title: 'Immich', media_content_id: server }] };
+  if (id === `${server}|albums`) {
+    return {
+      children: [
+        { title: 'Holidays', media_content_id: `${server}|albums|holidays` },
+        { title: 'Garden', media_content_id: `${server}|albums|garden` },
+      ],
+    };
+  }
+  if (id === `${server}|favorites|favorites`) return { children: photos('favorites') };
+  const album = id.startsWith(`${server}|albums|`) ? id.split('|')[2] : undefined;
+  return album && albums[album] ? { children: photos(album) } : undefined;
+}
+
 // To-do items, calendar events and forecasts, made up around today.
 const todo = [
   { uid: '1', summary: 'Oat milk', status: 'needs_action' },

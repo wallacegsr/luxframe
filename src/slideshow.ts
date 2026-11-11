@@ -1,12 +1,13 @@
 import { LitElement, css, html, nothing } from 'lit';
-import { DEFAULT_PHOTOS, Poller, listPhotos, photoUrl } from './data';
+import { DEFAULT_PHOTOS, IMMICH_ROOT, Poller, listPhotos, photoFolder, photoUrl } from './data';
 import { define } from './define';
 import type { HomeAssistant } from './types';
 
 const LIST_REFRESH_MS = 30 * 60_000;
 
 /**
- * Photos from a Home Assistant media folder, one at a time, crossfading every
+ * Photos from a Home Assistant media folder or an Immich album (through Home
+ * Assistant's Immich integration), one at a time, crossfading every
  * `interval` seconds in a shuffled order. Each photo is loaded before it's
  * shown, so the fade never lands on a half-drawn image.
  */
@@ -14,15 +15,21 @@ export class LuxFrameSlideshow extends LitElement {
   static properties = {
     hass: { attribute: false },
     folder: {},
+    album: {},
     interval: { type: Number },
     _photos: { state: true },
+    _problem: { state: true },
     _layers: { state: true },
     _front: { state: true },
   };
 
   declare hass?: HomeAssistant;
   declare folder?: string;
+  /** An Immich album's name or id; wins over `folder`. */
+  declare album?: string;
   declare interval: number;
+  /** Why there are no photos, when it isn't just an empty folder. */
+  declare _problem?: string;
   declare _photos?: string[];
   /** Two stacked images; the front one is visible, the other fades in next. */
   declare _layers: [string | undefined, string | undefined];
@@ -46,7 +53,7 @@ export class LuxFrameSlideshow extends LitElement {
   }
 
   protected willUpdate(): void {
-    const key = this.folder ?? DEFAULT_PHOTOS;
+    const key = `${this.album ?? ''}|${this.folder ?? DEFAULT_PHOTOS}`;
     if (this.hass && key !== this._loadedFor) {
       this._loadedFor = key;
       this._list.refresh();
@@ -55,7 +62,14 @@ export class LuxFrameSlideshow extends LitElement {
 
   private async _loadList(): Promise<void> {
     if (!this.hass) return;
-    const photos = await listPhotos(this.hass, this.folder).catch(() => []);
+    let photos: string[] = [];
+    try {
+      const folder = await photoFolder(this.hass, { folder: this.folder, album: this.album });
+      photos = await listPhotos(this.hass, folder).catch(() => []);
+      this._problem = undefined;
+    } catch (e) {
+      this._problem = (e as Error).message;
+    }
     const changed = photos.join() !== (this._photos ?? []).join();
     this._photos = photos;
     if (changed) {
@@ -96,8 +110,9 @@ export class LuxFrameSlideshow extends LitElement {
   }
 
   protected render() {
+    if (this._problem) return html`<div class="empty">${this._problem}</div>`;
     if (this._photos && !this._photos.length) {
-      return html`<div class="empty">No photos in ${folderName(this.folder)}</div>`;
+      return html`<div class="empty">No photos in ${this.album ? `\u201c${this.album}\u201d` : folderName(this.folder)}</div>`;
     }
     return html`${this._layers.map((url, i) =>
       url
@@ -155,6 +170,6 @@ function preload(url: string): Promise<boolean> {
 
 /** "local/holiday" for the message, not the whole media-source address. */
 export const folderName = (folder = DEFAULT_PHOTOS): string =>
-  folder.replace('media-source://media_source/', '') || 'local';
+  folder.startsWith(IMMICH_ROOT) ? 'this Immich album' : folder.replace('media-source://media_source/', '') || 'local';
 
 define('luxframe-slideshow', LuxFrameSlideshow);

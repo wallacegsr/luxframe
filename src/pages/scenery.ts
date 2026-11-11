@@ -93,7 +93,8 @@ export class LuxFramePhotosPage extends ClockPage {
   protected render() {
     const now = new Date();
     return html`
-      <luxframe-slideshow .hass=${this.hass} .folder=${this.config?.folder} .interval=${this.config?.interval ?? 30}>
+      <luxframe-slideshow .hass=${this.hass} .folder=${this.config?.folder} .album=${this.config?.album}
+        .interval=${this.config?.interval ?? 30}>
       </luxframe-slideshow>
       ${this.config?.clock === false
         ? nothing

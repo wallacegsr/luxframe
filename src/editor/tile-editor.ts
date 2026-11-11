@@ -1,11 +1,16 @@
 import { dump, load } from 'js-yaml';
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { define } from '../define';
-import { resolve } from '../entity';
+import { domainOf, resolve } from '../entity';
 import { MAX_ROWS, sizeFor, sizeOf, spanOf } from '../sizes';
-import type { CardTileConfig, GridTileConfig, HomeAssistant, TileSize } from '../types';
+import type { CardTileConfig, GridTileConfig, HomeAssistant, PhotoTileConfig, TileSize } from '../types';
 import { normalizeTile, tileLabel } from './layout';
 import './card-visual';
+import './photo-settings';
+import type { PhotoSettings } from './photo-settings';
+
+/** What a tap on a device's tile does: open its controls, or work it like a switch. */
+const SWITCHABLE = new Set(['light', 'switch', 'fan', 'input_boolean']);
 import { editorStyles } from './sheet';
 
 const FITS: Array<{ fit: NonNullable<CardTileConfig['fit']>; label: string; hint: string }> = [
@@ -208,8 +213,9 @@ export class LuxFrameTileEditor extends LitElement {
     const size = sizeOf(tile);
     const [w, h] = spanOf(tile, this.columns);
     const kind = tile.type ?? 'entity';
-    const named = kind === 'entity' || kind === 'thermostat';
+    const named = kind === 'entity' || kind === 'switch' || kind === 'thermostat';
     const entity = 'entity' in tile ? tile.entity : undefined;
+    const switchable = (kind === 'entity' || kind === 'switch') && !!entity && SWITCHABLE.has(domainOf(entity));
     const fallbackName = entity ? resolve(this.hass, entity).name : '';
 
     return html`
@@ -242,7 +248,30 @@ export class LuxFrameTileEditor extends LitElement {
             />`
         : nothing}
 
+      ${switchable
+        ? html`<h3>A tap</h3>
+            <div class="row" role="group" aria-label="A tap">
+              <button class="chip ${kind === 'entity' ? 'on' : ''}" aria-pressed=${kind === 'entity'}
+                @click=${() => this._set({ type: undefined })}>Opens its controls</button>
+              <button class="chip ${kind === 'switch' ? 'on' : ''}" aria-pressed=${kind === 'switch'}
+                @click=${() => this._set({ type: 'switch' })}>Turns it on and off</button>
+            </div>
+            <p class="muted hint">
+              ${kind === 'switch'
+                ? 'Anywhere on the tile. Drag up or down to dim; a dimmed light shows its level.'
+                : 'Tap the icon to turn it on and off. Drag up or down to dim.'}
+            </p>`
+        : nothing}
+
       ${kind === 'card' ? this._renderCard(tile as CardTileConfig) : nothing}
+
+      ${kind === 'photo'
+        ? html`<luxframe-photo-settings
+            .hass=${this.hass}
+            .value=${tile as PhotoTileConfig}
+            @change=${(e: CustomEvent<PhotoSettings>) => this._set({ ...e.detail })}
+          ></luxframe-photo-settings>`
+        : nothing}
 
       <h3>Shows</h3>
       <div class="row">

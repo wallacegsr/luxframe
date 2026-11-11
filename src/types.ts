@@ -107,6 +107,14 @@ export interface EntityTileConfig extends GridTileBase {
   icon?: string;
 }
 
+/** A light switch: a tap anywhere turns it on or off, a drag up or down dims it. */
+export interface SwitchTileConfig extends GridTileBase {
+  type: 'switch';
+  entity: string;
+  name?: string;
+  icon?: string;
+}
+
 export interface ThermostatTileConfig extends GridTileBase {
   type: 'thermostat';
   entity: string;
@@ -142,10 +150,16 @@ export interface CameraTileConfig extends GridTileBase {
   entity: string;
 }
 
-export interface PhotoTileConfig extends GridTileBase {
-  type: 'photo';
+/** Where photos come from: a media folder, or an album from Home Assistant's Immich integration. */
+export interface PhotoSource {
   /** A media source folder; default `media-source://media_source/local`. */
   folder?: string;
+  /** An Immich album's name or id, from Home Assistant's Immich integration. Wins over `folder`. */
+  album?: string;
+}
+
+export interface PhotoTileConfig extends GridTileBase, PhotoSource {
+  type: 'photo';
   /** Seconds per photo. Default 30. */
   interval?: number;
 }
@@ -186,6 +200,7 @@ export interface RoomTileConfig extends GridTileBase {
 
 export type GridTileConfig =
   | EntityTileConfig
+  | SwitchTileConfig
   | ThermostatTileConfig
   | WeatherTileConfig
   | ClockTileConfig
@@ -288,9 +303,8 @@ export interface CamerasPageConfig extends BadgeLook {
   entities?: string[];
 }
 
-export interface PhotosPageConfig {
+export interface PhotosPageConfig extends PhotoSource {
   type: 'photos';
-  folder?: string;
   interval?: number;
   /** Show the time over the photos. Default true. */
   clock?: boolean;

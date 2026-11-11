@@ -82,7 +82,7 @@ views:
 | `weather` | `entity` (default: your first weather entity). Now, the next 12 hours and the week. |
 | `calendar` | `entities` (default: every calendar), `days` (default 7), `title`. An agenda by day. |
 | `cameras` | `entities` (default: every camera), `title`. Stills every 10 s; tap one to stream it. |
-| `photos` | `folder` (a media folder, default the whole local media folder), `interval` (seconds, default 30), `clock` (default `true`) |
+| `photos` | `folder` (a media folder, default the whole local media folder) or `album` (an [Immich album](#photos-from-immich)), `interval` (seconds, default 30), `clock` (default `true`) |
 | `night`  | `weather` (optional, for the temperature). A dim clock on black that drifts a little each minute. |
 
 Any page can have `hidden: true` to keep it in the config but out of the frame.
@@ -188,14 +188,15 @@ are medium (large from four columns), and one column is small however tall.
 | Tile type      | Options                                   | Default size |
 | -------------- | ----------------------------------------- | ------------ |
 | `entity`       | `entity`, `name`, `icon`. A bare entity id is shorthand for this. | `s` |
+| `switch`       | `entity` (a light, switch, fan or `input_boolean`), `name`, `icon`. A light switch: a tap anywhere turns it on or off, a drag up or down dims it, and a dimmed light shows its level as a fill. | `s` |
 | `thermostat`   | `entity` (a `climate.*`), `name`. Glass, with what it's doing in the mode's color; medium and large tiles add mode buttons. | `m` |
 | `weather`      | `entity` (default: your first weather entity) | `s`      |
 | `clock`        |                                           | `s`          |
 | `analog-clock` | Drawn on the background, with no glass    | `s`          |
 | `calendar`     | `entities` (default: every calendar), `view`: `upcoming` or `month`. A tap opens the calendar page. | `m` |
 | `now-playing`  | `entity` (default: whichever speaker is playing, Music Assistant first). A tap opens the [speaker's details](#detail-pages). | `w` |
-| `camera`       | `entity`. A tap streams it in Home Assistant's dialog. | `m` |
-| `photo`        | `folder`, `interval` (seconds, default 30) | `m`         |
+| `camera`       | `entity`. A still every 10 seconds; a tap streams it in Home Assistant's dialog. | `m` |
+| `photo`        | `folder` or `album` (an [Immich album](#photos-from-immich)), `interval` (seconds, default 30) | `m` |
 | `sun`          | `entity` (default `sun.sun`). Next sunrise or sunset; an arc on bigger tiles. | `s` |
 | `todo`         | `entity` (a `todo.*`). Tap a circle to tick an item off. | `m` |
 | `room`         | `area` (id or name). Temperature and lights; the icon switches the room's lights, the rest opens the page with the room's name. | `s` |
@@ -204,7 +205,28 @@ are medium (large from four columns), and one column is small however tall.
 When something a tile or page needs isn't there, it says so plainly: "No
 weather", "No calendar", "No camera", "No photos in local/holiday".
 Picking a calendar, camera, to-do list, speaker or the sun on the tablet gives
-it its own tile kind, and **Add tile → Rooms** adds a room tile.
+it its own tile kind, and **Add tile → Rooms** adds a room tile. **Add tile →
+Widgets → Light switch** and **Camera** ask which light or camera next.
+
+#### Photos from Immich
+
+The photo tile and the photos page can show an album from an
+[Immich](https://immich.app) server. LuxFrame reaches Immich through Home
+Assistant's own [Immich integration](https://www.home-assistant.io/integrations/immich/):
+add it under **Settings → Devices & services** with your server's address and
+an API key made in Immich (**Account settings → API keys**). Your albums, and
+your favorites, then appear under **Photos from** when you edit a photo tile,
+or under **Customize → This page** on the photos page. In YAML, name the album:
+
+```yaml
+- type: photos
+  album: Summer 2026   # an album's name, any case, or its id; or "Favorites"
+```
+
+Going through Home Assistant keeps the API key in Home Assistant rather than in
+the dashboard's config, where anyone who can open the dashboard could read it.
+It also works with Immich as installed: Immich doesn't let other web pages call
+it directly, so a browser couldn't reach it on its own.
 
 ### Home Assistant cards
 
@@ -294,7 +316,9 @@ spins faster the higher its speed.
 ### Tile gestures
 
 - **Tap the icon** to switch the entity on or off. Scenes and scripts run from
-  a tap anywhere on the tile.
+  a tap anywhere on the tile, and so does a light switch tile (`switch`).
+  Editing a light's or switch's tile, **A tap → Turns it on and off** makes it
+  one.
 - **Tap the name**, or anywhere else on the tile, to open its details.
 - **Drag up or down** on a dimmable light, a shade or a fan to set its level.
   A full tile height covers 0–100%.

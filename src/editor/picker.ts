@@ -7,13 +7,43 @@ import { dashboardCards, type FoundCard } from './dashboard-cards';
 import { isUseful, pickable, tileFor } from './layout';
 import { editorStyles } from './sheet';
 
-const WIDGETS: Array<{ label: string; sub: string; tile: GridTileConfig }> = [
+/** A widget that shows one device asks which, from these domains, before it's added. */
+interface Widget {
+  label: string;
+  sub: string;
+  tile: GridTileConfig;
+  needs?: { domains: string[]; prompt: string; none: string; make: (entity: string) => GridTileConfig };
+}
+
+const WIDGETS: Widget[] = [
+  {
+    label: 'Light switch',
+    sub: 'Tap to turn on and off; drag up or down to dim',
+    tile: { type: 'switch', entity: '' },
+    needs: {
+      domains: ['light', 'switch', 'fan', 'input_boolean'],
+      prompt: 'Which light or switch?',
+      none: 'No lights or switches in Home Assistant.',
+      make: (entity) => ({ type: 'switch', entity }),
+    },
+  },
+  {
+    label: 'Camera',
+    sub: 'A camera’s picture, refreshed every few seconds',
+    tile: { type: 'camera', entity: '' },
+    needs: {
+      domains: ['camera'],
+      prompt: 'Which camera?',
+      none: 'No cameras in Home Assistant.',
+      make: (entity) => ({ type: 'camera', entity }),
+    },
+  },
   { label: 'Clock', sub: 'The time and date', tile: { type: 'clock' } },
   { label: 'Analog clock', sub: 'A clock face on the background', tile: { type: 'analog-clock' } },
   { label: 'Up next', sub: 'Coming events from every calendar', tile: { type: 'calendar' } },
   { label: 'Month', sub: 'This month, with busy days marked', tile: { type: 'calendar', view: 'month' } },
   { label: 'Now playing', sub: 'Whichever speaker is playing', tile: { type: 'now-playing' } },
-  { label: 'Photos', sub: 'A slideshow from the media folder', tile: { type: 'photo' } },
+  { label: 'Photos', sub: 'A slideshow from a media folder or an Immich album', tile: { type: 'photo' } },
   { label: 'Sunrise and sunset', sub: 'When the sun next rises or sets', tile: { type: 'sun' } },
 ];
 
@@ -35,6 +65,7 @@ export class LuxFramePicker extends LitElement {
     _query: { state: true },
     _found: { state: true },
     _allCards: { state: true },
+    _widget: { state: true },
   };
 
   declare hass?: HomeAssistant;
@@ -44,6 +75,8 @@ export class LuxFramePicker extends LitElement {
   /** Cards on the user's dashboards; undefined while they're being read. */
   declare _found?: FoundCard[];
   declare _allCards: boolean;
+  /** A widget waiting for its device to be chosen. */
+  declare _widget?: Widget;
 
   private _looking = false;
 
@@ -68,6 +101,45 @@ export class LuxFramePicker extends LitElement {
     if (!matchMedia('(pointer: coarse)').matches) {
       (this.renderRoot.querySelector('input') as HTMLInputElement | null)?.focus();
     }
+  }
+
+  private _choose(w: Widget): void {
+    if (!w.needs) return this._pick(w.tile);
+    this._widget = w;
+    this._query = '';
+  }
+
+  /** The second step of a widget that shows one device: which one. */
+  private _renderDevices(w: Widget) {
+    const needs = w.needs!;
+    const q = this._query.trim().toLowerCase();
+    const found = this._entities().filter(({ s }) => needs.domains.includes(domainOf(s.entity_id)));
+    return html`
+      <div class="row">
+        <button class="chip" @click=${() => ((this._widget = undefined), (this._query = ''))}>‹ Back</button>
+      </div>
+      <h3>${needs.prompt}</h3>
+      <input
+        type="search"
+        placeholder="Search by name or room…"
+        aria-label="Search"
+        .value=${this._query}
+        @input=${(e: Event) => (this._query = (e.target as HTMLInputElement).value)}
+      />
+      ${found.length
+        ? html`<ul class="list">
+            ${found.slice(0, LIMIT).map(
+              ({ s, name, area }) => html`<li>
+                <button class="item" @click=${() => this._pick(needs.make(s.entity_id))}>
+                  <span class="icon">${stateIcon(this.hass, s, undefined, name)}</span>
+                  <span class="text"><span class="name">${name}</span>
+                    <div class="sub">${[area, domainOf(s.entity_id)].filter(Boolean).join(' · ')}</div></span>
+                </button>
+              </li>`,
+            )}
+          </ul>`
+        : html`<p class="muted">${q ? `Nothing matches “${this._query}”.` : needs.none}</p>`}
+    `;
   }
 
   private _pick(tile: GridTileConfig | string): void {
@@ -143,6 +215,7 @@ export class LuxFramePicker extends LitElement {
   }
 
   protected render() {
+    if (this._widget) return this._renderDevices(this._widget);
     const q = this._query.trim().toLowerCase();
     const widgets = this.entitiesOnly ? [] : WIDGETS.filter((w) => !q || w.label.toLowerCase().includes(q));
     const rooms = this.entitiesOnly
@@ -180,7 +253,7 @@ export class LuxFramePicker extends LitElement {
             <ul class="list">
               ${widgets.map(
                 (w) => html`<li>
-                  <button class="item" @click=${() => this._pick(w.tile)}>
+                  <button class="item" @click=${() => this._choose(w)}>
                     <span class="icon"><span class="glyph">${w.label.charAt(0)}</span></span>
                     <span class="text"><span class="name">${w.label}</span>
                       <div class="sub">${w.sub}</div></span>
