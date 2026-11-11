@@ -6,6 +6,13 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A LuxFrame logo, and a README header with badges for stars, downloads, the
+  latest release and the build.
+- A Validate workflow that builds the card and runs HACS's checks on every
+  push and daily, as HACS's default store requires.
+
 ## [0.14.2] - 2026-11-10
 
 ### Changed

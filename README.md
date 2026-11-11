@@ -1,10 +1,35 @@
-# LuxFrame
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/banner-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/brand/banner-light.svg">
+    <img src="docs/brand/banner-light.svg" alt="LuxFrame for Home Assistant" width="560">
+  </picture>
+</p>
 
-A calm, minimalist wall-tablet dashboard for Home Assistant. You swipe between
-full-screen pages: grids of glass tiles, a big clock, one page per room, your
-scenes. It's built to
-live on an Android tablet in Kiosk Satellite, but it runs in any browser that
-can open a Home Assistant dashboard.
+<p align="center">
+  <a href="https://github.com/wallacegsr/luxframe/stargazers"><img src="https://img.shields.io/github/stars/wallacegsr/luxframe?style=for-the-badge&label=stars&color=d4a017" alt="Stars"></a>
+  <a href="https://github.com/wallacegsr/luxframe/releases"><img src="https://img.shields.io/github/downloads/wallacegsr/luxframe/total?style=for-the-badge&label=downloads&color=e8604c" alt="Downloads"></a>
+  <a href="https://github.com/wallacegsr/luxframe/releases/latest"><img src="https://img.shields.io/github/v/release/wallacegsr/luxframe?style=for-the-badge&label=release&color=5f9ea0" alt="Latest release"></a>
+  <a href="https://github.com/wallacegsr/luxframe/actions/workflows/validate.yml"><img src="https://img.shields.io/github/actions/workflow/status/wallacegsr/luxframe/validate.yml?branch=main&style=for-the-badge&label=build" alt="Build"></a>
+  <a href="https://hacs.xyz"><img src="https://img.shields.io/badge/HACS-custom-41bdf5?style=for-the-badge" alt="HACS custom repository"></a>
+</p>
+
+<p align="center">
+  A calm, swipeable glass dashboard for Home Assistant wall tablets.<br>
+  One Lovelace card, fully local, MIT licensed.
+</p>
+
+<p align="center">
+  <a href="#install">Install</a> ·
+  <a href="#set-up-a-dashboard">Get started</a> ·
+  <a href="#features">Features</a> ·
+  <a href="CHANGELOG.md">Changelog</a>
+</p>
+
+You swipe between full-screen pages: grids of glass tiles, a big clock, one
+page per room, your scenes. LuxFrame is built to live on an Android tablet in
+Kiosk Satellite, but it runs in any browser that can open a Home Assistant
+dashboard.
 
 LuxFrame is a single Lovelace card that fills a panel view. Pages swipe with
 native scroll-snap, so it feels right on touch and also works with a trackpad,
@@ -84,14 +109,16 @@ the screen's brightness, pinned tiles, a dock of shortcuts, and **Ask Home
 Assistant** to type a request. See
 [Quick panel and Assist](#quick-panel-and-assist).
 
+![The quick panel: what's playing, brightness, pinned tiles, a dock and Ask Home Assistant](docs/screenshots/quick-panel.webp)
+
 **Edit on the tablet.** Hold a tile to move, resize and remove tiles, or add
 one from a list of every entity and widget. Customize changes the look and
 the pages without touching YAML. See
 [Editing on the tablet](#editing-on-the-tablet).
 
 <table><tr>
-<td><img src="docs/screenshots/quick-panel.webp" alt="The quick panel"></td>
 <td><img src="docs/screenshots/editing.webp" alt="Editing a page"></td>
+<td><img src="docs/screenshots/add-tile.webp" alt="Adding a tile: the list of widgets"></td>
 </tr></table>
 
 **Your look.** Frosted glass or flat tiles, light, dark or your Home

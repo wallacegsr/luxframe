@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
+  <g>
+    <defs>
+      <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#3b2a57" />
+        <stop offset="0.55" stop-color="#1c1a2b" />
+        <stop offset="1" stop-color="#173a46" />
+      </linearGradient>
+      <radialGradient id="glow" cx="0.3" cy="0.25" r="0.6">
+        <stop offset="0" stop-color="#8f6bd1" stop-opacity="0.45" />
+        <stop offset="1" stop-color="#8f6bd1" stop-opacity="0" />
+      </radialGradient>
+    </defs>
+    <rect x="4" y="4" width="152" height="152" rx="38" fill="url(#bg)" />
+    <rect x="4" y="4" width="152" height="152" rx="38" fill="url(#glow)" />
+    <rect x="4.75" y="4.75" width="150.5" height="150.5" rx="37.25" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="1.5" />
+    <rect x="30" y="30" width="46" height="46" rx="13" fill="#f2f0f5" />
+    <path d="M53 41a9 9 0 0 0-5 16.5V60h10v-2.5A9 9 0 0 0 53 41zM49 64h8" fill="none" stroke="#f5b800" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+    <rect x="84" y="30" width="46" height="46" rx="13" fill="#ffffff" fill-opacity="0.12" stroke="#ffffff" stroke-opacity="0.22" />
+    <rect x="30" y="84" width="46" height="46" rx="13" fill="#ffffff" fill-opacity="0.12" stroke="#ffffff" stroke-opacity="0.22" />
+    <rect x="84" y="84" width="46" height="46" rx="13" fill="#ffffff" fill-opacity="0.12" stroke="#ffffff" stroke-opacity="0.22" />
+    <circle cx="107" cy="53" r="9" fill="none" stroke="#ffffff" stroke-opacity="0.75" stroke-width="3" />
+    <path d="M44 107h18M53 98v18" stroke="#ffffff" stroke-opacity="0.75" stroke-width="3" stroke-linecap="round" />
+    <path d="M97 112l7-9 6 5 9-11" fill="none" stroke="#5ec8e5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+</svg>
