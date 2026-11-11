@@ -62,7 +62,7 @@ export function pageLabel(page: PageConfig, index: number): string {
 /**
  * The heading a page shows when it has no title of its own, for the pages
  * that show one. Tiles show none until given a title; a room always has one.
- * Weather, clock, photos, night and xBloom pages are full-screen and have no heading.
+ * Weather, clock, photos and night pages are full-screen and have no heading.
  */
 export const TITLE_DEFAULTS: Partial<Record<PageConfig['type'], string>> = {
   grid: '',
@@ -70,6 +70,7 @@ export const TITLE_DEFAULTS: Partial<Record<PageConfig['type'], string>> = {
   cameras: 'Cameras',
   scenes: 'Scenes',
   room: '',
+  xbloom: 'xBloom',
 };
 
 /** Pages that can be added on the tablet, blank or with their defaults. */

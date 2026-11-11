@@ -205,7 +205,7 @@ views:
 | `cameras` | `entities` (default: every camera), `title`. Stills every 10 s; tap one to stream it. |
 | `photos` | `folder` (a media folder, default the whole local media folder) or `album` (an [Immich album](#photos-from-immich)), `interval` (seconds, default 30), `clock` (default `true`). Tap the right half for the next photo, the left half to go back. |
 | `night`  | `weather` (optional, for the temperature). A dim clock on black that drifts a little each minute. |
-| `xbloom` | Your [xBloom](#xbloom-page) coffee machine: LuxFrame's own view for xBloom Studio, or ha-xbloom's panel. `tab` (`home`, `recipes`, `manual` or `settings`). With ha-xbloom: `theme` (`auto`, `light`, `dark`), `backdrop` (default `false`). |
+| `xbloom` | Your [xBloom](#xbloom-page) coffee machine: LuxFrame's own view for xBloom Studio, or ha-xbloom's panel. `tab` (`home`, `recipes`, `manual` or `settings`). With xBloom Studio: `title` (default "xBloom"; empty for none), `columns` (default 6), `portrait_columns` (2), `rows` (2), `portrait_rows` (rows + 2), `scale` (1), and `brew` and `manual`, the cards on those tabs (`card`, `size`, `fit`). With ha-xbloom: `theme` (`auto`, `light`, `dark`), `backdrop` (default `false`). |
 
 Any page can have `hidden: true` to keep it in the config but out of the frame.
 The frame opens on the first page, and goes back to it after `home_after`
@@ -227,12 +227,16 @@ ha-xbloom's panel, in LuxFrame's style:
 - **Brew** shows what the machine is doing: the weight in a ring that fills
   toward the recipe's water, the stages (beans, grind, pour, enjoy), the pour
   it's on and the time, with Pause, Resume and Cancel. On the grinder or
-  brewer screen: its settings as sliders. Beside it, the recipe card: a
+  brewer screen: its settings as sliders. The brew graph draws the weight
+  as it pours, filling toward the recipe's water (the dashed line), with each
+  pour marked and the flow in grams a second as a second line; touch it to
+  read the weight and flow at any moment. After a brew it keeps that brew
+  until the next begins. Beside it, the recipe card: a
   banner with the dose, the recipe picker, tiles for dose, ratio, water, grind
   and temperature (tap Dose, Ratio or Grind to change it), and each pour in
   turn with its running total, temperature, flow rate, pattern and wait, then
-  any bypass water. Below that, the bag of coffee, taste, whether to grind
-  the beans, and Start Brew, which lights up once the machine has the recipe
+  any bypass water. Then the bag of coffee, taste, whether to grind the
+  beans, and Start Brew, which lights up once the machine has the recipe
   ready. After a brew, Coffee Lab asks how it was.
 - **Recipes** has My recipes, as cards to search and filter by coffee or tea.
   Open one for its numbers and pours, then Brew this, Edit, Duplicate,
@@ -253,6 +257,39 @@ ha-xbloom's panel, in LuxFrame's style:
 
 ha-xbloom's Pods and Store tabs aren't here: xBloom Studio has no pod library
 or store to show. `tab` picks the tab to open on with either integration.
+
+The Brew and Manual tabs are cards on a grid, like a grid page's tiles, so
+you can fit them to your screen. In edit mode, drag a card to move it, drag
+its corner to resize it, or tap it to choose what it does when its contents
+don't fit (shrink to fit, the default, or scroll) and to hide it; + adds a
+hidden card back. Customize sets the grid's columns and rows, upright too,
+the page's size, which scales the whole view, and whether the title shows;
+rename the page under Pages to change it. In YAML:
+
+```yaml
+pages:
+  - type: xbloom
+    title: Coffee bar    # default "xBloom"; '' hides it
+    columns: 6           # default 6; portrait_columns, default 2
+    rows: 2              # rows on one screen; portrait_rows, default rows + 2
+    scale: 0.9           # the view's size, 0.5 to 2
+    brew:                # in the order shown: machine, recipe, graph, brew
+      - card: machine
+        size: 2x2
+      - card: graph
+        size: 4x1
+      - card: recipe
+        size: 2x2
+        fit: scroll      # shrink (the default) or scroll
+      - card: brew
+        size: 2x1
+    manual:              # grinder, pour, scale
+      - card: scale
+        size: 2x1
+```
+
+Leave out `brew` or `manual` for the default cards; a card left out of the
+list is hidden.
 
 With [ha-xbloom](https://github.com/saya6k/ha-xbloom), the page shows that
 integration's own panel: Brew, Recipes, Manual and Settings, looking and

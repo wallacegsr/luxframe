@@ -31,6 +31,7 @@ import type {
   PageConfig,
   QuickDockConfig,
   QuickDockItem,
+  XBloomPageConfig,
 } from './types';
 
 const PAGE_HOLD_MS = 1000;
@@ -813,6 +814,15 @@ export class LuxFrameCard extends LitElement {
     return config?.type === 'grid' ? config : undefined;
   }
 
+  /** Changes some of a page's settings in the draft, as a page with a layout of its own asks. */
+  private _patchPage(page: number, patch: Record<string, unknown>): void {
+    const config = this._draft?.pages[page];
+    if (!config || !this._draft) return;
+    const pages = [...this._draft.pages];
+    pages[page] = { ...config, ...patch } as PageConfig;
+    this._draft = { ...this._draft, pages };
+  }
+
   private _setTiles(page: number, tiles: Array<GridTileConfig | string>): void {
     const grid = this._gridAt(page);
     if (!grid || !this._draft) return;
@@ -1185,7 +1195,9 @@ export class LuxFrameCard extends LitElement {
       case 'night':
         return html`<luxframe-night-page .hass=${this.hass} .config=${page}></luxframe-night-page>`;
       case 'xbloom':
-        return html`<luxframe-xbloom-page .hass=${this.hass} .config=${page}></luxframe-xbloom-page>`;
+        return html`<luxframe-xbloom-page .hass=${this.hass} .config=${page} ?editing=${this._editing}
+          @luxframe-xbloom-change=${(e: CustomEvent<Partial<XBloomPageConfig>>) => this._patchPage(i, e.detail)}
+        ></luxframe-xbloom-page>`;
       case 'grid':
         return html`<luxframe-grid
           .hass=${this.hass}

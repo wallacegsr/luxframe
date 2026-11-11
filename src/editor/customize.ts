@@ -4,7 +4,16 @@ import { dockKind, dockLabel, dockOf, normalizeDock } from '../quick/dock';
 import { MAX_PINNED } from '../quick/panel';
 import { define } from '../define';
 import { resolve } from '../entity';
-import type { BadgeLook, GridPageConfig, HomeAssistant, QuickDockItem, LuxFrameConfig, PageConfig, QuickPanelConfig } from '../types';
+import type {
+  BadgeLook,
+  GridPageConfig,
+  HomeAssistant,
+  QuickDockItem,
+  LuxFrameConfig,
+  PageConfig,
+  QuickPanelConfig,
+  XBloomPageConfig,
+} from '../types';
 import { PAGE_KINDS, TITLE_DEFAULTS, kindLabel, pageLabel, suggestPages } from './layout';
 import { editorStyles } from './sheet';
 import './photo-settings';
@@ -165,16 +174,61 @@ export class LuxFrameCustomize extends LitElement {
     this._setPages(pages);
   }
 
-  private _stepper(label: string, value: number, min: number, max: number, set: (v: number) => void) {
+  private _stepper(
+    label: string,
+    value: number,
+    min: number,
+    max: number,
+    set: (v: number) => void,
+    format: (v: number) => string = String,
+    words: [string, string] = ['Fewer', 'More'],
+  ) {
     return html`
       <div class="setting">
         <span>${label}</span>
         <div class="stepper" role="group" aria-label=${label}>
-          <button aria-label="Fewer ${label.toLowerCase()}" ?disabled=${value <= min} @click=${() => set(value - 1)}>−</button>
-          <output>${value}</output>
-          <button aria-label="More ${label.toLowerCase()}" ?disabled=${value >= max} @click=${() => set(value + 1)}>+</button>
+          <button aria-label="${words[0]} ${label.toLowerCase()}" ?disabled=${value <= min} @click=${() => set(value - 1)}>−</button>
+          <output>${format(value)}</output>
+          <button aria-label="${words[1]} ${label.toLowerCase()}" ?disabled=${value >= max} @click=${() => set(value + 1)}>+</button>
         </div>
       </div>
+    `;
+  }
+
+  /** The xBloom page's layout with xBloom Studio: the grid of its Brew and Manual tabs, and how big it's drawn. */
+  private _renderXBloom(page: XBloomPageConfig) {
+    const set = (changes: Partial<Omit<XBloomPageConfig, 'type'>>) =>
+      this._setPage(this.page, changes as unknown as Partial<GridPageConfig>);
+    const rows = page.rows ?? 2;
+    // In tenths, so the stepper moves 10% at a time.
+    const size = Math.round((page.scale ?? 1) * 10);
+    const laidOut = page.brew !== undefined || page.manual !== undefined;
+    const titled = page.title !== '';
+    return html`
+      <h3>This page</h3>
+      <p class="muted note">With xBloom Studio. Hold a card on the Brew or Manual tab to move or resize it.</p>
+      <div class="row" role="group" aria-label="Title">
+        <span class="muted">Title</span>
+        <button class="chip ${titled ? 'on' : ''}" aria-pressed=${titled} @click=${() => set({ title: undefined })}>Show</button>
+        <button class="chip ${titled ? '' : 'on'}" aria-pressed=${!titled} @click=${() => set({ title: '' })}>Hide</button>
+        ${titled ? html`<span class="muted">Rename it under Pages.</span>` : nothing}
+      </div>
+      <div class="settings">
+        ${this._stepper('Columns', page.columns ?? 6, 1, 12, (columns) => set({ columns }))}
+        ${this._stepper('Columns upright', page.portrait_columns ?? 2, 1, 8, (v) => set({ portrait_columns: v }))}
+        ${this._stepper('Rows', rows, 1, 8, (v) => set({ rows: v }))}
+        ${this._stepper('Rows upright', page.portrait_rows ?? rows + 2, 1, 10, (v) => set({ portrait_rows: v }))}
+        ${this._stepper('Size', size, 5, 20, (v) => set({ scale: v === 10 ? undefined : v / 10 }), (v) => `${v * 10}%`, [
+          'Smaller',
+          'Larger',
+        ])}
+      </div>
+      ${laidOut
+        ? html`<div class="row look-from">
+            <span class="muted">The cards are moved or resized.</span>
+            <button class="chip" @click=${() => set({ brew: undefined, manual: undefined })}>Reset cards</button>
+          </div>`
+        : nothing}
     `;
   }
 
@@ -215,6 +269,7 @@ export class LuxFrameCustomize extends LitElement {
     if (!page) return nothing;
     const grid = page.type === 'grid';
     const titled = hasTitleBar(page);
+    if (page.type === 'xbloom') return this._renderXBloom(page);
     if (page.type === 'photos') {
       return html`<h3>This page</h3>
         <luxframe-photo-settings

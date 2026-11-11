@@ -62,6 +62,10 @@ export class LuxFrameGrid extends LitElement {
     config: { attribute: false },
     editing: { type: Boolean, reflect: true },
     badges: { attribute: false },
+    renderer: { attribute: false },
+    labeler: { attribute: false },
+    bare: { type: Boolean, reflect: true },
+    addable: { type: Boolean },
     _drag: { state: true },
     _resize: { state: true },
   };
@@ -71,6 +75,14 @@ export class LuxFrameGrid extends LitElement {
   declare editing: boolean;
   /** The title bar's badges, worked out by the frame. */
   declare badges?: BadgeItem[];
+  /** Draws a tile instead of LuxFrame's own tiles, for a page with tiles of its own (the xBloom page). */
+  declare renderer?: (tile: GridTileConfig, shape: TileSize, span: [number, number]) => unknown;
+  /** Names a tile for the edit controls, with `renderer`. */
+  declare labeler?: (tile: GridTileConfig) => string;
+  /** Just the tiles: no title bar, and no page padding of its own. */
+  declare bare: boolean;
+  /** Whether editing shows the add button. Default true. */
+  declare addable: boolean;
   declare _drag?: Drag;
   declare _resize?: Resize;
 
@@ -81,6 +93,8 @@ export class LuxFrameGrid extends LitElement {
   constructor() {
     super();
     this.editing = false;
+    this.bare = false;
+    this.addable = true;
   }
 
   connectedCallback(): void {
@@ -299,8 +313,8 @@ export class LuxFrameGrid extends LitElement {
 
   // ---- Rendering -----------------------------------------------------------
 
-  private _renderTile(tile: GridTileConfig, size: TileSize) {
-    return renderTile(this.hass, tile, size);
+  private _renderTile(tile: GridTileConfig, size: TileSize, span: [number, number]) {
+    return this.renderer ? this.renderer(tile, size, span) : renderTile(this.hass, tile, size);
   }
 
   private _columns(): number {
@@ -372,7 +386,7 @@ export class LuxFrameGrid extends LitElement {
       .filter((item) => item.shows || this.editing);
 
     return html`
-      ${this.config.title || this.badges?.length || this.editing
+      ${!this.bare && (this.config.title || this.badges?.length || this.editing)
         ? html`<div class="head">
             ${this.config.title ? html`<h1>${this.config.title}</h1>` : nothing}
             <luxframe-badges .hass=${this.hass} .items=${this.badges ?? []} ?editing=${this.editing}></luxframe-badges>
@@ -403,13 +417,15 @@ export class LuxFrameGrid extends LitElement {
                 data-index=${index}
                 style="grid-column: span ${span[0]}; grid-row: span ${span[1]}; --i: ${index}"
               >
-                ${this._renderTile(tile, shape)}
-                ${this.editing ? this._renderEditControls(index, tileLabel(this.hass, tile), span) : nothing}
+                ${this._renderTile(tile, shape, span)}
+                ${this.editing
+                  ? this._renderEditControls(index, this.labeler?.(tile) ?? tileLabel(this.hass, tile), span)
+                  : nothing}
               </div>
             `;
           },
         )}
-        ${this.editing
+        ${this.editing && this.addable
           ? html`<button class="cell add" aria-label="Add a tile"
               @click=${() => this._emit('luxframe-add-tile', {})}>
               <svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true">
@@ -433,6 +449,13 @@ export class LuxFrameGrid extends LitElement {
 
       .head {
         margin-bottom: 20px;
+      }
+
+      /* Inside a page of its own: room around the cells for the edit handles. */
+      :host([bare]),
+      :host([bare][editing]) {
+        padding: 10px 10px max(var(--lf-pad), 48px);
+        margin: -10px -10px 0;
       }
 
       .cells {

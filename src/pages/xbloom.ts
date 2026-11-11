@@ -128,12 +128,15 @@ export class LuxFrameXBloomPage extends LitElement {
   static properties = {
     hass: { attribute: false },
     config: { attribute: false },
+    editing: { type: Boolean },
     _status: { state: true },
     _studio: { state: true },
   };
 
   declare hass?: HomeAssistant;
   declare config?: XBloomPageConfig;
+  /** The frame is being edited: the Brew and Manual tabs' cards can be moved and resized. */
+  declare editing: boolean;
   declare _status: Status;
   declare _studio?: StudioEntities;
 
@@ -142,6 +145,7 @@ export class LuxFrameXBloomPage extends LitElement {
   constructor() {
     super();
     this._status = 'waiting';
+    this.editing = false;
   }
 
   protected willUpdate(changed: PropertyValues<this>): void {
@@ -199,8 +203,8 @@ export class LuxFrameXBloomPage extends LitElement {
 
   protected render() {
     if (this._studio) {
-      return html`<luxframe-xbloom-studio .hass=${this.hass} .entities=${this._studio}
-        .tab=${this.config?.tab === 'home' ? 'brew' : this.config?.tab}></luxframe-xbloom-studio>`;
+      return html`<luxframe-xbloom-studio .hass=${this.hass} .entities=${this._studio} .config=${this.config}
+        ?editing=${this.editing} .tab=${this.config?.tab === 'home' ? 'brew' : this.config?.tab}></luxframe-xbloom-studio>`;
     }
     switch (this._status) {
       case 'ready':
@@ -235,8 +239,7 @@ export class LuxFrameXBloomPage extends LitElement {
       overscroll-behavior-y: contain;
     }
 
-    xbloom-panel,
-    luxframe-xbloom-studio {
+    xbloom-panel {
       display: block;
     }
 

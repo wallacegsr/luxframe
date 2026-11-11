@@ -144,7 +144,8 @@ export function addXBloomStudio(hass: HomeAssistant, push: (next: HomeAssistant)
   const get = (key: string) => hass.states[ids[key]];
   const set = (key: string, state: string, attributes: Record<string, unknown> = {}) => {
     const s = get(key);
-    hass.states[ids[key]] = { ...s, state, attributes: { ...s.attributes, ...attributes } };
+    const changed = s.state !== state ? { last_changed: new Date().toISOString() } : {};
+    hass.states[ids[key]] = { ...s, ...changed, state, attributes: { ...s.attributes, ...attributes } };
   };
   const send = () => push({ ...hass, states: { ...hass.states } });
 
@@ -164,11 +165,20 @@ export function addXBloomStudio(hass: HomeAssistant, push: (next: HomeAssistant)
     }, 1200);
   };
 
-  /** Grinds for a few seconds, then runs each pour, a second of brewing a tick. */
+  /**
+   * Grinds for a moment, then runs each pour at about 20 g a second (quicker
+   * than a real one), with a second's wait between pours, half a second a tick.
+   */
   const brew = () => {
     const name = get('select.recipe').state;
     const recipe = RECIPES[name];
     const pours = recipe.pours as Array<{ volume_ml: number }>;
+    // Each tick: the pour it's in, and the weight it pours (0 while waiting).
+    const plan: Array<[number, number]> = [];
+    pours.forEach((p, i) => {
+      for (let left = p.volume_ml; left > 0; left -= 10) plan.push([i + 1, Math.min(10, left)]);
+      if (i < pours.length - 1) plan.push([i + 1, 0], [i + 1, 0]);
+    });
     let t = 0;
     let weight = 0;
     paused = false;
@@ -184,16 +194,21 @@ export function addXBloomStudio(hass: HomeAssistant, push: (next: HomeAssistant)
         send();
         return;
       }
-      const at = t - 3;
-      const pour = Math.min(pours.length, Math.floor(at / 4) + 1);
-      weight = Math.min(pours.reduce((sum, p) => sum + p.volume_ml, 0), weight + 18);
+      const at = t - 4;
+      if (at >= plan.length) {
+        finish(name);
+        send();
+        return;
+      }
+      const [pour, grams] = plan[at];
+      // The scale wobbles a little as water lands.
+      weight += grams ? grams + (Math.random() - 0.5) * 1.6 : 0;
       set('sensor.brew_status', 'brewing');
       set('sensor.current_pour', String(pour), { total_pours: pours.length });
-      set('sensor.brew_time', String(at));
-      set('sensor.scale_weight', weight.toFixed(1));
-      if (at >= pours.length * 4) finish(name);
+      set('sensor.brew_time', String(Math.floor(at / 2)));
+      set('sensor.scale_weight', Math.max(0, weight).toFixed(1));
       send();
-    }, 1000);
+    }, 500);
   };
 
   const stop = () => {
@@ -277,6 +292,10 @@ export function addXBloomStudio(hass: HomeAssistant, push: (next: HomeAssistant)
 
   const ws = hass.callWS!.bind(hass);
   hass.callWS = (async (message: Record<string, any>) => {
+    // The machine's past isn't made up; the graph keeps what it sees.
+    if (message.type === 'history/history_during_period' && message.entity_ids?.every((id: string) => id.includes('xbloom'))) {
+      return {};
+    }
     if (message.type !== 'call_service' || message.domain !== 'xbloom') return ws(message);
     console.log('xBloom Studio', message.service, message.service_data);
     await new Promise((r) => setTimeout(r, 400));

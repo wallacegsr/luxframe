@@ -6,6 +6,28 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.16.1] - 2026-11-11
+
+### Added
+
+- A live brew graph on the xBloom page's Brew tab, with xBloom Studio: the
+  scale's weight as it pours, filling toward the recipe's water, each pour
+  marked, and the flow in grams a second. Touch it to read any moment. After
+  a brew it shows that brew until the next.
+- The xBloom page's Brew and Manual tabs are cards you can move, resize and
+  hide in edit mode, each set to shrink to fit or scroll. Customize sets the
+  page's columns and rows, upright too, and its size. New options: `columns`,
+  `portrait_columns`, `rows`, `portrait_rows`, `scale`, `brew` and `manual`.
+- The xBloom page's title, with xBloom Studio, can be renamed under Pages or
+  hidden in Customize, as `title` (empty for none).
+
+### Changed
+
+- With xBloom Studio, Coffee Lab's rating now shows in the machine card, and
+  the next brew's coffee, taste and beans sit beside their names in a more
+  compact Start Brew card. The Manual tab's grinder, pour and scale are cards
+  too.
+
 ## [0.16.0] - 2026-11-11
 
 ### Added
@@ -565,7 +587,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.16.1...HEAD
+[0.16.1]: https://github.com/wallacegsr/luxframe/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/wallacegsr/luxframe/compare/v0.15.1...v0.16.0
 [0.15.1]: https://github.com/wallacegsr/luxframe/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/wallacegsr/luxframe/compare/v0.14.3...v0.15.0

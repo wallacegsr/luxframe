@@ -1,10 +1,12 @@
 import { css, html, nothing, type TemplateResult } from 'lit';
 import '../../confirm-button';
 import { define } from '../../define';
+import '../../fit';
 import { formatNumber } from '../../history';
 import { icon } from '../../icons';
 import { controls, sectionLabel } from '../../theme';
-import type { HassEntity } from '../../types';
+import type { HassEntity, XBloomCardName } from '../../types';
+import './graph';
 import {
   BACK,
   BUSY,
@@ -28,14 +30,33 @@ import {
 } from './shared';
 
 /**
- * The Brew tab. On the left, what the machine is doing: the scale in a ring
- * that fills toward the recipe's water, the stages of a brew (beans, grind,
- * pour, enjoy), and Pause, Resume and Cancel; or the grinder, brewer or scale
- * screen the machine is on, with its settings. On the right, the next brew:
- * Coffee Lab's rating of the last one when it asks, the recipe card (its
- * banner, picker, numbers and pours), the bag of coffee, taste, and Start
- * Brew once the machine has the recipe ready.
+ * One card of the Brew or Manual tab, laid out on the tab's grid.
+ *
+ * Brew tab:
+ * - `machine`: what the machine is doing: the scale in a ring that fills
+ *   toward the recipe's water, the stages of a brew (beans, grind, pour,
+ *   enjoy), and Pause, Resume and Cancel; or the grinder, brewer or scale
+ *   screen the machine is on. After a brew, Coffee Lab asks how it was.
+ * - `graph`: the brew's weight and flow over time.
+ * - `recipe`: the recipe's banner, picker, numbers and pours.
+ * - `brew`: the bag of coffee, taste, and Start Brew once the recipe's ready.
+ *
+ * Manual tab: `grinder`, `pour` and `scale`, run on their own.
+ *
+ * The contents shrink to fit the card (`fit: shrink`) or scroll (`scroll`),
+ * drawn at most `scale` times their normal size.
  */
+
+/** What each card is called, in the editor. */
+export const CARD_NAMES: Record<XBloomCardName, string> = {
+  machine: 'Machine',
+  graph: 'Brew graph',
+  recipe: 'Recipe',
+  brew: 'Start brew',
+  grinder: 'Grinder',
+  pour: 'Pour',
+  scale: 'Scale',
+};
 
 /** Why the recipe isn't ready, from Recipe Ready's `reason`. */
 const NOT_READY: Record<string, string> = {
@@ -56,12 +77,19 @@ const STAGES = ['beans', 'grind', 'pour', 'enjoy'] as const;
 const STAGE_NAMES = { beans: 'Beans', grind: 'Grind', pour: 'Pour', enjoy: 'Enjoy' };
 const RING = 2 * Math.PI * 54;
 
-export class LuxFrameXBloomBrew extends StudioBase {
+export class LuxFrameXBloomCard extends StudioBase {
   static properties = {
     ...StudioBase.properties,
+    card: { reflect: true },
+    fit: {},
+    scale: { type: Number },
     _picking: { state: true },
     _adjusting: { state: true },
   };
+
+  declare card: XBloomCardName;
+  declare fit: 'shrink' | 'scroll';
+  declare scale: number;
 
   /** The recipe list is open over the picked recipe. */
   declare _picking: boolean;
@@ -70,15 +98,90 @@ export class LuxFrameXBloomBrew extends StudioBase {
 
   constructor() {
     super();
+    this.card = 'machine';
+    this.fit = 'shrink';
+    this.scale = 1;
     this._picking = false;
   }
 
   protected render() {
     const status = this._state('sensor.brew_status')?.state ?? 'unknown';
+    const fitted = (body: unknown, className = '', center = false) => html`
+      <section class="panel glass ${className}">
+        <luxframe-fit .mode=${this.fit === 'scroll' ? 'scroll' : 'shrink'} .size=${this.scale} ?center=${center}>
+          ${body}
+        </luxframe-fit>
+      </section>
+    `;
+    switch (this.card) {
+      case 'graph':
+        return html`<section class="panel glass graph" style="zoom: ${this.scale}">
+          <luxframe-xbloom-graph .hass=${this.hass}></luxframe-xbloom-graph>
+        </section>`;
+      case 'recipe': {
+        const recipe = this._state('select.recipe');
+        return fitted(recipe ? this._recipe(recipe, status) : html`<p class="note pad">No Recipe select.</p>`, 'recipe');
+      }
+      case 'brew':
+        return fitted(html`${this._bag()}${this._settings()}${this._start(status)}`);
+      case 'grinder':
+        return fitted(this._manualGrinder(status));
+      case 'pour':
+        return fitted(this._manualPour(status));
+      case 'scale':
+        return fitted(this._manualScale(status), '', true);
+      default:
+        return fitted(html`<div class="hero">${this._hero(status)}</div>`, '', true);
+    }
+  }
+
+  // ── Manual: the grinder, the brewer and the scale on their own ─────────
+
+  private _manualGrinder(status: string) {
+    const busy = BUSY.includes(status);
     return html`
-      <div class="cols">
-        <section class="panel glass hero">${this._hero(status)}</section>
-        <div class="stack">${this._brew(status)}</div>
+      <h2>${DOTS.grind} Grinder</h2>
+      ${this._slider('number.grind_size', 'Grind size')}
+      ${this._slider('number.grind_speed', 'Speed')}
+      <p class="note">Starts straight away. Put the grounds bin or a cup in place first.</p>
+      <div class="actions">
+        <button class="pill on" ?disabled=${busy || !this.entities['button.grind']}
+          @click=${() => this._press('button.grind')}>Grind</button>
+      </div>
+    `;
+  }
+
+  private _manualPour(status: string) {
+    const busy = BUSY.includes(status);
+    const pattern = this._state('select.brew_pattern');
+    return html`
+      <h2>${DOTS.pour} Pour</h2>
+      ${this._slider('number.brew_volume', 'Water')}
+      ${this._slider('number.brew_temperature', 'Temperature', this._temp)}
+      ${this._slider('number.brew_flow_rate', 'Flow rate')}
+      ${pattern ? html`<h4 class="gap">Pattern</h4>${this._chips(pattern, true, PATTERN_ICONS)}` : nothing}
+      <div class="actions">
+        <button class="pill on" ?disabled=${busy || !this.entities['button.brew_standalone']}
+          @click=${() => this._press('button.brew_standalone')}>Pour</button>
+      </div>
+    `;
+  }
+
+  private _manualScale(status: string) {
+    const busy = BUSY.includes(status);
+    const module = this._usable('sensor.current_module')?.state ?? 'home';
+    const w = Number(this._usable('sensor.scale_weight')?.state);
+    return html`
+      <div class="hero">
+        <h2>${DOTS.enjoy} Scale</h2>
+        <div class="big weigh" aria-live="polite">${Number.isFinite(w) ? formatNumber(this.hass, w, '0.1') : '–'}<small>g</small></div>
+        <div class="actions">
+          <button class="pill glass" @click=${() => this._press('button.tare_scale')}>Tare</button>
+          ${module === 'scale'
+            ? html`<button class="pill glass" @click=${() => this._press('button.back_to_home')}>Leave scale mode</button>`
+            : html`<button class="pill glass" ?disabled=${busy || !this.entities['button.go_to_scale']}
+                @click=${() => this._press('button.go_to_scale')}>Scale mode</button>`}
+        </div>
       </div>
     `;
   }
@@ -106,6 +209,7 @@ export class LuxFrameXBloomBrew extends StudioBase {
     return html`
       ${this._ring(word, target, busy ? recipe?.state : status === 'done' ? this._usable('sensor.last_recipe_card')?.state : undefined)}
       ${this._stages(status)}
+      ${!busy && this._rating() !== nothing ? html`<div class="rating">${this._rating()}</div>` : nothing}
       ${busy
         ? html`<div class="stats">
             ${pour && Number(pour.state) > 0 ? this._stat('Pour', total ? `${pour.state} of ${total}` : pour.state) : nothing}
@@ -233,20 +337,6 @@ export class LuxFrameXBloomBrew extends StudioBase {
 
   // ── The next brew ──────────────────────────────────────────────────────
 
-  private _brew(status: string) {
-    const recipe = this._state('select.recipe');
-    const rating = this._rating();
-    return html`
-      ${rating !== nothing ? html`<section class="panel glass">${rating}</section>` : nothing}
-      ${recipe ? html`<section class="panel glass recipe">${this._recipe(recipe, status)}</section>` : nothing}
-      <section class="panel glass">
-        ${this._bag()}
-        ${this._settings()}
-        ${this._start(status)}
-      </section>
-    `;
-  }
-
   /** Coffee Lab asking how the last brew was. */
   private _rating() {
     const question = this._usable('sensor.coffee_lab_rating_question');
@@ -268,13 +358,15 @@ export class LuxFrameXBloomBrew extends StudioBase {
     if (!options.length) return nothing;
     const left = Number(bag.attributes.remaining_g ?? this._usable('sensor.coffee_lab_remaining')?.state);
     return html`
-      <div class="row-head">
-        <h3>Coffee</h3>
-        ${Number.isFinite(left) && !UNUSABLE.includes(bag.state)
-          ? html`<span class="muted">${formatNumber(this.hass, left, '0')} g left</span>`
-          : nothing}
+      <div class="opt">
+        <span class="label">Coffee</span>
+        <div>
+          ${this._chips(bag, true)}
+          ${Number.isFinite(left) && !UNUSABLE.includes(bag.state)
+            ? html`<span class="muted left">${formatNumber(this.hass, left, '0')} g left</span>`
+            : nothing}
+        </div>
       </div>
-      ${this._chips(bag, true)}
     `;
   }
 
@@ -359,12 +451,14 @@ export class LuxFrameXBloomBrew extends StudioBase {
         ${label}
       </button>`;
     return html`
-      ${taste ? html`<h3 class="gap">Taste</h3>${this._chips(taste)}` : nothing}
+      ${taste ? html`<div class="opt"><span class="label">Taste</span>${this._chips(taste, true)}</div>` : nothing}
       ${grinder
-        ? html`<h3 class="gap">Beans</h3>
-            <div class="chips" role="radiogroup" aria-label="Beans" data-no-swipe>
+        ? html`<div class="opt">
+            <span class="label">Beans</span>
+            <div class="chips wrap" role="radiogroup" aria-label="Beans" data-no-swipe>
               ${beans('Grind them', true)} ${beans('Already ground', false)}
-            </div>`
+            </div>
+          </div>`
         : nothing}
     `;
   }
@@ -405,6 +499,40 @@ export class LuxFrameXBloomBrew extends StudioBase {
     sectionLabel,
     studioStyles,
     css`
+      :host {
+        display: block;
+        height: 100%;
+      }
+
+      .panel {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      luxframe-fit {
+        flex: 1;
+      }
+
+      .pad {
+        padding: 22px;
+      }
+
+      .panel.graph {
+        padding: 18px 20px 16px;
+      }
+
+      .weigh {
+        margin: 18px 0 6px;
+      }
+
+      .rating {
+        align-self: stretch;
+        margin-top: 22px;
+        text-align: left;
+      }
+
       /* The machine's side: centered, like the xBloom app's brew screen. */
       .hero {
         display: flex;
@@ -624,8 +752,34 @@ export class LuxFrameXBloomBrew extends StudioBase {
         transform: rotate(180deg);
       }
 
+      /* The next brew's settings: each one's name beside its chips. */
+      .opt {
+        display: grid;
+        grid-template-columns: 78px 1fr;
+        align-items: baseline;
+        gap: 12px;
+      }
+
+      .opt + .opt {
+        margin-top: 12px;
+      }
+
+      .opt .label {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--lf-muted);
+      }
+
+      .opt .left {
+        display: block;
+        margin-top: 6px;
+        font-size: 14px;
+      }
+
       .start {
-        margin-top: 28px;
+        margin-top: 18px;
       }
 
       .start-brew {
@@ -649,4 +803,4 @@ export class LuxFrameXBloomBrew extends StudioBase {
   ];
 }
 
-define('luxframe-xbloom-brew', LuxFrameXBloomBrew);
+define('luxframe-xbloom-card', LuxFrameXBloomCard);

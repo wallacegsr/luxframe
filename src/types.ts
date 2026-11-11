@@ -406,15 +406,42 @@ export interface NightPageConfig {
   weather?: string;
 }
 
-/** The xBloom integration's own panel, as a page. */
+/** A card on the xBloom page's Brew or Manual tab (xBloom Studio). */
+export type XBloomCardName = 'machine' | 'graph' | 'recipe' | 'brew' | 'grinder' | 'pour' | 'scale';
+
+export interface XBloomCardConfig {
+  card: XBloomCardName;
+  /** A preset, or any columns × rows such as "3x2", as on a grid page. */
+  size?: TileSize | TileSpan;
+  /** `shrink` (default): the card's contents shrink to fit it. `scroll`: full size, scrolling. */
+  fit?: 'shrink' | 'scroll';
+}
+
+/** The xBloom machine, as a page: LuxFrame's own view for xBloom Studio, or ha-xbloom's panel. */
 export interface XBloomPageConfig {
   type: 'xbloom';
+  /** xBloom Studio: the page's heading. Default "xBloom"; empty for none. */
+  title?: string;
   /** The tab it opens on. Default `home` (Brew). */
   tab?: 'home' | 'recipes' | 'manual' | 'settings';
-  /** `auto` (default) follows Home Assistant's dark mode, as the sidebar panel does. */
+  /** ha-xbloom: `auto` (default) follows Home Assistant's dark mode, as the sidebar panel does. */
   theme?: 'auto' | 'light' | 'dark';
-  /** Show the frame's background behind the panel's cards. Default false. */
+  /** ha-xbloom: show the frame's background behind the panel's cards. Default false. */
   backdrop?: boolean;
+  /** xBloom Studio: columns of the Brew and Manual tabs' grid. Default 6. */
+  columns?: number;
+  /** xBloom Studio: columns when the tablet is upright. Default 2. */
+  portrait_columns?: number;
+  /** xBloom Studio: rows that fit on one screen. Default 2. */
+  rows?: number;
+  /** xBloom Studio: rows on one screen when upright. Default `rows` + 2. */
+  portrait_rows?: number;
+  /** xBloom Studio: how big everything on the page is drawn; 1 is normal. Default 1. */
+  scale?: number;
+  /** xBloom Studio: the Brew tab's cards, in order. Left out, the default layout. */
+  brew?: XBloomCardConfig[];
+  /** xBloom Studio: the Manual tab's cards, in order. */
+  manual?: XBloomCardConfig[];
 }
 
 export type PageConfig = (
