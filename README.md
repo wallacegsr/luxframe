@@ -82,7 +82,7 @@ views:
 | `weather` | `entity` (default: your first weather entity). Now, the next 12 hours and the week. |
 | `calendar` | `entities` (default: every calendar), `days` (default 7), `title`. An agenda by day. |
 | `cameras` | `entities` (default: every camera), `title`. Stills every 10 s; tap one to stream it. |
-| `photos` | `folder` (a media folder, default the whole local media folder) or `album` (an [Immich album](#photos-from-immich)), `interval` (seconds, default 30), `clock` (default `true`) |
+| `photos` | `folder` (a media folder, default the whole local media folder) or `album` (an [Immich album](#photos-from-immich)), `interval` (seconds, default 30), `clock` (default `true`). Tap the right half for the next photo, the left half to go back. |
 | `night`  | `weather` (optional, for the temperature). A dim clock on black that drifts a little each minute. |
 
 Any page can have `hidden: true` to keep it in the config but out of the frame.
@@ -196,7 +196,7 @@ are medium (large from four columns), and one column is small however tall.
 | `calendar`     | `entities` (default: every calendar), `view`: `upcoming` or `month`. A tap opens the calendar page. | `m` |
 | `now-playing`  | `entity` (default: whichever speaker is playing, Music Assistant first). A tap opens the [speaker's details](#detail-pages). | `w` |
 | `camera`       | `entity`. A still every 10 seconds; a tap streams it in Home Assistant's dialog. | `m` |
-| `photo`        | `folder` or `album` (an [Immich album](#photos-from-immich)), `interval` (seconds, default 30) | `m` |
+| `photo`        | `folder` or `album` (an [Immich album](#photos-from-immich)), `interval` (seconds, default 30). Tap the right half for the next photo, the left half to go back. | `m` |
 | `sun`          | `entity` (default `sun.sun`). Next sunrise or sunset; an arc on bigger tiles. | `s` |
 | `todo`         | `entity` (a `todo.*`). Tap a circle to tick an item off. | `m` |
 | `room`         | `area` (id or name). Temperature and lights; the icon switches the room's lights, the rest opens the page with the room's name. | `s` |
@@ -322,6 +322,11 @@ spins faster the higher its speed.
 - **Tap the name**, or anywhere else on the tile, to open its details.
 - **Drag up or down** on a dimmable light, a shade or a fan to set its level.
   A full tile height covers 0–100%.
+- **Tap a photo** tile or the photos page on its right half to skip ahead, or
+  on its left half to go back through the photos already shown. The interval
+  starts over. **Each photo for**, under the tile's settings or **Customize →
+  This page**, sets the interval from 10 seconds to an hour; in YAML,
+  `interval` takes any number of seconds from 5.
 - **Hold** for a second to start [editing](#editing-on-the-tablet) on a grid
   page. On room and scenes pages, holding a tile opens its details; holding the
   page around the tiles starts editing.

@@ -6,6 +6,13 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Tap a photo tile or the photos page to skip: the right half goes to the next
+  photo, the left half back through the ones already shown. A brief arrow
+  shows which way, and the interval starts over.
+- **Each photo for** also offers 15 minutes and an hour.
+
 ## [0.13.0] - 2026-11-10
 
 ### Added

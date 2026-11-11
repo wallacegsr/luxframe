@@ -9,6 +9,8 @@ const INTERVALS: Array<{ value: number; label: string }> = [
   { value: 30, label: '30 sec' },
   { value: 60, label: '1 min' },
   { value: 300, label: '5 min' },
+  { value: 900, label: '15 min' },
+  { value: 3600, label: '1 hour' },
 ];
 const DEFAULT_INTERVAL = 30;
 const MEDIA = 'media-source://media_source/';
@@ -101,7 +103,7 @@ export class LuxFramePhotoSettings extends LitElement {
         )}
         ${INTERVALS.some((i) => i.value === interval)
           ? nothing
-          : html`<button class="chip on" aria-pressed="true">${interval} sec</button>`}
+          : html`<button class="chip on" aria-pressed="true">${interval < 60 ? `${interval} sec` : `${Math.round((interval / 60) * 10) / 10} min`}</button>`}
       </div>
     `;
   }
