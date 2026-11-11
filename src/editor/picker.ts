@@ -3,6 +3,7 @@ import { define } from '../define';
 import { areaName, domainOf, resolve } from '../entity';
 import { isNumeric } from '../history';
 import { stateIcon } from '../icon';
+import { icon, type IconName } from '../icons';
 import type { GridTileConfig, HassEntity, HomeAssistant } from '../types';
 import { dashboardCards, type FoundCard } from './dashboard-cards';
 import { isUseful, pickable, tileFor } from './layout';
@@ -11,6 +12,7 @@ import { editorStyles } from './sheet';
 /** A widget that shows one device asks which, from these domains, before it's added. */
 interface Widget {
   label: string;
+  icon: IconName;
   sub: string;
   tile: GridTileConfig;
   needs?: {
@@ -26,6 +28,7 @@ interface Widget {
 /** A widget showing one device of these domains, asking which first. */
 const forDevice = (
   label: string,
+  iconName: IconName,
   sub: string,
   type: 'switch' | 'camera' | 'button' | 'sensor' | 'alarm' | 'timer' | 'vacuum' | 'number' | 'select',
   domains: string[],
@@ -34,39 +37,40 @@ const forDevice = (
   only?: (s: HassEntity) => boolean,
 ): Widget => ({
   label,
+  icon: iconName,
   sub,
   tile: { type, entity: '' } as GridTileConfig,
   needs: { domains, prompt, none, only, make: (entity) => ({ type, entity }) as GridTileConfig },
 });
 
 const WIDGETS: Widget[] = [
-  forDevice('Light switch', 'Tap to turn on and off; drag up or down to dim', 'switch',
+  forDevice('Light switch', 'bulb', 'Tap to turn on and off; drag up or down to dim', 'switch',
     ['light', 'switch', 'fan', 'input_boolean'], 'Which light or switch?', 'No lights or switches in Home Assistant.'),
-  forDevice('Action button', 'Runs a script, scene or button with one tap', 'button',
+  forDevice('Action button', 'tap', 'Runs a script, scene or button with one tap', 'button',
     ['script', 'scene', 'button', 'input_button', 'automation'], 'What should it run?', 'No scripts, scenes or buttons in Home Assistant.'),
-  forDevice('Camera', 'A camera’s picture; a tap shows it live', 'camera',
+  forDevice('Camera', 'camera', 'A camera’s picture; a tap shows it live', 'camera',
     ['camera'], 'Which camera?', 'No cameras in Home Assistant.'),
-  forDevice('Sensor', 'A reading over a graph of the last day', 'sensor',
+  forDevice('Sensor', 'graph', 'A reading over a graph of the last day', 'sensor',
     ['sensor'], 'Which sensor?', 'No sensors with numbers in Home Assistant.', isNumeric),
-  forDevice('Alarm panel', 'Armed or not; arm and disarm with the keypad', 'alarm',
+  forDevice('Alarm panel', 'shield', 'Armed or not; arm and disarm with the keypad', 'alarm',
     ['alarm_control_panel'], 'Which alarm panel?', 'No alarm panels in Home Assistant.'),
-  forDevice('Timer', 'A countdown ring with start and pause', 'timer',
+  forDevice('Timer', 'timer', 'A countdown ring with start and pause', 'timer',
     ['timer'], 'Which timer?', 'No timers in Home Assistant. Add one under Settings → Devices & services → Helpers.'),
-  { label: 'People', sub: 'Who’s home, and where everyone else is', tile: { type: 'people' } },
-  forDevice('Vacuum', 'What it’s doing and its battery; start and dock', 'vacuum',
+  { label: 'People', icon: 'person', sub: 'Who’s home, and where everyone else is', tile: { type: 'people' } },
+  forDevice('Vacuum', 'robot', 'What it’s doing and its battery; start and dock', 'vacuum',
     ['vacuum'], 'Which vacuum?', 'No vacuums in Home Assistant.'),
-  forDevice('Number', 'A number helper with a slider', 'number',
+  forDevice('Number', 'sliders', 'A number helper with a slider', 'number',
     ['input_number', 'number'], 'Which number?', 'No number helpers in Home Assistant.'),
-  forDevice('Choice', 'A choice helper with its options', 'select',
+  forDevice('Choice', 'choice', 'A choice helper with its options', 'select',
     ['input_select', 'select'], 'Which choice?', 'No choice helpers in Home Assistant.'),
-  { label: 'Energy now', sub: 'Power flowing between solar, the grid, a battery and home', tile: { type: 'energy' } },
-  { label: 'Clock', sub: 'The time and date', tile: { type: 'clock' } },
-  { label: 'Analog clock', sub: 'A clock face on the background', tile: { type: 'analog-clock' } },
-  { label: 'Up next', sub: 'Coming events from every calendar', tile: { type: 'calendar' } },
-  { label: 'Month', sub: 'This month, with busy days marked', tile: { type: 'calendar', view: 'month' } },
-  { label: 'Now playing', sub: 'Whichever speaker is playing', tile: { type: 'now-playing' } },
-  { label: 'Photos', sub: 'A slideshow from a media folder or an Immich album', tile: { type: 'photo' } },
-  { label: 'Sunrise and sunset', sub: 'When the sun next rises or sets', tile: { type: 'sun' } },
+  { label: 'Energy now', icon: 'bolt', sub: 'Power flowing between solar, the grid, a battery and home', tile: { type: 'energy' } },
+  { label: 'Clock', icon: 'clock', sub: 'The time and date', tile: { type: 'clock' } },
+  { label: 'Analog clock', icon: 'clock', sub: 'A clock face on the background', tile: { type: 'analog-clock' } },
+  { label: 'Up next', icon: 'list', sub: 'Coming events from every calendar', tile: { type: 'calendar' } },
+  { label: 'Month', icon: 'calendar', sub: 'This month, with busy days marked', tile: { type: 'calendar', view: 'month' } },
+  { label: 'Now playing', icon: 'music', sub: 'Whichever speaker is playing', tile: { type: 'now-playing' } },
+  { label: 'Photos', icon: 'photo', sub: 'A slideshow from a media folder or an Immich album', tile: { type: 'photo' } },
+  { label: 'Sunrise and sunset', icon: 'sunrise', sub: 'When the sun next rises or sets', tile: { type: 'sun' } },
 ];
 
 /** Shown first; the rest of Home Assistant follows under "Everything else". */
@@ -209,7 +213,7 @@ export class LuxFramePicker extends LitElement {
         ${paste
           ? html`<li>
               <button class="item" @click=${() => this._pick({ type: 'card', card: {} })}>
-                <span class="icon"><span class="glyph">+</span></span>
+                <span class="icon">${icon('plus', 24)}</span>
                 <span class="text"><span class="name">Paste a card’s YAML</span>
                   <div class="sub">Any Home Assistant card</div></span>
               </button>
@@ -221,7 +225,7 @@ export class LuxFramePicker extends LitElement {
               <span class="icon">
                 ${f.entity && this.hass?.states[f.entity]
                   ? stateIcon(this.hass, this.hass.states[f.entity], undefined, f.name)
-                  : html`<span class="glyph">${f.name.charAt(0)}</span>`}
+                  : icon('grid', 24)}
               </span>
               <span class="text"><span class="name">${f.name}</span>
                 <div class="sub">${[f.shows, f.where].filter(Boolean).join(' · ')}</div></span>
@@ -278,7 +282,7 @@ export class LuxFramePicker extends LitElement {
               ${widgets.map(
                 (w) => html`<li>
                   <button class="item" @click=${() => this._choose(w)}>
-                    <span class="icon"><span class="glyph">${w.label.charAt(0)}</span></span>
+                    <span class="icon">${icon(w.icon, 24)}</span>
                     <span class="text"><span class="name">${w.label}</span>
                       <div class="sub">${w.sub}</div></span>
                   </button>
@@ -292,7 +296,7 @@ export class LuxFramePicker extends LitElement {
               ${rooms.map(
                 (a) => html`<li>
                   <button class="item" @click=${() => this._pick({ type: 'room', area: a.area_id })}>
-                    <span class="icon"><span class="glyph">${a.name.charAt(0)}</span></span>
+                    <span class="icon">${icon('room', 24)}</span>
                     <span class="text"><span class="name">${a.name}</span>
                       <div class="sub">Temperature and lights at a glance</div></span>
                   </button>
