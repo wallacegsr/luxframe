@@ -6,6 +6,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.14.3] - 2026-11-10
+
 ### Added
 
 - A LuxFrame logo, and a README header with badges for stars, downloads, the
@@ -510,7 +512,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.14.2...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.14.3...HEAD
+[0.14.3]: https://github.com/wallacegsr/luxframe/compare/v0.14.2...v0.14.3
 [0.14.2]: https://github.com/wallacegsr/luxframe/compare/v0.14.1...v0.14.2
 [0.14.1]: https://github.com/wallacegsr/luxframe/compare/v0.14.0...v0.14.1
 [0.14.0]: https://github.com/wallacegsr/luxframe/compare/v0.13.1...v0.14.0
