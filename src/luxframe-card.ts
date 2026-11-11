@@ -46,6 +46,15 @@ const DRAGS_OWN = 'input, select, textarea, [role="slider"], luxframe-slider';
 
 const DEFAULT_HOME_AFTER = 120;
 
+/** The radius tokens for a chosen corner radius; the small ones never get rounder than it. */
+function cornerStyle(px: number): string {
+  return [
+    `--lf-radius: ${px}px`,
+    `--lf-radius-s: var(--luxframe-radius-s, min(12px, ${px}px))`,
+    `--lf-radius-icon: var(--luxframe-radius-icon, min(16px, ${px}px))`,
+  ].join('; ');
+}
+
 /**
  * The page on screen when an edit was saved. A save to the dashboard makes
  * Home Assistant build the card afresh, and the new card would open on the
@@ -243,6 +252,12 @@ export class LuxFrameCard extends LitElement {
     }
     if (config.tile_style && !['center', 'corner'].includes(config.tile_style)) {
       throw new Error(`Unknown tile_style "${config.tile_style}". Use center or corner.`);
+    }
+    if (config.corner_radius !== undefined && !(typeof config.corner_radius === 'number' && config.corner_radius >= 0)) {
+      throw new Error('corner_radius is a number of pixels, 0 or more.');
+    }
+    if (config.home_after !== undefined && !(typeof config.home_after === 'number' && config.home_after >= 0)) {
+      throw new Error('home_after is a number of seconds, or 0 to stay on the page.');
     }
     this._base = config;
     const local = loadLocal(config);
@@ -1191,6 +1206,7 @@ export class LuxFrameCard extends LitElement {
       `height: ${height}`,
       config.background ? `--lf-backdrop: ${config.background}` : '',
       config.tile_style === 'corner' ? '--lf-tile-style: corner' : '',
+      config.corner_radius !== undefined ? cornerStyle(config.corner_radius) : '',
     ]
       .filter(Boolean)
       .join('; ');

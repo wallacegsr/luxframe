@@ -15,8 +15,8 @@ import { dockEntity, dockIcon, dockKind, dockLabel, dockOf, dockShows, normalize
 const CLOSE_DISTANCE = 80;
 const CLOSE_MS = 200;
 export const MAX_PINNED = 8;
-/** A touch that starts on one of these belongs to the control, not the panel. */
-const CONTROLS = 'button, input, select, textarea, a, luxframe-slider, luxframe-tile, [data-no-swipe]';
+/** A swipe that starts on one of these drags or types there, not the panel away. */
+const DRAGS_OWN = 'input, select, textarea, [role="slider"], luxframe-slider, [data-no-swipe]';
 /** Past this, a move says which way it's going. */
 const SWIPE_SLOP = 6;
 const RESIZE_MS = 240;
@@ -71,7 +71,9 @@ export class LuxFrameQuickPanel extends LitElement {
   declare _picked?: number | null;
 
   /** A swipe that may put the panel away; `active` once it's doing so. */
-  private _swipe?: { y: number; id?: number; active: boolean };
+  private _swipe?: { x: number; y: number; id?: number; active: boolean };
+  /** A swipe just put the panel away or snapped it back: the click it ends in isn't a tap. */
+  private _swallowClick = false;
   private _resizer?: ResizeObserver;
   /** The panel's height last seen, to grow or shrink from. */
   private _height = 0;
@@ -145,21 +147,29 @@ export class LuxFrameQuickPanel extends LitElement {
 
   // ---- Putting it away ------------------------------------------------------
   //
-  // Swiping up puts the panel away, unless it starts on a control, or the
-  // panel has more to show below: then it scrolls, and only once it's at the
-  // end does the next swipe up put it away. Touch scrolls natively; a mouse
-  // drags.
+  // Swiping up anywhere puts the panel away, on a tile or the dock as much as
+  // on the glass, and on the dimmed strip below it too, the way pulling down
+  // anywhere on a page brings it out. A slider or a field keeps its own
+  // drags, and anything with more to show below (the panel, or a list in it)
+  // scrolls first: only once it's at the end does the next swipe up put the
+  // panel away. A sideways swipe is left to the dock. Touch scrolls
+  // natively; a mouse drags.
 
-  /** Whether the gesture starts on something that takes its own drags. */
-  private _onControl(e: Event): boolean {
+  /** Whether a finger moving up there would scroll or drag something instead. */
+  private _ownsSwipe(e: Event): boolean {
     const panel = this._panel;
     for (const el of e.composedPath()) {
-      if (el === panel) break;
+      if (el === this) break;
       if (!(el instanceof Element)) continue;
+      if (el === panel) return !this._atEnd();
+      if (el.classList.contains('backdrop')) return false;
       // Taps there open something, but a swipe still puts the panel away.
       if (el.matches('[data-swipe]')) return false;
-      if (el.matches(CONTROLS)) return true;
-      if (getComputedStyle(el).touchAction === 'none') return true;
+      if (el.matches(DRAGS_OWN)) return true;
+      const style = getComputedStyle(el);
+      const action = style.touchAction;
+      if (action === 'none' || (action !== 'auto' && !/pan-y|pan-up|manipulation/.test(action))) return true;
+      if (/auto|scroll/.test(style.overflowY) && el.scrollTop + el.clientHeight < el.scrollHeight - 2) return true;
     }
     return false;
   }
@@ -170,12 +180,29 @@ export class LuxFrameQuickPanel extends LitElement {
     return !panel || panel.scrollTop + panel.clientHeight >= panel.scrollHeight - 2;
   }
 
+  /** Follows a move; true once it's a swipe up that moves the panel. */
+  private _follow(swipe: { x: number; y: number; active: boolean }, x: number, y: number): boolean {
+    const dx = x - swipe.x;
+    const dy = y - swipe.y;
+    if (!swipe.active) {
+      // Down scrolls the panel back up, and sideways is the dock's.
+      if (dy > SWIPE_SLOP || Math.abs(dx) > Math.max(SWIPE_SLOP, -dy)) {
+        this._swipe = undefined;
+        return false;
+      }
+      if (dy > -SWIPE_SLOP) return false;
+      swipe.active = true;
+    }
+    this._dy = Math.min(0, dy);
+    return true;
+  }
+
   private _touchStart = {
     passive: true,
     handleEvent: (e: TouchEvent): void => {
       this._swipe = undefined;
-      if (e.touches.length !== 1 || !this._atEnd() || this._onControl(e)) return;
-      this._swipe = { y: e.touches[0].clientY, active: false };
+      if (e.touches.length !== 1 || this._ownsSwipe(e)) return;
+      this._swipe = { x: e.touches[0].clientX, y: e.touches[0].clientY, active: false };
     },
   };
 
@@ -184,38 +211,28 @@ export class LuxFrameQuickPanel extends LitElement {
     handleEvent: (e: TouchEvent): void => {
       const swipe = this._swipe;
       if (!swipe || e.touches.length !== 1) return;
-      const dy = e.touches[0].clientY - swipe.y;
-      if (!swipe.active) {
-        // Down scrolls the panel back up; only up puts it away.
-        if (dy > SWIPE_SLOP) this._swipe = undefined;
-        if (dy > -SWIPE_SLOP) return;
-        swipe.active = true;
-      }
-      if (e.cancelable) e.preventDefault();
-      this._dy = Math.min(0, dy);
+      if (this._follow(swipe, e.touches[0].clientX, e.touches[0].clientY) && e.cancelable) e.preventDefault();
     },
   };
 
   private _touchEnd = (): void => this._release();
 
   private _down(e: PointerEvent): void {
-    if (e.pointerType === 'touch' || e.button !== 0 || this._onControl(e)) return;
-    this._swipe = { y: e.clientY, id: e.pointerId, active: false };
+    if (e.pointerType === 'touch' || e.button !== 0 || this._ownsSwipe(e)) return;
+    this._swipe = { x: e.clientX, y: e.clientY, id: e.pointerId, active: false };
   }
 
   private _move(e: PointerEvent): void {
     const swipe = this._swipe;
     if (!swipe || swipe.id !== e.pointerId) return;
-    const dy = Math.min(0, e.clientY - swipe.y);
-    if (!swipe.active && dy < -8) {
-      swipe.active = true;
+    const was = swipe.active;
+    if (this._follow(swipe, e.clientX, e.clientY) && !was) {
       try {
         (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
       } catch {
         // Pointer already gone.
       }
     }
-    if (swipe.active) this._dy = dy;
   }
 
   private _up(e: PointerEvent): void {
@@ -226,9 +243,21 @@ export class LuxFrameQuickPanel extends LitElement {
     const swipe = this._swipe;
     this._swipe = undefined;
     if (!swipe?.active) return;
+    this._swallowClick = true;
+    window.setTimeout(() => (this._swallowClick = false));
     if (this._dy < -CLOSE_DISTANCE) this.close();
     else this._dy = 0;
   }
+
+  private _onClick = {
+    capture: true,
+    handleEvent: (e: Event): void => {
+      if (!this._swallowClick) return;
+      this._swallowClick = false;
+      e.preventDefault();
+      e.stopPropagation();
+    },
+  };
 
   // ---- The dock and its stage -----------------------------------------------
 
@@ -384,7 +413,18 @@ export class LuxFrameQuickPanel extends LitElement {
       : nothing;
     const columns = entries.length && side !== nothing ? 'two' : '';
     return html`
-      <div class="backdrop ${this._closing ? 'closing' : ''}" @click=${this.close}></div>
+      <div
+        class="backdrop ${this._closing ? 'closing' : ''}"
+        @pointerdown=${this._down}
+        @pointermove=${this._move}
+        @pointerup=${this._up}
+        @pointercancel=${this._up}
+        @touchstart=${this._touchStart}
+        @touchmove=${this._touchMove}
+        @touchend=${this._touchEnd}
+        @touchcancel=${this._touchEnd}
+        @click=${this.close}
+      ></div>
       <section
         class="panel ${dragging ? 'dragging' : ''} ${this._drop ? 'drop' : ''}"
         style=${style}
@@ -398,6 +438,7 @@ export class LuxFrameQuickPanel extends LitElement {
         @touchmove=${this._touchMove}
         @touchend=${this._touchEnd}
         @touchcancel=${this._touchEnd}
+        @click=${this._onClick}
       >
         <div class="content ${columns}">${main} ${side}</div>
         <button class="grabber" aria-label="Close quick controls" @click=${this.close}></button>
@@ -419,6 +460,7 @@ export class LuxFrameQuickPanel extends LitElement {
     .backdrop {
       position: absolute;
       inset: 0;
+      touch-action: none;
       background: rgb(0 0 0 / 22%);
       animation: fade var(--lf-move) ease-out;
       transition: opacity var(--lf-move);

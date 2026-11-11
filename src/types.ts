@@ -340,6 +340,8 @@ export interface LuxFrameConfig {
   style?: 'auto' | 'glass' | 'flat';
   /** How a tile lays out: `center` (default) stacks icon, name and state; `corner` puts the icon top left and the words bottom left, as Apple's Home app does. */
   tile_style?: 'center' | 'corner';
+  /** How round the corners of tiles, panels and sheets are, in px; 0 is square. Defaults to the theme's: 22, or the HA theme's card radius. */
+  corner_radius?: number;
   /** Badges on every page that has a title bar, after the page's own. */
   badges?: Badge[];
   /** Where badges sit in the title bar, on pages that don't say. Default `right`. */

@@ -20,6 +20,32 @@ const TILE_STYLES: Array<{ value: NonNullable<LuxFrameConfig['tile_style']>; lab
   { value: 'corner', label: 'Icon in the corner' },
 ];
 
+/** Corner radii in px; unset follows the theme. */
+const CORNERS: Array<{ value: number | undefined; label: string }> = [
+  { value: undefined, label: 'From theme' },
+  { value: 0, label: 'Square' },
+  { value: 10, label: 'Slight' },
+  { value: 22, label: 'Rounded' },
+  { value: 32, label: 'Round' },
+];
+
+/** Seconds without a touch before going back to the start page; 0 stays put. */
+const HOME_AFTER: Array<{ value: number; label: string }> = [
+  { value: 0, label: 'Never' },
+  { value: 30, label: '30 sec' },
+  { value: 60, label: '1 min' },
+  { value: 120, label: '2 min' },
+  { value: 300, label: '5 min' },
+  { value: 600, label: '10 min' },
+  { value: 1800, label: '30 min' },
+];
+const DEFAULT_HOME_AFTER = 120;
+
+/** "90" → "90 sec", "150" → "2.5 min": a value set in YAML that isn't a chip. */
+function secondsLabel(s: number): string {
+  return s < 60 ? `${s} sec` : `${Math.round((s / 60) * 10) / 10} min`;
+}
+
 /**
  * The frame's settings while editing: the current grid page's columns and
  * rows; the pages, with their names, which show and in what order; suggested
@@ -401,6 +427,7 @@ export class LuxFrameCustomize extends LitElement {
   private _renderLook() {
     const config = this.config!;
     const theme = config.theme ?? 'auto';
+    const homeAfter = config.home_after ?? DEFAULT_HOME_AFTER;
     return html`
       <h3>Look</h3>
       <div class="row" role="group" aria-label="Theme">
@@ -416,6 +443,28 @@ export class LuxFrameCustomize extends LitElement {
             aria-pressed=${(config.tile_style ?? 'center') === t.value}
             @click=${() => this._set({ tile_style: t.value === 'center' ? undefined : t.value })}>${t.label}</button>`,
         )}
+      </div>
+      <div class="row tiles" role="group" aria-label="Corners">
+        <span>Corners</span>
+        ${CORNERS.map(
+          (c) => html`<button class="chip ${config.corner_radius === c.value ? 'on' : ''}"
+            aria-pressed=${config.corner_radius === c.value}
+            @click=${() => this._set({ corner_radius: c.value })}>${c.label}</button>`,
+        )}
+        ${config.corner_radius !== undefined && !CORNERS.some((c) => c.value === config.corner_radius)
+          ? html`<button class="chip on" aria-pressed="true">${config.corner_radius}px</button>`
+          : nothing}
+      </div>
+      <div class="row tiles" role="group" aria-label="Back to the start page">
+        <span>Back to the start page after no touch for</span>
+        ${HOME_AFTER.map(
+          (h) => html`<button class="chip ${homeAfter === h.value ? 'on' : ''}"
+            aria-pressed=${homeAfter === h.value}
+            @click=${() => this._set({ home_after: h.value === DEFAULT_HOME_AFTER ? undefined : h.value })}>${h.label}</button>`,
+        )}
+        ${HOME_AFTER.some((h) => h.value === homeAfter)
+          ? nothing
+          : html`<button class="chip on" aria-pressed="true">${secondsLabel(homeAfter)}</button>`}
       </div>
       <label class="field">
         Wallpaper: an image under /local/ or any CSS background

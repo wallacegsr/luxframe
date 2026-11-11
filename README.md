@@ -87,8 +87,8 @@ views:
 
 Any page can have `hidden: true` to keep it in the config but out of the frame.
 The frame opens on the first page, and goes back to it after `home_after`
-seconds without a touch; `home: true` on another page makes that one the start
-page instead.
+seconds without a touch (`0` turns that off); `home: true` on another page makes
+that one the start page instead.
 
 ### Badges
 
@@ -416,8 +416,9 @@ Beside them, or under them when the tablet is upright:
 The panel is as tall as what it shows, and grows or shrinks as you switch.
 Taller than the screen, it scrolls.
 
-Swipe the panel back up, tap below it, or press Escape to put it away. When it
-scrolls, swipe up once you're at the end.
+Swipe up anywhere on the panel or the dimmed strip below it, tap below it, or
+press Escape to put it away. A swipe on a slider moves the slider, and when
+the panel scrolls, swipe up once you're at the end.
 
 **Hold the top edge** for a second to go straight to **Ask Home Assistant**:
 type a request ("turn off the kitchen lights") and read the answer. It uses
@@ -474,7 +475,7 @@ icon and card, whether it opens first, and its YAML.
 | `theme`      | `auto`                                     | `auto`, `light`, `dark`, or `ha`. See [Theming](#theming). |
 | `background` | a soft gradient                            | Any CSS background, e.g. `center / cover url('/local/wall.jpg')`. |
 | `tint`       | the background image's average color       | The color the glass picks up, e.g. `"#e07a2c"`.      |
-| `home_after` | `120`                                      | Seconds without a touch before going back to the start page. |
+| `home_after` | `120`                                      | Seconds without a touch before going back to the start page; `0` stays on the page. Also under Customize → Look. |
 | `height`     | `calc(100dvh - var(--header-height, 0px))` | Becomes `100dvh` when Kiosk Satellite hides HA's header. |
 | `quick_panel` | on: what's playing, nothing pinned        | `dock`, `pinned`, `brightness`, `media_player`; `false` turns the panel off. See [Quick panel](#quick-panel-and-assist). |
 | `badges`     | none                                       | [Badges](#badges) on every page with a title bar.    |
@@ -483,6 +484,7 @@ icon and card, whether it opens first, and its YAML.
 | `assist`     | `true`                                     | `false` hides Ask; `{agent_id}` picks the conversation agent. |
 | `style`      | `auto`                                     | `glass`, or `flat` for solid tiles with no blur. `auto` goes flat on a device that can't blur, or blurs below 30 frames a second (checked once per tablet). |
 | `tile_style` | `center`                                   | `corner` lays tiles out as Apple's Home app does: the icon in a circle at the top left, the name and state at the bottom left. Also under Customize → Look. |
+| `corner_radius` | the theme's                             | Corner radius of tiles, panels and sheets in pixels; `0` is square. Unset, it's 22, or with `theme: ha` the HA theme's card radius. Also under Customize → Look. |
 
 ## Theming
 
@@ -538,7 +540,7 @@ My theme:
 | `luxframe-color-light`, `-fan`, `-switch`, `-lock`, `-cover`, `-media` | Icons of lights, fans, switches, locks, shades and speakers that are on |
 | `luxframe-danger`, `luxframe-success` | Remove and confirm buttons; a badge that ran |
 | `luxframe-control`           | Buttons, chips and fields on glass and sheets |
-| `luxframe-radius`            | Tile corner radius                     |
+| `luxframe-radius`            | Tile corner radius (`corner_radius` in the config wins) |
 | `luxframe-radius-s`, `luxframe-radius-icon` | Fields and list rows; icon squares such as the dock's and artwork |
 | `luxframe-font`              | Font family                            |
 

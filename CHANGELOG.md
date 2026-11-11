@@ -6,6 +6,20 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `corner_radius`, also under Customize → Look, sets how round tiles, panels
+  and sheets are, from square to round. It wins over the theme, so tiles stay
+  rounded under an HA theme whose cards are square.
+- Customize → Look sets how long the frame waits before going back to the
+  start page, or turns that off (`home_after`).
+
+### Changed
+
+- The quick panel goes away with a swipe up from anywhere on it, tiles and the
+  dock included, or on the dimmed strip below it. Sliders keep their drags, and
+  a panel or list with more below still scrolls first.
+
 ## [0.11.0] - 2026-11-10
 
 ### Added
