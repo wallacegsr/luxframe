@@ -6,6 +6,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-10
+
 ### Added
 
 - Nine widget tiles, under **Add tile → Widgets** or in YAML:
@@ -482,7 +484,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.13.1...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/wallacegsr/luxframe/compare/v0.13.1...v0.14.0
 [0.13.1]: https://github.com/wallacegsr/luxframe/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/wallacegsr/luxframe/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/wallacegsr/luxframe/compare/v0.11.0...v0.12.0
