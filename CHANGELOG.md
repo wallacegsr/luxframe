@@ -6,6 +6,25 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.15.1] - 2026-11-11
+
+### Added
+
+- The xBloom page works with the xBloom Studio integration
+  (Alshekhi/xbloom-studio), which has no panel of its own. With it, the page
+  is LuxFrame's own view of the machine: the brew under way with Pause,
+  Resume and Cancel; the grinder, brewer and scale screens; the bag of coffee,
+  recipes, dose, ratio, grind, pours and taste for the next brew; Start Brew
+  once the recipe is ready; Coffee Lab's rating after a brew; and a banner
+  when the machine needs water or beans.
+
+### Fixed
+
+- Room and Scenes pages can be deleted under **Customize**, like every other
+  page; before, they could only be hidden.
+- The xBloom page names the integrations it works with when it finds neither,
+  rather than suggesting an update.
+
 ## [0.15.0] - 2026-11-11
 
 ### Added
@@ -522,7 +541,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.15.1...HEAD
+[0.15.1]: https://github.com/wallacegsr/luxframe/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/wallacegsr/luxframe/compare/v0.14.3...v0.15.0
 [0.14.3]: https://github.com/wallacegsr/luxframe/compare/v0.14.2...v0.14.3
 [0.14.2]: https://github.com/wallacegsr/luxframe/compare/v0.14.1...v0.14.2

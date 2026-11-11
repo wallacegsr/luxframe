@@ -205,7 +205,7 @@ views:
 | `cameras` | `entities` (default: every camera), `title`. Stills every 10 s; tap one to stream it. |
 | `photos` | `folder` (a media folder, default the whole local media folder) or `album` (an [Immich album](#photos-from-immich)), `interval` (seconds, default 30), `clock` (default `true`). Tap the right half for the next photo, the left half to go back. |
 | `night`  | `weather` (optional, for the temperature). A dim clock on black that drifts a little each minute. |
-| `xbloom` | `tab` (`home`, `recipes`, `manual` or `settings`), `theme` (`auto`, `light`, `dark`), `backdrop` (default `false`). The [xBloom](#xbloom-page) integration's own panel. |
+| `xbloom` | Your [xBloom](#xbloom-page) coffee machine: LuxFrame's own view for xBloom Studio, or ha-xbloom's panel. With ha-xbloom: `tab` (`home`, `recipes`, `manual` or `settings`), `theme` (`auto`, `light`, `dark`), `backdrop` (default `false`). |
 
 Any page can have `hidden: true` to keep it in the config but out of the frame.
 The frame opens on the first page, and goes back to it after `home_after`
@@ -214,11 +214,33 @@ that one the start page instead.
 
 ### xBloom page
 
-`type: xbloom` puts the [xBloom integration](https://github.com/saya6k/ha-xbloom)'s
-own panel on a page: Brew, Recipes, Manual and Settings, looking and working
-as the sidebar panel does. LuxFrame loads the panel the integration ships, so
-it keeps up with the integration's updates; it needs a release of the
-integration that has the sidebar panel.
+`type: xbloom` puts your xBloom coffee machine on a page. It works with either
+xBloom integration and picks the right view by itself.
+
+With [xBloom Studio](https://github.com/Alshekhi/xbloom-studio), the page is
+LuxFrame's own view of the machine, built from the integration's entities:
+
+![The xBloom page brewing a recipe](docs/screenshots/xbloom.webp)
+
+- **Now** shows what the machine is doing. While it brews or grinds: the
+  recipe, the pour it's on, the time and the weight, with Pause, Resume and
+  Cancel. On the grinder or brewer screen: its settings as sliders, and Grind
+  or Pour. Otherwise: the scale, Tare, and buttons to open the grinder, brewer
+  or scale on the machine.
+- **The next brew**: the bag of coffee and how much is left, the recipes, the
+  dose, ratio and grind of the one picked, its pours, taste, and whether to
+  grind the beans. Start Brew lights up once the machine has the recipe
+  ready; until then, the page says what it's waiting for.
+- After a brew, Coffee Lab's question (how was it?) appears at the top, then
+  what was off, if anything.
+- A banner says when the machine needs water or beans, and the header shows
+  whether the machine is in range, with a button to connect or disconnect.
+
+With [ha-xbloom](https://github.com/saya6k/ha-xbloom), the page shows that
+integration's own panel: Brew, Recipes, Manual and Settings, looking and
+working as the sidebar panel does. LuxFrame loads the panel the integration
+ships, so it keeps up with the integration's updates. These options apply to
+it:
 
 ```yaml
 pages:
@@ -229,8 +251,8 @@ pages:
 ```
 
 The panel scrolls within its page. On a narrow screen its tabs sit along the
-bottom of the page, above the page dots. Until Home Assistant has the panel,
-the page says so instead.
+bottom of the page, above the page dots. With neither integration, the page
+says what it needs.
 
 ### Badges
 

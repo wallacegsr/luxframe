@@ -2,6 +2,7 @@ import '../src/luxframe';
 import type { LuxFrameCard } from '../src/luxframe-card';
 import type { LuxFrameConfig } from '../src/types';
 import { createMockHass, mockMusicWS } from './mock-hass';
+import { addXBloomStudio } from './xbloom-studio-mock';
 
 const params = new URLSearchParams(location.search);
 
@@ -279,6 +280,7 @@ customElements.define(
   },
 );
 
+if (params.has('xbloom')) config.pages = [{ type: 'xbloom' }, ...(config.pages ?? [])];
 const card = document.createElement('luxframe-card') as LuxFrameCard;
 card.setConfig(config);
 const hass = createMockHass((next) => (card.hass = next));
@@ -509,6 +511,10 @@ hass.connection = {
   },
 };
 
+// ?xbloom adds a pretend xBloom Studio and its page, first.
+if (params.has('xbloom')) {
+  addXBloomStudio(hass, (next) => (card.hass = next));
+}
 card.hass = hass;
 document.body.append(card);
 

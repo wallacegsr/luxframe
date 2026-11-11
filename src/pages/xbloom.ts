@@ -1,10 +1,15 @@
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { define } from '../define';
 import type { HomeAssistant, XBloomPageConfig } from '../types';
+import { studioEntities, type StudioEntities } from './xbloom-studio';
 
 /**
- * The xBloom integration's own panel (Brew, Recipes, Manual, Settings) as a
- * page in the frame.
+ * The xBloom machine as a page in the frame.
+ *
+ * With the xBloom Studio integration (Alshekhi/xbloom-studio), which has no
+ * panel, the page is LuxFrame's own view of its entities: see
+ * xbloom-studio.ts. With the ha-xbloom integration (saya6k/ha-xbloom), it's
+ * that integration's own panel (Brew, Recipes, Manual, Settings).
  *
  * The integration ships the panel as one build-free web component,
  * `<xbloom-panel>`, and Home Assistant hands it `hass` like any panel. This
@@ -44,6 +49,11 @@ function moduleUrl(hass: HomeAssistant): string | undefined {
   const panel = panels.xbloom;
   if (!panel) return undefined;
   return panel.config?._panel_custom?.module_url ?? FALLBACK_URL;
+}
+
+/** Whether some xBloom integration has entities, panel or not. */
+function hasXBloom(hass: HomeAssistant | undefined): boolean {
+  return Object.values(hass?.entities ?? {}).some((e) => e.platform === 'xbloom');
 }
 
 let loading: Promise<void> | undefined;
@@ -119,11 +129,13 @@ export class LuxFrameXBloomPage extends LitElement {
     hass: { attribute: false },
     config: { attribute: false },
     _status: { state: true },
+    _studio: { state: true },
   };
 
   declare hass?: HomeAssistant;
   declare config?: XBloomPageConfig;
   declare _status: Status;
+  declare _studio?: StudioEntities;
 
   private _panel?: XBloomPanelElement;
 
@@ -134,6 +146,13 @@ export class LuxFrameXBloomPage extends LitElement {
 
   protected willUpdate(changed: PropertyValues<this>): void {
     if (!this.hass || !changed.has('hass')) return;
+    // Entities only change when the registry does; keep the same object
+    // otherwise, so the view doesn't re-render for nothing.
+    if (this.hass.entities !== changed.get('hass')?.entities || !this._studio) {
+      const studio = studioEntities(this.hass);
+      if (JSON.stringify(studio) !== JSON.stringify(this._studio)) this._studio = studio;
+    }
+    if (this._studio) return;
     // Waiting, or the integration may have registered its panel since.
     if (this._status === 'waiting' || this._status === 'missing') this._start(this.hass);
   }
@@ -179,12 +198,17 @@ export class LuxFrameXBloomPage extends LitElement {
   }
 
   protected render() {
+    if (this._studio) {
+      return html`<luxframe-xbloom-studio .hass=${this.hass} .entities=${this._studio}></luxframe-xbloom-studio>`;
+    }
     switch (this._status) {
       case 'ready':
         return html`${this._panel}`;
       case 'missing':
         return this._note(
-          'Home Assistant has no xBloom panel yet. Update the xBloom integration to a release with the sidebar panel, then restart Home Assistant.',
+          hasXBloom(this.hass)
+            ? 'Your xBloom integration isn’t one this page knows. It works with xBloom Studio (Alshekhi/xbloom-studio) and ha-xbloom (saya6k/ha-xbloom).'
+            : 'This page needs an xBloom integration: xBloom Studio (Alshekhi/xbloom-studio) or ha-xbloom (saya6k/ha-xbloom). Install one from HACS, then restart Home Assistant.',
         );
       case 'failed':
         return this._note(
@@ -210,7 +234,8 @@ export class LuxFrameXBloomPage extends LitElement {
       overscroll-behavior-y: contain;
     }
 
-    xbloom-panel {
+    xbloom-panel,
+    luxframe-xbloom-studio {
       display: block;
     }
 

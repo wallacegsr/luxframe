@@ -301,11 +301,9 @@ export class LuxFrameCustomize extends LitElement {
               @click=${() => this._movePage(i, -1)}>↑</button>
             <button class="mini" aria-label="Move ${pageLabel(page, i)} later" ?disabled=${i === pages.length - 1}
               @click=${() => this._movePage(i, 1)}>↓</button>
-            ${page.type !== 'room' && page.type !== 'scenes'
-              ? html`<button class="mini" aria-label="Delete ${pageLabel(page, i)}"
-                  ?disabled=${pages.length <= 1 || (!page.hidden && shown <= 1)}
-                  @click=${() => this._removePage(i)}>✕</button>`
-              : html`<span class="mini-space"></span>`}
+            <button class="mini" aria-label="Delete ${pageLabel(page, i)}"
+              ?disabled=${pages.length <= 1 || (!page.hidden && shown <= 1)}
+              @click=${() => this._removePage(i)}>✕</button>
           </li>`;
         })}
       </ul>
@@ -576,10 +574,6 @@ export class LuxFrameCustomize extends LitElement {
       .mini.home.on {
         background: var(--lf-accent);
         color: var(--lf-text-active);
-      }
-
-      .mini-space {
-        width: 44px;
       }
 
       .add {
