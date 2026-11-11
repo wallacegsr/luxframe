@@ -6,6 +6,16 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The README opens with a short tour of every feature, with screenshots.
+- `?icons` on the dev page draws icons where Home Assistant would, instead of
+  first letters.
+
+### Fixed
+
+- Release notes keep nested lists nested.
+
 ## [0.14.0] - 2026-11-10
 
 ### Added

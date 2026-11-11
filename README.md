@@ -10,6 +10,100 @@ LuxFrame is a single Lovelace card that fills a panel view. Pages swipe with
 native scroll-snap, so it feels right on touch and also works with a trackpad,
 the page dots, or the arrow keys.
 
+![The "At a glance" page: a calendar, what's playing, lights, the sun and a shopping list](docs/screenshots/glance.webp)
+
+## Features
+
+**Pages you swipe between.** Grids of tiles, a big clock with a greeting,
+the weather for the next hours and the week, a room's devices, scenes, a
+calendar agenda, cameras, a photo frame (a media folder or an Immich album),
+and a dim night clock. After two minutes without a touch the frame returns to
+its start page. See [Pages](#pages).
+
+<table><tr>
+<td><img src="docs/screenshots/clock.webp" alt="The clock page"></td>
+<td><img src="docs/screenshots/weather.webp" alt="The weather page"></td>
+</tr></table>
+
+**Tiles and widgets.** Any entity becomes a glass tile that lights up when
+it's on: tap the icon to switch it, anywhere else for its details. Beside
+them sit widgets: what's playing, a clock, the weather, a calendar, a to-do
+list, the sun, a room, a camera, and:
+
+- an action button that runs a script or scene;
+- a sensor reading over a graph of the last day;
+- an alarm panel, a timer ring and a vacuum;
+- who's home;
+- number and choice helpers;
+- energy flowing between solar, the grid, a battery and the home.
+
+See [Grid pages](#grid-pages).
+
+<table><tr>
+<td><img src="docs/screenshots/widgets.webp" alt="Widgets: an action button, sensor graphs, alarm, timer, energy flow, people and a vacuum"></td>
+<td><img src="docs/screenshots/corner.webp" alt="Tiles laid out with the icon in the corner"></td>
+</tr></table>
+
+**A fuller view for everything.** Tapping a tile opens it at full size with
+more to do there:
+
+| Opens | What you can do |
+| --- | --- |
+| Lights | Brightness, color and white temperature. |
+| Speakers | Seek, shuffle and repeat, grouping, and with Music Assistant favorites and the library. |
+| Thermostats | Target temperature, mode, fan and preset. |
+| Sensors | 6 hours, a day or a week as a graph you can scrub, with low, average and high. |
+| Alarms | Arm and disarm with a keypad. |
+| Timers | Pause, add a minute, finish or cancel. |
+| Energy | The flow in full, with each part's last day. |
+| Cameras | Live, with the motion and detection sensors beside it. |
+| People | Where they are, since when, and their phone's battery. |
+| Lists | Add, tick off and clear items. |
+
+See [Detail pages](#detail-pages).
+
+<table><tr>
+<td><img src="docs/screenshots/light.webp" alt="A light's color and brightness"></td>
+<td><img src="docs/screenshots/speaker.webp" alt="A speaker with grouping"></td>
+</tr><tr>
+<td><img src="docs/screenshots/thermostat.webp" alt="A thermostat"></td>
+<td><img src="docs/screenshots/sensor.webp" alt="A sensor's history"></td>
+</tr><tr>
+<td><img src="docs/screenshots/alarm.webp" alt="An alarm keypad"></td>
+<td><img src="docs/screenshots/timer.webp" alt="A running timer"></td>
+</tr><tr>
+<td><img src="docs/screenshots/energy.webp" alt="Energy flow with a graph for each part"></td>
+<td><img src="docs/screenshots/camera.webp" alt="A camera with its sensors"></td>
+</tr><tr>
+<td><img src="docs/screenshots/person.webp" alt="Where someone is"></td>
+<td><img src="docs/screenshots/todo.webp" alt="A shopping list"></td>
+</tr></table>
+
+**Quick panel and Assist.** Pull down from the top edge for what's playing,
+the screen's brightness, pinned tiles, a dock of shortcuts, and **Ask Home
+Assistant** to type a request. See
+[Quick panel and Assist](#quick-panel-and-assist).
+
+**Edit on the tablet.** Hold a tile to move, resize and remove tiles, or add
+one from a list of every entity and widget. Customize changes the look and
+the pages without touching YAML. See
+[Editing on the tablet](#editing-on-the-tablet).
+
+<table><tr>
+<td><img src="docs/screenshots/quick-panel.webp" alt="The quick panel"></td>
+<td><img src="docs/screenshots/editing.webp" alt="Editing a page"></td>
+</tr></table>
+
+**Your look.** Frosted glass or flat tiles, light, dark or your Home
+Assistant theme, any wallpaper with the glass tinted to match, the corner
+radius, and icons centered or in the corner. See [Theming](#theming) and
+[Card options](#card-options).
+
+**At home in a kiosk.** In [Kiosk Satellite](#kiosk-satellite) LuxFrame
+follows the app's light and dark setting, fills the screen, returns to the
+start page when the screen wakes, and moves the backlight from the quick
+panel. It also offers to reload when HACS installs a new version.
+
 ## Install
 
 ### HACS (custom repository)
@@ -628,7 +722,8 @@ npm run build      # typecheck, then write dist/luxframe.js
 ```
 
 Add `?wall` to the dev URL to put a sample wallpaper behind the pages, `?dark`
-to preview dark mode, `?theme=ha` to preview against
+to preview dark mode, `?icons` to draw icons where Home Assistant would
+(outside it, entity icons fall back to a first letter), `?theme=ha` to preview against
 a stand-in Home Assistant theme, or `?override` to see a `luxframe-*` variable
 take effect. The clock page shows the
 version and commit in its corner, and the browser console logs them too, so a

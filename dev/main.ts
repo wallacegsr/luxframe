@@ -5,6 +5,9 @@ import { createMockHass, mockMusicWS } from './mock-hass';
 
 const params = new URLSearchParams(location.search);
 
+// ?icons draws icons where Home Assistant would, instead of first letters.
+if (params.has('icons')) await import('./state-icon');
+
 // ?theme=ha previews against a stand-in for Home Assistant's default theme;
 // ?override shows a --luxframe-* variable winning, as an HA theme would set it.
 if (params.get('theme') === 'ha') {

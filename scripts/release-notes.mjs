@@ -5,7 +5,8 @@
 //
 // Wrapped lines are joined, so each paragraph and bullet is one line: some
 // renderers, GitHub's release page among them, keep a line break wherever
-// the source has one. Fails when the version has no section, so a release
+// the source has one. A bullet keeps its indent, so nested lists stay
+// nested. Fails when the version has no section, so a release
 // can't go out without its notes.
 import { readFileSync } from 'node:fs';
 
@@ -37,7 +38,8 @@ for (const line of section) {
     out.push('');
     joinable = false;
   } else if (/^(#{1,6} |[-*+] |\d+\. )/.test(text)) {
-    out.push(text);
+    // A heading starts the line; a bullet keeps its indent, its nesting.
+    out.push(text.startsWith('#') ? text : line.trimEnd());
     joinable = !text.startsWith('#');
   } else if (joinable) {
     out[out.length - 1] += ` ${text}`;

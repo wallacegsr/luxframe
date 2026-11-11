@@ -82,9 +82,24 @@ const initial: HassEntity[] = [
   }),
   entity('cover.garage', 'closed', { friendly_name: 'Garage', device_class: 'garage' }),
   entity('lock.front_door', 'locked', { friendly_name: 'Front Door' }),
-  entity('sensor.living_temperature', '21.5', { unit_of_measurement: '°C', device_class: 'temperature' }),
-  entity('sensor.bedroom_temperature', '19.8', { unit_of_measurement: '°C', device_class: 'temperature' }),
-  entity('sensor.living_humidity', '44', { unit_of_measurement: '%' }),
+  entity('sensor.living_temperature', '21.5', {
+    friendly_name: 'Living Room Temperature',
+    unit_of_measurement: '°C',
+    device_class: 'temperature',
+    state_class: 'measurement',
+  }),
+  entity('sensor.bedroom_temperature', '19.8', {
+    friendly_name: 'Bedroom Temperature',
+    unit_of_measurement: '°C',
+    device_class: 'temperature',
+    state_class: 'measurement',
+  }),
+  entity('sensor.living_humidity', '44', {
+    friendly_name: 'Living Room Humidity',
+    unit_of_measurement: '%',
+    device_class: 'humidity',
+    state_class: 'measurement',
+  }),
   {
     ...entity('event.front_door_motion', new Date(Date.now() - 29 * 60_000).toISOString(), {
       friendly_name: 'Front Door Motion',
