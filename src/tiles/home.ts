@@ -1,7 +1,7 @@
 import { css, html, nothing, svg } from 'lit';
 import { entitiesInArea, fetchTodo, findArea, type TodoItem } from '../data';
 import { define } from '../define';
-import { domainOf, openDetail } from '../entity';
+import { domainOf, openDetail, openView } from '../entity';
 import { icon } from '../icons';
 import { controls, glass, tileBase } from '../theme';
 import { formatClock } from '../time';
@@ -69,8 +69,9 @@ export class LuxFrameSunTile extends SizedTile {
     const roomy = this.size === 'm' || this.size === 'l';
 
     return html`
-      <div class="tile glass" role="img"
-        aria-label="${first.label} at ${formatClock(this.hass, first.at)}, ${second.label.toLowerCase()} at ${formatClock(this.hass, second.at)}">
+      <div class="tile glass" role="button" tabindex="0"
+        aria-label="${first.label} at ${formatClock(this.hass, first.at)}, ${second.label.toLowerCase()} at ${formatClock(this.hass, second.at)}"
+        @click=${() => openDetail(this, s.entity_id)}>
         ${roomy ? this._arc(progress) : nothing}
         <div class="next">
           ${icon(first.icon, roomy ? 34 : 26)}
@@ -100,6 +101,7 @@ export class LuxFrameSunTile extends SizedTile {
       .tile {
         align-items: center;
         text-align: center;
+        cursor: pointer;
       }
 
       .next {
@@ -317,7 +319,8 @@ export class LuxFrameTodoTile extends SizedTile {
 /**
  * One area at a glance: its temperature and how many lights are on. The icon
  * switches the room's lights (off if any are on, otherwise on); the rest goes
- * to the room's page, if there's one with its name.
+ * to the room's page, if there's one with its name, or else opens the room
+ * in a sheet with a tile for everything in it.
  */
 export class LuxFrameRoomTile extends SizedTile {
   declare config?: RoomTileConfig;
@@ -353,7 +356,7 @@ export class LuxFrameRoomTile extends SizedTile {
 
     return html`
       <div class="tile glass ${on ? 'active' : ''}" role="button" tabindex="0" aria-label="${area.name}"
-        @click=${() => goTo(this, { title: area.name })}>
+        @click=${() => goTo(this, { title: area.name }) || openView(this, { title: area.name, tile: this.config! })}>
         <button class="icon" aria-label="${on ? 'Turn off' : 'Turn on'} the ${area.name} lights"
           ?disabled=${!lights.length} @click=${(e: Event) => this._toggle(area.area_id, e)}>
           ${icon(lights.length ? 'bulb' : 'room', 30)}

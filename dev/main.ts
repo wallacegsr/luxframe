@@ -65,6 +65,24 @@ const config: LuxFrameConfig = {
     },
     {
       type: 'grid',
+      title: 'Widgets',
+      tiles: [
+        { type: 'button', entity: 'script.all_lights_off', confirm: true },
+        { type: 'sensor', entity: 'sensor.living_temperature' },
+        { type: 'alarm', entity: 'alarm_control_panel.home' },
+        { type: 'timer', entity: 'timer.kitchen' },
+        { type: 'energy' },
+        { type: 'people', size: 'w' },
+        { type: 'vacuum', entity: 'vacuum.robbie' },
+        { type: 'sensor', entity: 'sensor.living_humidity' },
+        { type: 'select', entity: 'input_select.house_mode' },
+        { type: 'number', entity: 'input_number.humidity_target' },
+        { type: 'button', action: 'light.turn_off', data: { entity_id: 'all' }, name: 'Lights out', icon: 'mdi:lightbulb-off' },
+        { type: 'weather' },
+      ],
+    },
+    {
+      type: 'grid',
       title: 'Cards',
       badge_align: 'left',
       badges: [
@@ -329,7 +347,9 @@ hass.callWS = (async (message: Record<string, any>) => {
     return null;
   }
   if (message.type === 'conversation/process') return converse(message.text, message.conversation_id);
-  if (message.type === 'todo/item/list') return { items: todo.filter((item) => item.status === 'needs_action') };
+  if (message.type === 'todo/item/list') return { items: todo };
+  if (message.type === 'history/history_during_period') return mockHistory(message);
+  if (message.type === 'recorder/statistics_during_period') return mockStatistics(message);
   if (message.type === 'media_source/browse_media') {
     const immich = mockImmich(String(message.media_content_id));
     if (immich) return immich;
@@ -377,16 +397,59 @@ function mockImmich(id: string): { children: Array<Record<string, string>> } | u
 }
 
 // To-do items, calendar events and forecasts, made up around today.
-const todo = [
+const todo: Array<{ uid: string; summary: string; status: string; due?: string; description?: string }> = [
   { uid: '1', summary: 'Oat milk', status: 'needs_action' },
-  { uid: '2', summary: 'Lemons', status: 'needs_action' },
-  { uid: '3', summary: 'Coffee beans', status: 'needs_action' },
+  { uid: '2', summary: 'Lemons', status: 'needs_action', due: new Date().toLocaleDateString('en-CA') },
+  { uid: '3', summary: 'Coffee beans', status: 'needs_action', description: 'The dark roast from the market' },
+  { uid: '4', summary: 'Bread', status: 'completed' },
 ];
+
+// The recorder: a gentle daily swing for numbers, a change every hour or two for the rest.
+function mockHistory(message: Record<string, any>) {
+  const start = Date.parse(message.start_time);
+  const out: Record<string, Array<{ s: string; lu: number }>> = {};
+  for (const id of message.entity_ids as string[]) {
+    const s = hass.states[id];
+    if (!s) continue;
+    const base = Number(s.state);
+    const rows: Array<{ s: string; lu: number }> = [];
+    if (Number.isFinite(base)) {
+      const swing = id.includes('power') ? Math.max(300, Math.abs(base) * 0.6) : Math.max(1.5, Math.abs(base) * 0.08);
+      for (let t = start; t < Date.now(); t += 10 * 60_000) {
+        const phase = ((t / 3600_000) % 24) / 24;
+        const v = base + swing * Math.sin(phase * Math.PI * 2 + id.length) + (Math.sin(t / 900_000) * swing) / 6;
+        rows.push({ s: v.toFixed(1), lu: t / 1000 });
+      }
+    } else {
+      const states = id.startsWith('binary_sensor') ? ['off', 'on'] : [s.state, 'unknown'];
+      let n = 0;
+      for (let t = start; t < Date.now(); t += (45 + ((n * 37) % 90)) * 60_000) rows.push({ s: states[n++ % 2], lu: t / 1000 });
+    }
+    out[id] = rows;
+  }
+  return out;
+}
+
+function mockStatistics(message: Record<string, any>) {
+  const history = mockHistory({ start_time: message.start_time, entity_ids: message.statistic_ids });
+  return Object.fromEntries(
+    Object.entries(history).map(([id, rows]) => [
+      id,
+      rows.filter((_, i) => i % 6 === 0).map((r) => ({ start: r.lu * 1000, mean: Number(r.s) })),
+    ]),
+  );
+}
 const originalCall = hass.callService.bind(hass);
 hass.callService = async (domain, service, data) => {
   if (domain === 'todo' && service === 'update_item') {
     const item = todo.find((t) => t.uid === data?.item);
     if (item) item.status = String(data?.status);
+  }
+  if (domain === 'todo' && service === 'add_item') {
+    todo.push({ uid: String(Date.now()), summary: String(data?.item), status: 'needs_action' });
+  }
+  if (domain === 'todo' && service === 'remove_completed_items') {
+    todo.splice(0, todo.length, ...todo.filter((t) => t.status !== 'completed'));
   }
   return originalCall(domain, service, data);
 };

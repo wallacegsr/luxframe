@@ -129,6 +129,41 @@ const initial: HassEntity[] = [
     next_rising: new Date(Date.now() + 14 * 3600_000).toISOString(),
     next_setting: new Date(Date.now() + 3 * 3600_000).toISOString(),
   }),
+  entity('alarm_control_panel.home', 'disarmed', {
+    friendly_name: 'Home Alarm',
+    code_format: 'number',
+    code_arm_required: false,
+    supported_features: 1 | 2 | 4 | 32,
+  }),
+  entity('timer.kitchen', 'idle', { friendly_name: 'Kitchen timer', duration: '0:05:00' }),
+  entity('vacuum.robbie', 'docked', {
+    friendly_name: 'Robbie',
+    battery_level: 84,
+    fan_speed: 'standard',
+    fan_speed_list: ['quiet', 'standard', 'turbo', 'max'],
+    supported_features: 4 | 8 | 16 | 32 | 512 | 1024 | 8192,
+  }),
+  { ...entity('person.alex', 'home', { friendly_name: 'Alex Rivera', source: 'device_tracker.alex_phone', gps_accuracy: 12 }), last_changed: new Date(Date.now() - 135 * 60_000).toISOString() },
+  { ...entity('person.sam', 'Work', { friendly_name: 'Sam Rivera' }), last_changed: new Date(Date.now() - 320 * 60_000).toISOString() },
+  { ...entity('person.jo', 'not_home', { friendly_name: 'Jo' }), last_changed: new Date(Date.now() - 40 * 60_000).toISOString() },
+  entity('device_tracker.alex_phone', 'home', { friendly_name: 'Alex’s phone', battery_level: 62 }),
+  entity('input_number.humidity_target', '45', {
+    friendly_name: 'Target humidity',
+    min: 30,
+    max: 70,
+    step: 1,
+    unit_of_measurement: '%',
+  }),
+  entity('input_select.house_mode', 'Home', {
+    friendly_name: 'House mode',
+    options: ['Home', 'Away', 'Guest', 'Night', 'Vacation'],
+  }),
+  entity('sensor.solar_power', '2140', { friendly_name: 'Solar power', unit_of_measurement: 'W', device_class: 'power', state_class: 'measurement' }),
+  entity('sensor.grid_power', '-380', { friendly_name: 'Grid power', unit_of_measurement: 'W', device_class: 'power', state_class: 'measurement' }),
+  entity('sensor.battery_power', '-600', { friendly_name: 'Battery power', unit_of_measurement: 'W', device_class: 'power', state_class: 'measurement' }),
+  entity('sensor.home_power', '1160', { friendly_name: 'Home power', unit_of_measurement: 'W', device_class: 'power', state_class: 'measurement' }),
+  entity('script.all_lights_off', 'off', { friendly_name: 'All lights off', last_triggered: new Date(Date.now() - 130 * 60_000).toISOString() }),
+  { ...entity('binary_sensor.front_door_person', 'off', { friendly_name: 'Front Door Camera Person', device_class: 'occupancy' }), last_changed: new Date(Date.now() - 12 * 60_000).toISOString() },
   entity('media_player.kitchen_speaker', 'idle', mass({ friendly_name: 'Kitchen Speaker', volume_level: 0.2 })),
   entity('media_player.bedroom_speaker', 'off', mass({ friendly_name: 'Bedroom Speaker', volume_level: 0.25 })),
   entity(
@@ -168,6 +203,10 @@ const PLATFORM: Record<string, string> = {
 const DEVICE_OF: Record<string, string> = {
   'media_player.living_room': 'dev-living-room-speaker',
   'button.living_room_speaker_favorite_current_song': 'dev-living-room-speaker',
+  'camera.front_door': 'dev-front-door-camera',
+  'binary_sensor.front_door_person': 'dev-front-door-camera',
+  'event.front_door_motion': 'dev-front-door-camera',
+  'person.alex': 'dev-alex',
 };
 const TRANSLATION_KEY: Record<string, string> = {
   'button.living_room_speaker_favorite_current_song': 'favorite_now_playing',
@@ -367,6 +406,9 @@ const AREA_OF: Record<string, string> = {
   'media_player.kitchen_speaker': 'kitchen',
   'media_player.bedroom_speaker': 'bedroom',
   'sensor.living_temperature': 'living_room',
+  'sensor.living_humidity': 'living_room',
+  'vacuum.robbie': 'living_room',
+  'timer.kitchen': 'kitchen',
   'sensor.bedroom_temperature': 'bedroom',
   'camera.front_door': 'entry',
 };
@@ -499,9 +541,55 @@ export function createMockHass(onChange: (hass: HomeAssistant) => void): HomeAss
         update(id, current.state, choice);
       } else if (kind === 'lock.lock' || kind === 'lock.unlock') {
         update(id, service === 'lock' ? 'locked' : 'unlocked', {});
+      } else if (domain === 'alarm_control_panel') {
+        const mode = service.replace('alarm_', '');
+        if (data!.code !== undefined && data!.code !== '1234') {
+          console.warn('Wrong code; the dev alarm’s code is 1234');
+          return undefined;
+        }
+        if (mode === 'disarm') update(id, 'disarmed', {});
+        else {
+          update(id, 'arming', {});
+          setTimeout(() => update(id, mode.replace('arm_', 'armed_'), {}), 1500);
+        }
+      } else if (domain === 'timer') {
+        const parse = (v: string) => v.split(':').map(Number).reduce((t, n) => t * 60 + n, 0);
+        const a = current.attributes;
+        const left =
+          current.state === 'active' ? (Date.parse(a.finishes_at) - Date.now()) / 1000 : parse(a.remaining ?? a.duration);
+        const hms = (s: number) => [s / 3600, (s % 3600) / 60, s % 60].map((n) => String(Math.floor(n)).padStart(2, '0')).join(':');
+        if (service === 'start') {
+          const seconds = data!.duration ? parse(String(data!.duration)) : current.state === 'paused' ? left : parse(a.duration);
+          update(id, 'active', {
+            duration: data!.duration ? hms(seconds) : a.duration,
+            remaining: hms(seconds),
+            finishes_at: new Date(Date.now() + seconds * 1000).toISOString(),
+          });
+        } else if (service === 'pause') {
+          update(id, 'paused', { remaining: hms(Math.max(0, Math.round(left))), finishes_at: undefined });
+        } else {
+          update(id, 'idle', { remaining: undefined, finishes_at: undefined });
+        }
+      } else if (domain === 'vacuum') {
+        const next: Record<string, string> = { start: 'cleaning', pause: 'paused', stop: 'idle', return_to_base: 'returning', clean_spot: 'cleaning' };
+        if (service === 'set_fan_speed') update(id, current.state, { fan_speed: data!.fan_speed });
+        else if (next[service]) {
+          update(id, next[service], {});
+          if (service === 'return_to_base') setTimeout(() => update(id, 'docked', {}), 3000);
+        }
+      } else if (kind === 'input_number.set_value') {
+        update(id, String(data!.value), {});
+      } else if (kind === 'input_select.select_option') {
+        update(id, String(data!.option), {});
+      } else if (kind === 'script.turn_on') {
+        update(id, 'off', { last_triggered: new Date().toISOString() });
+      } else if (kind === 'todo.add_item') {
+        update(id, String(Number(current.state) + 1), {});
+      } else if (kind === 'todo.remove_completed_items') {
+        update(id, current.state, {});
       } else if (kind === 'todo.update_item') {
         // The list itself lives in dev/main.ts; the count is the entity's state.
-        update(id, String(Math.max(0, Number(current.state) - 1)), {});
+        update(id, String(Math.max(0, Number(current.state) + (data!.status === 'completed' ? -1 : 1))), {});
       } else if (kind === 'media_player.media_play_pause') {
         // A group plays and pauses together.
         const now = new Date().toISOString();

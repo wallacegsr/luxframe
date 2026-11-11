@@ -6,6 +6,43 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Nine widget tiles, under **Add tile → Widgets** or in YAML:
+  - an action button (`type: button`) that runs a script, scene, button or any
+    action, and can ask for a second tap first;
+  - a sensor (`type: sensor`): its value over a graph of the last day;
+  - an alarm panel (`type: alarm`);
+  - a timer (`type: timer`): a ring counting down, with start and pause;
+  - people (`type: people`): who's home, and where everyone else is;
+  - a vacuum (`type: vacuum`): what it's doing and its battery, with start
+    and pause;
+  - number and choice helpers (`type: number`, `type: select`), with a
+    slider or their options;
+  - energy now (`type: energy`): power flowing between solar, the grid, a
+    battery and the home.
+- Each opens fuller controls with a tap. A sensor shows 6 hours, a day or a
+  week to read by touch, with its low, average and high. An alarm panel arms
+  in each mode it offers and asks for its code on a keypad. A timer starts
+  for a chosen time, pauses, adds a minute, finishes or cancels. A vacuum
+  docks, stops, spot cleans, locates and sets its suction. A person shows where
+  they are, since when, and their phone's battery. Energy now shows the flow
+  large with each sensor's day.
+- Existing tiles open more, too:
+  - a camera shows itself large and live, with what its device senses;
+  - the weather tile shows the next hours and the week;
+  - the sun tile shows the day from dawn to dusk;
+  - a to-do list adds items, ticks them back on, shows due dates and clears
+    the done ones;
+  - a room or calendar tile with no page of its own opens in a sheet.
+- Picking a sensor, alarm panel, timer, vacuum, person, helper or button on
+  the tablet gives it its own tile kind.
+
+### Changed
+
+- Buttons (`button`, `input_button`) run with a tap on their icon, like scenes
+  and scripts.
+
 ## [0.13.1] - 2026-11-10
 
 ### Added

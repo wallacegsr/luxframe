@@ -219,7 +219,8 @@ export const editorStyles = [
   }
 
   input[type='text'],
-  input[type='search'] {
+  input[type='search'],
+  select {
     box-sizing: border-box;
     width: 100%;
     min-height: 46px;

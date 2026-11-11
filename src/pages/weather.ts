@@ -22,12 +22,15 @@ export class LuxFrameWeatherPage extends LitElement {
   static properties = {
     hass: { attribute: false },
     config: { attribute: false },
+    embedded: { type: Boolean, reflect: true },
     _daily: { state: true },
     _hourly: { state: true },
   };
 
   declare hass?: HomeAssistant;
   declare config?: WeatherPageConfig;
+  /** Shown in a detail sheet rather than as a page. */
+  declare embedded?: boolean;
   declare _daily?: Forecast[];
   declare _hourly?: Forecast[];
 
@@ -138,6 +141,12 @@ export class LuxFrameWeatherPage extends LitElement {
     css`
       :host {
         padding-bottom: max(var(--lf-pad), 48px);
+      }
+
+      /* Inside a detail sheet, which has its own padding and title. */
+      :host([embedded]) {
+        height: 100%;
+        padding: 0 0 24px;
       }
 
       .missing {

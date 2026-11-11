@@ -31,6 +31,14 @@ export function tileLabel(hass: HomeAssistant | undefined, raw: GridTileConfig |
       return tile.type === 'room' ? (hass?.areas?.[tile.area]?.name ?? tile.area) : 'Room';
     case 'card':
       return cardName((tile as CardTileConfig).card);
+    case 'people':
+      return 'People';
+    case 'energy':
+      return 'Energy now';
+    case 'button': {
+      const { entity, name, action } = tile as { entity?: string; name?: string; action?: string };
+      return name ?? (entity ? resolve(hass, entity).name : (action ?? 'Button'));
+    }
     case 'camera':
     case 'todo':
       return resolve(hass, (tile as { entity: string }).entity).name;
@@ -94,6 +102,25 @@ export function tileFor(entityId: string): GridTileConfig | string {
       return { type: 'now-playing', entity: entityId };
     case 'sun':
       return { type: 'sun', entity: entityId };
+    case 'sensor':
+      return { type: 'sensor', entity: entityId };
+    case 'alarm_control_panel':
+      return { type: 'alarm', entity: entityId };
+    case 'timer':
+      return { type: 'timer', entity: entityId };
+    case 'vacuum':
+      return { type: 'vacuum', entity: entityId };
+    case 'input_number':
+    case 'number':
+      return { type: 'number', entity: entityId };
+    case 'input_select':
+    case 'select':
+      return { type: 'select', entity: entityId };
+    case 'person':
+      return { type: 'people', entities: [entityId] };
+    case 'button':
+    case 'input_button':
+      return { type: 'button', entity: entityId };
     default:
       return entityId;
   }
@@ -108,7 +135,10 @@ export function pickable(hass: HomeAssistant | undefined): HassEntity[] {
   });
 }
 
-const ALSO_TILES = ['weather', 'calendar', 'camera', 'todo', 'sun'];
+const ALSO_TILES = [
+  'weather', 'calendar', 'camera', 'todo', 'sun', 'sensor', 'alarm_control_panel', 'timer', 'vacuum',
+  'input_number', 'number', 'input_select', 'select', 'person', 'button', 'input_button',
+];
 
 export function isUseful(entityId: string): boolean {
   return USEFUL.includes(domainOf(entityId)) || ALSO_TILES.includes(domainOf(entityId));

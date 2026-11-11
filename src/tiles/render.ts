@@ -14,6 +14,15 @@ const TILE_TAGS: Partial<Record<GridTileType, StaticValue>> = {
   todo: literal`luxframe-todo-tile`,
   room: literal`luxframe-room-tile`,
   card: literal`luxframe-card-tile`,
+  button: literal`luxframe-button-tile`,
+  sensor: literal`luxframe-sensor-tile`,
+  alarm: literal`luxframe-alarm-tile`,
+  timer: literal`luxframe-timer-tile`,
+  people: literal`luxframe-people-tile`,
+  vacuum: literal`luxframe-vacuum-tile`,
+  number: literal`luxframe-number-tile`,
+  select: literal`luxframe-select-tile`,
+  energy: literal`luxframe-energy-tile`,
 };
 
 /** Any LuxFrame tile, drawn as `size`; on a grid page or in the quick panel. */

@@ -198,6 +198,87 @@ export interface RoomTileConfig extends GridTileBase {
   area: string;
 }
 
+/** A button that runs something: a script, scene, button or automation, or any service. */
+export interface ButtonTileConfig extends GridTileBase {
+  type: 'button';
+  /** What it runs; with `action`, what the action acts on. */
+  entity?: string;
+  /** A service to call instead, such as `light.turn_off`. */
+  action?: string;
+  data?: Record<string, unknown>;
+  name?: string;
+  icon?: string;
+  /** Ask for a second tap before running. */
+  confirm?: boolean;
+}
+
+/** A sensor's value over a graph of its recent history. */
+export interface SensorTileConfig extends GridTileBase {
+  type: 'sensor';
+  entity: string;
+  name?: string;
+  /** Hours of history behind the value. Default 24. */
+  hours?: number;
+}
+
+/** An alarm panel: armed or not; arm and disarm in its details. */
+export interface AlarmTileConfig extends GridTileBase {
+  type: 'alarm';
+  entity: string;
+  name?: string;
+}
+
+/** A timer helper, counting down in a ring. */
+export interface TimerTileConfig extends GridTileBase {
+  type: 'timer';
+  entity: string;
+  name?: string;
+}
+
+/** Who's home: each person's picture and where they are. */
+export interface PeopleTileConfig extends GridTileBase {
+  type: 'people';
+  /** People to show; everyone when left out. */
+  entities?: string[];
+}
+
+/** A robot vacuum: what it's doing, its battery, start and pause. */
+export interface VacuumTileConfig extends GridTileBase {
+  type: 'vacuum';
+  entity: string;
+  name?: string;
+}
+
+/** A number helper (`input_number` or `number`) with a slider. */
+export interface NumberTileConfig extends GridTileBase {
+  type: 'number';
+  entity: string;
+  name?: string;
+}
+
+/** A choice helper (`input_select` or `select`) with its options. */
+export interface SelectTileConfig extends GridTileBase {
+  type: 'select';
+  entity: string;
+  name?: string;
+}
+
+/**
+ * Power flowing now between solar, the grid, a battery and the home. Each is
+ * a power sensor; any left out is found by its name.
+ */
+export interface EnergyTileConfig extends GridTileBase {
+  type: 'energy';
+  /** Solar production. */
+  solar?: string;
+  /** Positive while importing from the grid, negative while exporting. */
+  grid?: string;
+  /** Positive while discharging, negative while charging. */
+  battery?: string;
+  /** The home's use; worked out from the others when left out. */
+  home?: string;
+}
+
 export type GridTileConfig =
   | EntityTileConfig
   | SwitchTileConfig
@@ -211,6 +292,15 @@ export type GridTileConfig =
   | SunTileConfig
   | TodoTileConfig
   | RoomTileConfig
+  | ButtonTileConfig
+  | SensorTileConfig
+  | AlarmTileConfig
+  | TimerTileConfig
+  | PeopleTileConfig
+  | VacuumTileConfig
+  | NumberTileConfig
+  | SelectTileConfig
+  | EnergyTileConfig
   | CardTileConfig;
 
 export type GridTileType = NonNullable<GridTileConfig['type']>;

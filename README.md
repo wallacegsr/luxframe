@@ -190,23 +190,35 @@ are medium (large from four columns), and one column is small however tall.
 | `entity`       | `entity`, `name`, `icon`. A bare entity id is shorthand for this. | `s` |
 | `switch`       | `entity` (a light, switch, fan or `input_boolean`), `name`, `icon`. A light switch: a tap anywhere turns it on or off, a drag up or down dims it, and a dimmed light shows its level as a fill. | `s` |
 | `thermostat`   | `entity` (a `climate.*`), `name`. Glass, with what it's doing in the mode's color; medium and large tiles add mode buttons. | `m` |
-| `weather`      | `entity` (default: your first weather entity) | `s`      |
+| `weather`      | `entity` (default: your first weather entity). A tap opens the next hours and the week. | `s` |
 | `clock`        |                                           | `s`          |
 | `analog-clock` | Drawn on the background, with no glass    | `s`          |
-| `calendar`     | `entities` (default: every calendar), `view`: `upcoming` or `month`. A tap opens the calendar page. | `m` |
+| `calendar`     | `entities` (default: every calendar), `view`: `upcoming` or `month`. A tap opens the calendar page, or the next two weeks in a sheet when there isn't one. | `m` |
 | `now-playing`  | `entity` (default: whichever speaker is playing, Music Assistant first). A tap opens the [speaker's details](#detail-pages). | `w` |
-| `camera`       | `entity`. A still every 10 seconds; a tap streams it in Home Assistant's dialog. | `m` |
+| `camera`       | `entity`. A still every 10 seconds; a tap shows it large and live, with what its device senses. | `m` |
 | `photo`        | `folder` or `album` (an [Immich album](#photos-from-immich)), `interval` (seconds, default 30). Tap the right half for the next photo, the left half to go back. | `m` |
-| `sun`          | `entity` (default `sun.sun`). Next sunrise or sunset; an arc on bigger tiles. | `s` |
-| `todo`         | `entity` (a `todo.*`). Tap a circle to tick an item off. | `m` |
-| `room`         | `area` (id or name). Temperature and lights; the icon switches the room's lights, the rest opens the page with the room's name. | `s` |
+| `sun`          | `entity` (default `sun.sun`). Next sunrise or sunset; an arc on bigger tiles. A tap opens the day from dawn to dusk. | `s` |
+| `todo`         | `entity` (a `todo.*`). Tap a circle to tick an item off; tap the tile to add items and see the done ones. | `m` |
+| `room`         | `area` (id or name). Temperature and lights; the icon switches the room's lights, the rest opens the page with the room's name, or the room in a sheet when there isn't one. | `s` |
+| `button`       | `entity` (a script, scene, button or automation) or `action` (a service, such as `light.turn_off`) with `data`; `name`, `icon`, `confirm` (`true` asks for a second tap). Runs it, and says when it last ran. | `s` |
+| `sensor`       | `entity`, `name`, `hours` (default 24). The value over a graph of its recent past. | `s` |
+| `alarm`        | `entity` (an `alarm_control_panel.*`), `name`. Armed or not on a shield. | `s` |
+| `timer`        | `entity` (a `timer.*`), `name`. A ring counting down, with start and pause. | `s` |
+| `people`       | `entities` (default: everyone). Each person's picture, ringed when they're home, and where they are. | `w` |
+| `vacuum`       | `entity`, `name`. What it's doing and its battery; the icon starts or pauses it. | `s` |
+| `number`       | `entity` (an `input_number` or `number`), `name`. Its value, with a slider from wide up. | `w` |
+| `select`       | `entity` (an `input_select` or `select`), `name`. The chosen option, with every option from wide up. | `w` |
+| `energy`       | `solar`, `grid`, `battery`, `home` (power sensors; any left out are found by name). Power flowing now; from medium up, drawn between the four. The grid reads positive importing, a battery positive discharging. | `m` |
 | `card`         | `card` (any Home Assistant card's config), `glass` (default `true`), `fit` (`stretch`, `cover` or `contain`). See [Home Assistant cards](#home-assistant-cards). | `m` |
 
 When something a tile or page needs isn't there, it says so plainly: "No
 weather", "No calendar", "No camera", "No photos in local/holiday".
 Picking a calendar, camera, to-do list, speaker or the sun on the tablet gives
-it its own tile kind, and **Add tile → Rooms** adds a room tile. **Add tile →
-Widgets → Light switch** and **Camera** ask which light or camera next.
+it its own tile kind, and so does a sensor, alarm panel, timer, vacuum, person,
+number or choice helper, or button. **Add tile → Rooms** adds a room tile.
+Under **Add tile → Widgets**, the ones that show one device (a light switch,
+action button, camera, sensor, alarm panel, timer, vacuum, number or choice)
+ask which next; **People** and **Energy now** find theirs.
 
 #### Photos from Immich
 
@@ -357,6 +369,27 @@ Details open on a LuxFrame glass page over the frame:
   the next song shows under the controls, and **Move here** takes the music,
   queue and all, to another speaker. **Library** plays your favorites,
   playlists, albums, artists and radio, and searches Music Assistant.
+- **Sensor**: its value, a graph of the last 6 hours, day or week (touch it to
+  read any moment), and the low, average and high. A sensor that isn't a
+  number, such as a door, lists when it changed and for how long.
+- **Alarm panel**: a button for each arm mode it offers, Disarm while armed,
+  and a keypad when it wants a code.
+- **Timer**: a large ring; idle, choose how long and start; running, pause,
+  add a minute, finish now or cancel.
+- **Vacuum**: start or pause, return to dock, stop, spot clean, locate, and
+  suction, as far as it offers them, with its battery.
+- **Person**: where they are and since when, what tracks them and its
+  battery, and everyone else to switch to.
+- **Number and choice helpers**: a tall slider with a step up and down; every
+  option to choose from.
+- **Camera**: large and live, with what its device senses (motion, a person,
+  the doorbell) and when.
+- **Weather**: now, the next twelve hours and the week. **Sun**: the day from
+  dawn to dusk and how long it is. **To-do list**: add items, tick them off or
+  back, see when each is due, and clear the done ones.
+- **Energy now, a room or a calendar without a page**: the flow large with a
+  day's graph of each sensor; every device in the room as a tile; the next two
+  weeks.
 - **Anything else**: its state, when it last changed, and Turn On/Off or Run.
 
 Close with ✕, by swiping down, or with Escape. **⋯** opens Home Assistant's own

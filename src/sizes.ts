@@ -30,6 +30,15 @@ const DEFAULT_SIZE: Record<GridTileType, TileSize> = {
   todo: 'm',
   room: 's',
   card: 'm',
+  button: 's',
+  sensor: 's',
+  alarm: 's',
+  timer: 's',
+  people: 'w',
+  vacuum: 's',
+  number: 'w',
+  select: 'w',
+  energy: 'm',
 };
 
 /** The tile's size as written, or its kind's default. */

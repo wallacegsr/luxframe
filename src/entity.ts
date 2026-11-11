@@ -1,4 +1,4 @@
-import type { EntityRef, HassEntity, HomeAssistant } from './types';
+import type { EntityRef, GridTileConfig, HassEntity, HomeAssistant } from './types';
 
 const INACTIVE = new Set(['off', 'closed', 'locked', 'idle', 'standby', 'unavailable', 'unknown']);
 const TOGGLES = new Set(['light', 'switch', 'fan', 'input_boolean', 'automation', 'cover']);
@@ -62,9 +62,10 @@ export function kindColor(entityId: string | undefined): string {
   return (entityId && KIND_COLORS[domainOf(entityId)]) || 'var(--lf-accent)';
 }
 
+const MOMENTARY = new Set(['scene', 'script', 'button', 'input_button']);
+
 export function isMomentary(stateObj: HassEntity | undefined): boolean {
-  const domain = stateObj ? domainOf(stateObj.entity_id) : '';
-  return domain === 'scene' || domain === 'script';
+  return !!stateObj && MOMENTARY.has(domainOf(stateObj.entity_id));
 }
 
 export function stateLabel(hass: HomeAssistant | undefined, stateObj: HassEntity | undefined): string {
@@ -75,13 +76,15 @@ export function stateLabel(hass: HomeAssistant | undefined, stateObj: HassEntity
   // A scene's state is its last-run timestamp, which means nothing on a tile.
   if (domain === 'scene') return 'Scene';
   if (domain === 'script') return state === 'on' ? 'Running' : 'Script';
+  // A button's state is when it was last pressed.
+  if (domain === 'button' || domain === 'input_button') return 'Button';
   if (domain === 'light' && state === 'on' && attributes.brightness) {
     return `${Math.round((attributes.brightness / 255) * 100)}%`;
   }
   if (hass?.formatEntityState) return hass.formatEntityState(stateObj);
   const unit = attributes.unit_of_measurement;
   if (unit) return `${state} ${unit}`;
-  return state.charAt(0).toUpperCase() + state.slice(1);
+  return (state.charAt(0).toUpperCase() + state.slice(1)).replace(/_/g, ' ');
 }
 
 /**
@@ -138,6 +141,10 @@ export function tapAction(hass: HomeAssistant, stateObj: HassEntity | undefined)
     hass.callService(domain, 'turn_on', target);
     return true;
   }
+  if (domain === 'button' || domain === 'input_button') {
+    hass.callService(domain, 'press', target);
+    return true;
+  }
   if (domain === 'cover' && GUARDED_COVERS.has(stateObj.attributes.device_class)) return false;
   if (TOGGLES.has(domain)) {
     hass.callService('homeassistant', 'toggle', target);
@@ -162,6 +169,27 @@ export function openDetail(from: HTMLElement, entityId: string): void {
     cancelable: true,
   });
   if (from.dispatchEvent(event)) openMoreInfo(from, entityId);
+}
+
+/** A view that isn't one entity's: a room, a calendar, the energy flow. */
+export interface DetailView {
+  title: string;
+  /** The tile whose fuller view it is. */
+  tile: GridTileConfig;
+}
+
+/**
+ * Opens a widget's fuller view in the frame's detail sheet. Returns false
+ * outside a frame, where there's nothing to show it in.
+ */
+export function openView(from: HTMLElement, view: DetailView): boolean {
+  const event = new CustomEvent('luxframe-open-detail', {
+    detail: { view },
+    bubbles: true,
+    composed: true,
+    cancelable: true,
+  });
+  return !from.dispatchEvent(event);
 }
 
 /** Home Assistant's own more-info dialog. */

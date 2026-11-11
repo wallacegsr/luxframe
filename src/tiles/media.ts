@@ -1,7 +1,7 @@
 import { css, html } from 'lit';
 import { cameraStill } from '../data';
 import { define } from '../define';
-import { openMoreInfo, resolve } from '../entity';
+import { openDetail, resolve } from '../entity';
 import '../now-playing';
 import '../slideshow';
 import { glass, tileBase } from '../theme';
@@ -45,7 +45,7 @@ export class LuxFrameNowPlayingTile extends SizedTile {
 
 /**
  * A camera's still, refreshed every ten seconds while on screen, with its
- * name. A tap opens Home Assistant's own dialog, which streams it live.
+ * name. A tap opens it large and live, with what its device senses.
  */
 export class LuxFrameCameraTile extends SizedTile {
   static properties = { ...SizedTile.properties, _tick: { state: true } };
@@ -80,7 +80,7 @@ export class LuxFrameCameraTile extends SizedTile {
     const still = s.state === 'unavailable' ? undefined : cameraStill(s, this._tick);
     return html`
       <div class="tile glass" role="button" tabindex="0" aria-label="${name} camera"
-        @click=${() => openMoreInfo(this, s.entity_id)}>
+        @click=${() => openDetail(this, s.entity_id)}>
         ${still ? html`<img src=${still} alt="" />` : html`<div class="message muted">Camera unavailable</div>`}
         <div class="name">${name}</div>
       </div>

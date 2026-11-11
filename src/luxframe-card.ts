@@ -9,7 +9,7 @@ import './editor/sheet';
 import './editor/tile-editor';
 import { normalizeTile, tileLabel } from './editor/layout';
 import { clearLocal, describe, loadLocal, save, stableJson } from './editor/store';
-import { openMoreInfo, resolve } from './entity';
+import { openMoreInfo, resolve, type DetailView } from './entity';
 import { kiosk, onKiosk, type KioskTheme } from './kiosk';
 import './quick/assist';
 import { compactDock, dockOf, normalizeDock, toDockItem } from './quick/dock';
@@ -158,7 +158,8 @@ export class LuxFrameCard extends LitElement {
   declare _kioskDark?: boolean;
   declare _hideHeader: boolean;
   /** The entity whose detail view is open over the pages. */
-  declare _detail?: string;
+  /** What the detail sheet shows: an entity's controls, or a widget's fuller view. */
+  declare _detail?: { entityId?: string; view?: DetailView };
   /** Rearranging on the tablet: pages show `_draft` until Done or Cancel. */
   declare _editing: boolean;
   declare _draft?: LuxFrameConfig;
@@ -450,7 +451,8 @@ export class LuxFrameCard extends LitElement {
     e.preventDefault(); // claimed: the opener won't fall back to HA's dialog
     e.stopPropagation();
     if (this._editing) return;
-    this._detail = (e as CustomEvent<{ entityId: string }>).detail.entityId;
+    const { entityId, view } = (e as CustomEvent<{ entityId?: string; view?: DetailView }>).detail;
+    this._detail = { entityId, view };
   };
 
   /** A tile asking for a page: the first visible one of that type or title. */
@@ -1255,7 +1257,8 @@ export class LuxFrameCard extends LitElement {
         ${this._detail
           ? html`<luxframe-detail
               .hass=${this.hass}
-              .entityId=${this._detail}
+              .entityId=${this._detail.entityId}
+              .view=${this._detail.view}
               @close=${() => (this._detail = undefined)}
               @more=${this._onMore}
             ></luxframe-detail>`

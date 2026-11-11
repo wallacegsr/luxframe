@@ -25,6 +25,7 @@ export class LuxFrameCalendarPage extends LitElement {
     config: { attribute: false },
     badges: { attribute: false },
     editing: { type: Boolean, reflect: true },
+    embedded: { type: Boolean, reflect: true },
     _events: { state: true },
   };
 
@@ -33,6 +34,8 @@ export class LuxFrameCalendarPage extends LitElement {
   /** The title bar's badges, worked out by the frame. */
   declare badges?: BadgeItem[];
   declare editing?: boolean;
+  /** Shown in a detail sheet, under its title: no heading of its own. */
+  declare embedded?: boolean;
   declare _events?: CalendarEvent[];
 
   private _poll = new Poller(this, () => this._load(), REFRESH_MS);
@@ -84,9 +87,11 @@ export class LuxFrameCalendarPage extends LitElement {
       .filter(({ events }) => events.length);
 
     return html`
-      <div class="head"><h1>${title}</h1>
-        ${this.editing || this.badges?.length ? html`<luxframe-badges .hass=${this.hass} .items=${this.badges ?? []} ?editing=${this.editing}></luxframe-badges>` : nothing}
-      </div>
+      ${this.embedded
+        ? nothing
+        : html`<div class="head"><h1>${title}</h1>
+            ${this.editing || this.badges?.length ? html`<luxframe-badges .hass=${this.hass} .items=${this.badges ?? []} ?editing=${this.editing}></luxframe-badges>` : nothing}
+          </div>`}
       ${this._events && !days.length
         ? html`<div class="muted empty">Nothing in the next ${this._days} days</div>`
         : nothing}
@@ -118,6 +123,12 @@ export class LuxFrameCalendarPage extends LitElement {
     css`
       :host {
         padding-bottom: max(var(--lf-pad), 48px);
+      }
+
+      /* Inside a detail sheet, which has its own padding and title. */
+      :host([embedded]) {
+        height: 100%;
+        padding: 0 0 24px;
       }
 
       .missing {

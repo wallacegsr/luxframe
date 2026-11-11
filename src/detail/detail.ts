@@ -1,13 +1,17 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { define } from '../define';
-import { domainOf, resolve } from '../entity';
+import { domainOf, resolve, type DetailView } from '../entity';
 import { controls } from '../theme';
 import type { HassEntity, HomeAssistant } from '../types';
+import { renderWidgetView } from './views';
 
 const CLOSE_DISTANCE = 120;
 const CLOSE_MS = 180;
 // A swipe that starts on one of these belongs to the control, not the sheet.
-const CONTROLS = 'button, luxframe-slider, luxframe-confirm-button, [data-no-swipe]';
+const CONTROLS = 'button, input, luxframe-slider, luxframe-chart, luxframe-confirm-button, [data-no-swipe]';
+
+/** Views that fill the sheet and scroll inside it, rather than centering. */
+const FILLS = new Set(['media_player', 'camera', 'weather', 'calendar', 'todo']);
 
 /** The controls for an entity's kind: a light's brightness and color, a lock's button. */
 export function renderEntityView(hass: HomeAssistant | undefined, stateObj: HassEntity | undefined) {
@@ -25,6 +29,34 @@ export function renderEntityView(hass: HomeAssistant | undefined, stateObj: Hass
       return html`<luxframe-lock-detail .hass=${hass} .stateObj=${stateObj}></luxframe-lock-detail>`;
     case 'media_player':
       return html`<luxframe-media-detail .hass=${hass} .stateObj=${stateObj}></luxframe-media-detail>`;
+    case 'sensor':
+    case 'binary_sensor':
+      return html`<luxframe-sensor-detail .hass=${hass} .stateObj=${stateObj}></luxframe-sensor-detail>`;
+    case 'alarm_control_panel':
+      return html`<luxframe-alarm-detail .hass=${hass} .stateObj=${stateObj}></luxframe-alarm-detail>`;
+    case 'timer':
+      return html`<luxframe-timer-detail .hass=${hass} .stateObj=${stateObj}></luxframe-timer-detail>`;
+    case 'vacuum':
+      return html`<luxframe-vacuum-detail .hass=${hass} .stateObj=${stateObj}></luxframe-vacuum-detail>`;
+    case 'person':
+    case 'device_tracker':
+      return html`<luxframe-person-detail .hass=${hass} .stateObj=${stateObj}></luxframe-person-detail>`;
+    case 'input_number':
+    case 'number':
+      return html`<luxframe-number-detail .hass=${hass} .stateObj=${stateObj}></luxframe-number-detail>`;
+    case 'input_select':
+    case 'select':
+      return html`<luxframe-select-detail .hass=${hass} .stateObj=${stateObj}></luxframe-select-detail>`;
+    case 'camera':
+      return html`<luxframe-camera-detail .hass=${hass} .stateObj=${stateObj}></luxframe-camera-detail>`;
+    case 'weather':
+      return html`<luxframe-weather-page embedded .hass=${hass} .config=${{ type: 'weather', entity: stateObj.entity_id }}></luxframe-weather-page>`;
+    case 'calendar':
+      return html`<luxframe-calendar-page embedded .hass=${hass} .config=${{ type: 'calendar', entities: [stateObj.entity_id] }}></luxframe-calendar-page>`;
+    case 'sun':
+      return html`<luxframe-sun-detail .hass=${hass} .stateObj=${stateObj}></luxframe-sun-detail>`;
+    case 'todo':
+      return html`<luxframe-todo-detail .hass=${hass} .stateObj=${stateObj}></luxframe-todo-detail>`;
     default:
       return html`<luxframe-generic-detail .hass=${hass} .stateObj=${stateObj}></luxframe-generic-detail>`;
   }
@@ -42,12 +74,15 @@ export class LuxFrameDetail extends LitElement {
   static properties = {
     hass: { attribute: false },
     entityId: { attribute: false },
+    view: { attribute: false },
     _dy: { state: true },
     _closing: { state: true },
   };
 
   declare hass?: HomeAssistant;
   declare entityId?: string;
+  /** A widget's fuller view, in place of an entity's controls. */
+  declare view?: DetailView;
   declare _dy: number;
   declare _closing: boolean;
 
@@ -91,10 +126,11 @@ export class LuxFrameDetail extends LitElement {
 
   private _down(e: PointerEvent): void {
     if (e.button !== 0) return;
-    const onControl = e
-      .composedPath()
-      .some((el) => el instanceof Element && el !== this && el.matches(CONTROLS));
-    if (!onControl) this._swipe = { y: e.clientY, id: e.pointerId, active: false };
+    const path = e.composedPath().filter((el): el is Element => el instanceof Element && el !== this);
+    const onControl = path.some((el) => el.matches(CONTROLS));
+    // A list scrolled down scrolls back up before the sheet moves.
+    const scrolled = path.some((el) => el.scrollTop > 0);
+    if (!onControl && !scrolled) this._swipe = { y: e.clientY, id: e.pointerId, active: false };
   }
 
   private _move(e: PointerEvent): void {
@@ -116,13 +152,17 @@ export class LuxFrameDetail extends LitElement {
   }
 
   private _renderView() {
+    if (this.view) return renderWidgetView(this.hass, this.view.tile);
     return renderEntityView(this.hass, this.entityId ? this.hass?.states[this.entityId] : undefined);
   }
 
   protected render() {
-    if (!this.entityId) return nothing;
-    const { name, area } = resolve(this.hass, this.entityId);
+    if (!this.entityId && !this.view) return nothing;
+    const { name, area } = this.view
+      ? { name: this.view.title, area: undefined }
+      : resolve(this.hass, this.entityId!);
     const dragging = this._swipe?.active;
+    const fills = this.view ? true : FILLS.has(domainOf(this.entityId!));
 
     return html`
       <div class="backdrop ${this._closing ? 'closing' : ''}"></div>
@@ -149,20 +189,22 @@ export class LuxFrameDetail extends LitElement {
             <h2>${name}</h2>
             ${area ? html`<div class="area">${area}</div>` : nothing}
           </div>
-          <button
-            class="round small glass more"
-            aria-label="More settings in Home Assistant"
-            @click=${() =>
-              this.dispatchEvent(new CustomEvent('more', { detail: { entityId: this.entityId } }))}
-          >
-            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-              <circle cx="5" cy="12" r="2" fill="currentColor" />
-              <circle cx="12" cy="12" r="2" fill="currentColor" />
-              <circle cx="19" cy="12" r="2" fill="currentColor" />
-            </svg>
-          </button>
+          ${this.entityId
+            ? html`<button
+                class="round small glass more"
+                aria-label="More settings in Home Assistant"
+                @click=${() =>
+                  this.dispatchEvent(new CustomEvent('more', { detail: { entityId: this.entityId } }))}
+              >
+                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                  <circle cx="5" cy="12" r="2" fill="currentColor" />
+                  <circle cx="12" cy="12" r="2" fill="currentColor" />
+                  <circle cx="19" cy="12" r="2" fill="currentColor" />
+                </svg>
+              </button>`
+            : html`<span class="spacer" aria-hidden="true"></span>`}
         </header>
-        <main class=${domainOf(this.entityId) === 'media_player' ? 'fill' : ''}>${this._renderView()}</main>
+        <main class=${fills ? 'fill' : ''}>${this._renderView()}</main>
       </div>
     `;
   }
@@ -221,6 +263,11 @@ export class LuxFrameDetail extends LitElement {
       display: flex;
       align-items: center;
       gap: 16px;
+    }
+
+    .spacer {
+      flex: none;
+      width: 44px;
     }
 
     .titles {

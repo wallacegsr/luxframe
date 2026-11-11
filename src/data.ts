@@ -186,6 +186,9 @@ export interface TodoItem {
   uid: string;
   summary: string;
   status: 'needs_action' | 'completed';
+  /** A date, or a date and time. */
+  due?: string;
+  description?: string;
 }
 
 export async function fetchTodo(hass: HomeAssistant | undefined, entityId: string): Promise<TodoItem[]> {

@@ -1,9 +1,10 @@
 import { dump, load } from 'js-yaml';
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { define } from '../define';
+import { energySensors, SOURCES } from '../energy';
 import { domainOf, resolve } from '../entity';
 import { MAX_ROWS, sizeFor, sizeOf, spanOf } from '../sizes';
-import type { CardTileConfig, GridTileConfig, HomeAssistant, PhotoTileConfig, TileSize } from '../types';
+import type { ButtonTileConfig, CardTileConfig, EnergyTileConfig, GridTileConfig, HomeAssistant, PhotoTileConfig, TileSize } from '../types';
 import { normalizeTile, tileLabel } from './layout';
 import './card-visual';
 import './photo-settings';
@@ -11,6 +12,8 @@ import type { PhotoSettings } from './photo-settings';
 
 /** What a tap on a device's tile does: open its controls, or work it like a switch. */
 const SWITCHABLE = new Set(['light', 'switch', 'fan', 'input_boolean']);
+/** Tile kinds that show one entity under a name of their own. */
+const NAMED = new Set(['entity', 'switch', 'thermostat', 'button', 'sensor', 'alarm', 'timer', 'vacuum', 'number', 'select']);
 import { editorStyles } from './sheet';
 
 const FITS: Array<{ fit: NonNullable<CardTileConfig['fit']>; label: string; hint: string }> = [
@@ -183,6 +186,59 @@ export class LuxFrameTileEditor extends LitElement {
     `;
   }
 
+  private _renderButton(tile: ButtonTileConfig) {
+    const asks = !!tile.confirm;
+    return html`
+      <h3>A tap</h3>
+      <div class="row" role="group" aria-label="A tap">
+        <button class="chip ${asks ? '' : 'on'}" aria-pressed=${!asks} @click=${() => this._set({ confirm: undefined })}>
+          Runs it at once
+        </button>
+        <button class="chip ${asks ? 'on' : ''}" aria-pressed=${asks} @click=${() => this._set({ confirm: true })}>
+          Asks first
+        </button>
+      </div>
+      <p class="hint muted">
+        ${asks
+          ? 'The first tap asks; a second within three seconds runs it. For things you wouldn’t want to set off by brushing past.'
+          : 'To run any action instead, such as light.turn_off for a whole area, give the tile action and data in YAML.'}
+      </p>
+    `;
+  }
+
+  private _renderEnergy(tile: EnergyTileConfig) {
+    const found = energySensors(this.hass, tile);
+    const power = Object.values(this.hass?.states ?? {})
+      .filter((s) => domainOf(s.entity_id) === 'sensor')
+      .filter((s) => s.attributes.device_class === 'power' || /^(k|M)?W$/.test(s.attributes.unit_of_measurement ?? ''))
+      .sort((a, b) => a.entity_id.localeCompare(b.entity_id));
+    return html`
+      <h3>Power sensors</h3>
+      <div class="settings">
+        ${SOURCES.map(
+          (src) => html`<label class="field">
+            ${src.label}
+            <select @change=${(e: Event) => this._set({ [src.key]: (e.target as HTMLSelectElement).value || undefined })}>
+              <option value="" ?selected=${!tile[src.key]}>
+                ${!tile[src.key] && found[src.key]
+                  ? `Found: ${resolve(this.hass, found[src.key]!).name}`
+                  : src.key === 'home'
+                    ? 'Worked out from the others'
+                    : 'None'}
+              </option>
+              ${power.map(
+                (s) => html`<option value=${s.entity_id} ?selected=${tile[src.key] === s.entity_id}>
+                  ${resolve(this.hass, s.entity_id).name}
+                </option>`,
+              )}
+            </select>
+          </label>`,
+        )}
+      </div>
+      <p class="hint muted">The grid reads positive while importing; a battery, positive while discharging.</p>
+    `;
+  }
+
   private _fire(name: string, detail?: unknown): void {
     this.dispatchEvent(new CustomEvent(name, { detail }));
   }
@@ -213,10 +269,10 @@ export class LuxFrameTileEditor extends LitElement {
     const size = sizeOf(tile);
     const [w, h] = spanOf(tile, this.columns);
     const kind = tile.type ?? 'entity';
-    const named = kind === 'entity' || kind === 'switch' || kind === 'thermostat';
+    const named = NAMED.has(kind);
     const entity = 'entity' in tile ? tile.entity : undefined;
     const switchable = (kind === 'entity' || kind === 'switch') && !!entity && SWITCHABLE.has(domainOf(entity));
-    const fallbackName = entity ? resolve(this.hass, entity).name : '';
+    const fallbackName = entity ? resolve(this.hass, entity).name : tileLabel(this.hass, tile);
 
     return html`
       <h3>Size</h3>
@@ -264,6 +320,10 @@ export class LuxFrameTileEditor extends LitElement {
         : nothing}
 
       ${kind === 'card' ? this._renderCard(tile as CardTileConfig) : nothing}
+
+      ${kind === 'button' ? this._renderButton(tile as ButtonTileConfig) : nothing}
+
+      ${kind === 'energy' ? this._renderEnergy(tile as EnergyTileConfig) : nothing}
 
       ${kind === 'photo'
         ? html`<luxframe-photo-settings

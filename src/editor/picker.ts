@@ -1,8 +1,9 @@
 import { LitElement, html, nothing, type PropertyValues } from 'lit';
 import { define } from '../define';
 import { areaName, domainOf, resolve } from '../entity';
+import { isNumeric } from '../history';
 import { stateIcon } from '../icon';
-import type { GridTileConfig, HomeAssistant } from '../types';
+import type { GridTileConfig, HassEntity, HomeAssistant } from '../types';
 import { dashboardCards, type FoundCard } from './dashboard-cards';
 import { isUseful, pickable, tileFor } from './layout';
 import { editorStyles } from './sheet';
@@ -12,32 +13,53 @@ interface Widget {
   label: string;
   sub: string;
   tile: GridTileConfig;
-  needs?: { domains: string[]; prompt: string; none: string; make: (entity: string) => GridTileConfig };
+  needs?: {
+    domains: string[];
+    prompt: string;
+    none: string;
+    make: (entity: string) => GridTileConfig;
+    /** Narrows the domains further, e.g. to sensors that are numbers. */
+    only?: (s: HassEntity) => boolean;
+  };
 }
 
+/** A widget showing one device of these domains, asking which first. */
+const forDevice = (
+  label: string,
+  sub: string,
+  type: 'switch' | 'camera' | 'button' | 'sensor' | 'alarm' | 'timer' | 'vacuum' | 'number' | 'select',
+  domains: string[],
+  prompt: string,
+  none: string,
+  only?: (s: HassEntity) => boolean,
+): Widget => ({
+  label,
+  sub,
+  tile: { type, entity: '' } as GridTileConfig,
+  needs: { domains, prompt, none, only, make: (entity) => ({ type, entity }) as GridTileConfig },
+});
+
 const WIDGETS: Widget[] = [
-  {
-    label: 'Light switch',
-    sub: 'Tap to turn on and off; drag up or down to dim',
-    tile: { type: 'switch', entity: '' },
-    needs: {
-      domains: ['light', 'switch', 'fan', 'input_boolean'],
-      prompt: 'Which light or switch?',
-      none: 'No lights or switches in Home Assistant.',
-      make: (entity) => ({ type: 'switch', entity }),
-    },
-  },
-  {
-    label: 'Camera',
-    sub: 'A camera’s picture, refreshed every few seconds',
-    tile: { type: 'camera', entity: '' },
-    needs: {
-      domains: ['camera'],
-      prompt: 'Which camera?',
-      none: 'No cameras in Home Assistant.',
-      make: (entity) => ({ type: 'camera', entity }),
-    },
-  },
+  forDevice('Light switch', 'Tap to turn on and off; drag up or down to dim', 'switch',
+    ['light', 'switch', 'fan', 'input_boolean'], 'Which light or switch?', 'No lights or switches in Home Assistant.'),
+  forDevice('Action button', 'Runs a script, scene or button with one tap', 'button',
+    ['script', 'scene', 'button', 'input_button', 'automation'], 'What should it run?', 'No scripts, scenes or buttons in Home Assistant.'),
+  forDevice('Camera', 'A camera’s picture; a tap shows it live', 'camera',
+    ['camera'], 'Which camera?', 'No cameras in Home Assistant.'),
+  forDevice('Sensor', 'A reading over a graph of the last day', 'sensor',
+    ['sensor'], 'Which sensor?', 'No sensors with numbers in Home Assistant.', isNumeric),
+  forDevice('Alarm panel', 'Armed or not; arm and disarm with the keypad', 'alarm',
+    ['alarm_control_panel'], 'Which alarm panel?', 'No alarm panels in Home Assistant.'),
+  forDevice('Timer', 'A countdown ring with start and pause', 'timer',
+    ['timer'], 'Which timer?', 'No timers in Home Assistant. Add one under Settings → Devices & services → Helpers.'),
+  { label: 'People', sub: 'Who’s home, and where everyone else is', tile: { type: 'people' } },
+  forDevice('Vacuum', 'What it’s doing and its battery; start and dock', 'vacuum',
+    ['vacuum'], 'Which vacuum?', 'No vacuums in Home Assistant.'),
+  forDevice('Number', 'A number helper with a slider', 'number',
+    ['input_number', 'number'], 'Which number?', 'No number helpers in Home Assistant.'),
+  forDevice('Choice', 'A choice helper with its options', 'select',
+    ['input_select', 'select'], 'Which choice?', 'No choice helpers in Home Assistant.'),
+  { label: 'Energy now', sub: 'Power flowing between solar, the grid, a battery and home', tile: { type: 'energy' } },
   { label: 'Clock', sub: 'The time and date', tile: { type: 'clock' } },
   { label: 'Analog clock', sub: 'A clock face on the background', tile: { type: 'analog-clock' } },
   { label: 'Up next', sub: 'Coming events from every calendar', tile: { type: 'calendar' } },
@@ -113,7 +135,9 @@ export class LuxFramePicker extends LitElement {
   private _renderDevices(w: Widget) {
     const needs = w.needs!;
     const q = this._query.trim().toLowerCase();
-    const found = this._entities().filter(({ s }) => needs.domains.includes(domainOf(s.entity_id)));
+    const found = this._entities().filter(
+      ({ s }) => needs.domains.includes(domainOf(s.entity_id)) && (!needs.only || needs.only(s)),
+    );
     return html`
       <div class="row">
         <button class="chip" @click=${() => ((this._widget = undefined), (this._query = ''))}>‹ Back</button>

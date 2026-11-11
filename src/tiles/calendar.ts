@@ -11,6 +11,7 @@ import {
   type CalendarEvent,
 } from '../data';
 import { define } from '../define';
+import { openView } from '../entity';
 import { icon } from '../icons';
 import { glass, tileBase } from '../theme';
 import { formatClock } from '../time';
@@ -144,7 +145,7 @@ export class LuxFrameCalendarTile extends LitElement {
     if (!this._calendars.length) return html`<div class="tile glass quiet muted">No calendar</div>`;
     return html`
       <div class="tile glass ${this._month ? 'is-month' : ''}" role="button" tabindex="0"
-        @click=${() => goTo(this, { type: 'calendar' })}>
+        @click=${() => goTo(this, { type: 'calendar' }) || openView(this, { title: 'Calendar', tile: this.config ?? { type: 'calendar' } })}>
         ${this._month ? this._renderMonth() : this._renderUpcoming()}
       </div>
     `;
