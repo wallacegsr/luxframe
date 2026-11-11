@@ -139,6 +139,16 @@ export function addXBloomStudio(hass: HomeAssistant, push: (next: HomeAssistant)
     hass.entities![id] = { entity_id: id, platform: 'xbloom', device_id: DEVICE, translation_key: name };
   }
 
+  // A helper of the kind the page's beans_loaded points at: on once beans are in.
+  const BEANS = 'input_boolean.xbloom_beans_loaded';
+  hass.states[BEANS] = {
+    entity_id: BEANS,
+    state: 'on',
+    attributes: { friendly_name: 'Beans loaded', icon: 'mdi:coffee-outline' },
+    last_changed: new Date().toISOString(),
+    last_updated: new Date().toISOString(),
+  } as HassEntity;
+
   (hass.devices ??= {})[DEVICE] = { id: DEVICE, name: 'xBloom Studio', model: 'Studio', manufacturer: 'xBloom' } as never;
 
   const get = (key: string) => hass.states[ids[key]];
@@ -313,6 +323,12 @@ export function addXBloomStudio(hass: HomeAssistant, push: (next: HomeAssistant)
       return undefined;
     }
     const id = data?.entity_id as string | undefined;
+    if (id === BEANS && domain === 'input_boolean') {
+      const on = service === 'toggle' ? hass.states[BEANS].state !== 'on' : service === 'turn_on';
+      hass.states[BEANS] = { ...hass.states[BEANS], state: on ? 'on' : 'off', last_changed: new Date().toISOString() };
+      send();
+      return undefined;
+    }
     const key = Object.keys(ids).find((k) => ids[k] === id);
     if (!key) return call(domain, service, data);
     console.log('xBloom Studio', domain, service, data);

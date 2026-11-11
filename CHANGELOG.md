@@ -6,6 +6,15 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.16.2] - 2026-11-11
+
+### Added
+
+- With xBloom Studio, the Start Brew card's edge glows gold once it's ready
+  to brew, without card_mod; turn it off in Customize or with `glow: false`.
+  `beans_loaded` names an entity, such as an input_boolean, that must be on
+  too, and the card offers Beans are in to turn it on.
+
 ## [0.16.1] - 2026-11-11
 
 ### Added
@@ -587,7 +596,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.16.1...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.16.2...HEAD
+[0.16.2]: https://github.com/wallacegsr/luxframe/compare/v0.16.1...v0.16.2
 [0.16.1]: https://github.com/wallacegsr/luxframe/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/wallacegsr/luxframe/compare/v0.15.1...v0.16.0
 [0.15.1]: https://github.com/wallacegsr/luxframe/compare/v0.15.0...v0.15.1

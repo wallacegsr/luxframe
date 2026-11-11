@@ -219,7 +219,8 @@ export class LuxFrameXBloomStudio extends StudioBase {
       .renderer=${(tile: GridTileConfig, _shape: TileSize) => {
         const t = tile as unknown as CardTile;
         return html`<luxframe-xbloom-card .hass=${this.hass} .entities=${this.entities} card=${t.card}
-          .fit=${t.fit ?? 'shrink'} .scale=${this._scale}></luxframe-xbloom-card>`;
+          .fit=${t.fit ?? 'shrink'} .scale=${this._scale} .beansLoaded=${this.config?.beans_loaded}
+          ?glow=${this.config?.glow !== false}></luxframe-xbloom-card>`;
       }}
       .labeler=${(tile: GridTileConfig) => CARD_NAMES[(tile as unknown as CardTile).card] ?? 'Card'}
       @luxframe-tiles-change=${(e: CustomEvent<{ tiles: unknown[] }>) => {

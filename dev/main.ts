@@ -280,7 +280,9 @@ customElements.define(
   },
 );
 
-if (params.has('xbloom')) config.pages = [{ type: 'xbloom' }, ...(config.pages ?? [])];
+if (params.has('xbloom')) {
+  config.pages = [{ type: 'xbloom', beans_loaded: 'input_boolean.xbloom_beans_loaded' }, ...(config.pages ?? [])];
+}
 const card = document.createElement('luxframe-card') as LuxFrameCard;
 card.setConfig(config);
 const hass = createMockHass((next) => (card.hass = next));

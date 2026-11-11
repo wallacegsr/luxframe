@@ -213,6 +213,13 @@ export class LuxFrameCustomize extends LitElement {
         <button class="chip ${titled ? '' : 'on'}" aria-pressed=${!titled} @click=${() => set({ title: '' })}>Hide</button>
         ${titled ? html`<span class="muted">Rename it under Pages.</span>` : nothing}
       </div>
+      <div class="row" role="group" aria-label="Start Brew glows when ready">
+        <span class="muted">Glow when ready</span>
+        <button class="chip ${page.glow !== false ? 'on' : ''}" aria-pressed=${page.glow !== false}
+          @click=${() => set({ glow: undefined })}>On</button>
+        <button class="chip ${page.glow === false ? 'on' : ''}" aria-pressed=${page.glow === false}
+          @click=${() => set({ glow: false })}>Off</button>
+      </div>
       <div class="settings">
         ${this._stepper('Columns', page.columns ?? 6, 1, 12, (columns) => set({ columns }))}
         ${this._stepper('Columns upright', page.portrait_columns ?? 2, 1, 8, (v) => set({ portrait_columns: v }))}

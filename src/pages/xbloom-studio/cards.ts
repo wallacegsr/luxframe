@@ -83,6 +83,8 @@ export class LuxFrameXBloomCard extends StudioBase {
     card: { reflect: true },
     fit: {},
     scale: { type: Number },
+    beansLoaded: { attribute: false },
+    glow: { type: Boolean },
     _picking: { state: true },
     _adjusting: { state: true },
   };
@@ -90,6 +92,10 @@ export class LuxFrameXBloomCard extends StudioBase {
   declare card: XBloomCardName;
   declare fit: 'shrink' | 'scroll';
   declare scale: number;
+  /** An entity that's on once beans are in; Start Brew waits for it. */
+  declare beansLoaded?: string;
+  /** The Start Brew card glows while it's ready. */
+  declare glow: boolean;
 
   /** The recipe list is open over the picked recipe. */
   declare _picking: boolean;
@@ -101,6 +107,7 @@ export class LuxFrameXBloomCard extends StudioBase {
     this.card = 'machine';
     this.fit = 'shrink';
     this.scale = 1;
+    this.glow = true;
     this._picking = false;
   }
 
@@ -122,8 +129,10 @@ export class LuxFrameXBloomCard extends StudioBase {
         const recipe = this._state('select.recipe');
         return fitted(recipe ? this._recipe(recipe, status) : html`<p class="note pad">No Recipe select.</p>`, 'recipe');
       }
-      case 'brew':
-        return fitted(html`${this._bag()}${this._settings()}${this._start(status)}`);
+      case 'brew': {
+        const ready = this.glow && this._canStart(status);
+        return fitted(html`${this._bag()}${this._settings()}${this._start(status)}`, ready ? 'ready' : '');
+      }
       case 'grinder':
         return fitted(this._manualGrinder(status));
       case 'pour':
@@ -463,12 +472,29 @@ export class LuxFrameXBloomCard extends StudioBase {
     `;
   }
 
+  /**
+   * The beans entity, if one's set: on, off, or undefined when there's none
+   * to wait for. One that's missing or unavailable doesn't hold up a brew.
+   */
+  private _beansIn(): boolean | undefined {
+    const state = this.beansLoaded ? this.hass?.states[this.beansLoaded]?.state : undefined;
+    if (!state || UNUSABLE.includes(state)) return undefined;
+    return state === 'on';
+  }
+
+  /** The recipe's ready, the beans are in (if that's tracked), and nothing's brewing. */
+  private _canStart(status: string): boolean {
+    return this._state('binary_sensor.recipe_ready')?.state === 'on' && this._beansIn() !== false && !BUSY.includes(status);
+  }
+
   private _start(status: string) {
     const ready = this._state('binary_sensor.recipe_ready');
     const isReady = ready?.state === 'on';
     const busy = BUSY.includes(status);
+    const beans = this._beansIn();
     let note: string;
     if (busy) note = 'Brewing now.';
+    else if (isReady && beans === false) note = 'Load the beans to brew.';
     else if (isReady) note = 'Ready to brew.';
     else if (ready?.attributes.preparing) note = 'Getting the recipe ready…';
     else {
@@ -478,11 +504,16 @@ export class LuxFrameXBloomCard extends StudioBase {
     const picked = this._usable('select.recipe');
     return html`
       <div class="start">
-        <button class="pill on start-brew" ?disabled=${!isReady || busy} @click=${() => this._press('button.start_brew')}>
+        <button class="pill on start-brew" ?disabled=${!this._canStart(status)} @click=${() => this._press('button.start_brew')}>
           ${icon('play', 22)} Start Brew
         </button>
         <div class="start-foot">
           <p class="muted" aria-live="polite">${note}</p>
+          ${beans === false && !busy && /^(input_boolean|switch)\./.test(this.beansLoaded ?? '')
+            ? html`<button class="chip" @click=${() =>
+                this.hass?.callService(this.beansLoaded!.split('.')[0], 'turn_on', { entity_id: this.beansLoaded })}>
+                Beans are in</button>`
+            : nothing}
           ${picked && !busy && this.entities['button.cancel_preparation']
             ? html`<button class="chip" @click=${() => {
                 this._adjusting = undefined;
@@ -780,6 +811,35 @@ export class LuxFrameXBloomCard extends StudioBase {
 
       .start {
         margin-top: 18px;
+      }
+
+      /* Ready to brew: the card's edge breathes in the gold of the weight. */
+      .panel.ready {
+        --glow: var(--luxframe-xbloom-gold, #e8cd8f);
+        animation: ready-glow 2.4s ease-in-out infinite;
+      }
+
+      @keyframes ready-glow {
+        0%,
+        100% {
+          box-shadow:
+            inset 0 0 0 1.5px color-mix(in srgb, var(--glow) 55%, transparent),
+            0 0 3px 0 color-mix(in srgb, var(--glow) 50%, transparent);
+        }
+        50% {
+          box-shadow:
+            inset 0 0 0 1.5px color-mix(in srgb, var(--glow) 90%, transparent),
+            0 0 22px 4px color-mix(in srgb, var(--glow) 50%, transparent);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .panel.ready {
+          animation: none;
+          box-shadow:
+            inset 0 0 0 1.5px color-mix(in srgb, var(--glow) 80%, transparent),
+            0 0 14px 2px color-mix(in srgb, var(--glow) 45%, transparent);
+        }
       }
 
       .start-brew {

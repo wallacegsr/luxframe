@@ -442,6 +442,13 @@ export interface XBloomPageConfig {
   brew?: XBloomCardConfig[];
   /** xBloom Studio: the Manual tab's cards, in order. */
   manual?: XBloomCardConfig[];
+  /**
+   * xBloom Studio: an entity that's on once beans are in the machine, such
+   * as an input_boolean. Start Brew waits for it too.
+   */
+  beans_loaded?: string;
+  /** xBloom Studio: the Start Brew card glows once it's ready to brew. Default true. */
+  glow?: boolean;
 }
 
 export type PageConfig = (
