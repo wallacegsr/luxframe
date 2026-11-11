@@ -6,6 +6,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-11-10
+
 ### Added
 
 - Tap a photo tile or the photos page to skip: the right half goes to the next
@@ -443,7 +445,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.13.1...HEAD
+[0.13.1]: https://github.com/wallacegsr/luxframe/compare/v0.13.0...v0.13.1
 [0.13.0]: https://github.com/wallacegsr/luxframe/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/wallacegsr/luxframe/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/wallacegsr/luxframe/compare/v0.10.0...v0.11.0
