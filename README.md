@@ -105,11 +105,11 @@ See [Detail pages](#detail-pages).
 </tr></table>
 
 **Quick panel and Assist.** Pull down from the top edge for what's playing,
-the screen's brightness, pinned tiles, a dock of shortcuts, and **Ask Home
+the screen's brightness, pinned tiles, your widgets as tabs, and **Ask Home
 Assistant** to type a request. See
 [Quick panel and Assist](#quick-panel-and-assist).
 
-![The quick panel: what's playing, brightness, pinned tiles, a dock and Ask Home Assistant](docs/screenshots/quick-panel.webp)
+![The quick panel: what's playing, brightness, pinned tiles, widget tabs and Ask Home Assistant](docs/screenshots/quick-panel.webp)
 
 **Edit on the tablet.** Hold a tile to move, resize and remove tiles, or add
 one from a list of every entity and widget. Customize changes the look and
@@ -671,14 +671,15 @@ is scrolled. A tap on the small handle there opens it too, and a short flick
 is enough. A pull on a light's or shade's tile still sets its level, and a
 swipe across still turns the page.
 
-Along its top runs the **dock**, a row of glass icons, each opening its own
-view on the stage under it. Tap another icon to switch, or the open one to
-fold the stage away. The dock can hold:
+The **dock** holds the panel's widgets. With more than one, they share a
+card with a tab for each along its top, so the card lines up with the column
+beside it. Tap another tab to switch, or the open one to fold the card down
+to its tabs. The dock can hold:
 
 - **What's playing** (`media`): artwork, title and artist, previous /
   play-pause / next, and volume. It follows whichever speaker is playing,
   Music Assistant's players first, unless you set `media_player`. Buttons the
-  speaker can't use are dimmed, and the icon shows the artwork. Tap the
+  speaker can't use are dimmed, and its tab shows the artwork. Tap the
   artwork or title for the [speaker's details](#detail-pages).
 - **A device's controls** (its entity id): the same controls as its details
   page, a little smaller, such as a thermostat's temperature and modes or a
@@ -690,7 +691,7 @@ fold the stage away. The dock can hold:
   `height` sets how tall it is, 300 pixels by default.
 
 Out of the box the dock holds what's playing alone, and with only one item
-there's no row of icons: it just shows.
+there are no tabs: it just shows.
 
 Beside them, or under them when the tablet is upright:
 
@@ -829,7 +830,7 @@ My theme:
 | `luxframe-danger`, `luxframe-success` | Remove and confirm buttons; a badge that ran |
 | `luxframe-control`           | Buttons, chips and fields on glass and sheets |
 | `luxframe-radius`            | Tile corner radius (`corner_radius` in the config wins) |
-| `luxframe-radius-s`, `luxframe-radius-icon` | Fields and list rows; icon squares such as the dock's and artwork |
+| `luxframe-radius-s`, `luxframe-radius-icon` | Fields and list rows; icon squares such as artwork |
 | `luxframe-font`              | Font family                            |
 
 ## Kiosk Satellite

@@ -294,8 +294,9 @@ export class LuxFrameQuickPanel extends LitElement {
     return playing ? (player?.attributes.entity_picture as string | undefined) : undefined;
   }
 
+  /** The widgets, as tabs along the top of the card that shows the picked one. */
   private _renderDock(entries: Entry[], current: Entry | undefined) {
-    return html`<nav class="dock" aria-label="Quick panel">
+    return html`<nav class="dock" role="tablist" aria-label="Quick panel" data-no-swipe>
       ${entries.map(({ item, index }) => {
         const on = current?.index === index;
         const label = dockLabel(this.hass, item);
@@ -304,8 +305,8 @@ export class LuxFrameQuickPanel extends LitElement {
         const lit = !!entity && isActive(this.hass?.states[entity]);
         return html`<button
           class="dock-item ${on ? 'on' : ''}"
-          aria-pressed=${on}
-          aria-label=${label}
+          role="tab"
+          aria-selected=${on}
           @click=${() => this._pick(index, on)}
         >
           <span class="dock-icon ${art ? 'art' : ''} ${lit ? 'lit' : ''}"
@@ -398,9 +399,10 @@ export class LuxFrameQuickPanel extends LitElement {
     const entries = this._entries();
     const current = this._current(entries);
     const side = this._renderSide();
+    const tabbed = entries.length > 1;
     const main = entries.length
-      ? html`<div class="main">
-          ${entries.length > 1 ? this._renderDock(entries, current) : nothing}
+      ? html`<div class="main ${tabbed ? 'tabbed' : ''}">
+          ${tabbed ? this._renderDock(entries, current) : nothing}
           ${current
             ? keyed(
                 current.index,
@@ -526,6 +528,12 @@ export class LuxFrameQuickPanel extends LitElement {
     @media (orientation: landscape) {
       .content.two {
         grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+        align-items: stretch;
+      }
+
+      /* Ask Home Assistant at the bottom, level with the widget's. */
+      .content.two .ask {
+        margin-top: auto;
       }
     }
 
@@ -536,78 +544,108 @@ export class LuxFrameQuickPanel extends LitElement {
       min-width: 0;
     }
 
-    /* The dock: glass icons with their names under them. */
+    /*
+     * More than one widget: one card holds them, with a tab for each along
+     * its top, so the card lines up with the column beside it.
+     */
+    .main.tabbed {
+      gap: 0;
+      border-radius: var(--lf-radius);
+      background: var(--lf-control-row);
+    }
+
     .dock {
       display: flex;
-      flex-wrap: wrap;
-      gap: 6px 10px;
+      gap: 6px;
+      padding: 10px 10px 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .dock::-webkit-scrollbar {
+      display: none;
     }
 
     .dock-item {
+      flex: none;
       display: flex;
-      flex-direction: column;
       align-items: center;
-      gap: 6px;
-      width: 76px;
-      padding: 0;
+      gap: 8px;
+      max-width: 220px;
+      min-height: 44px;
+      padding: 6px 16px 6px 8px;
+      border-radius: calc(var(--lf-radius) - 8px);
       background: none;
-    }
-
-    .dock-icon {
-      position: relative;
-      display: grid;
-      place-items: center;
-      width: 60px;
-      height: 60px;
-      border-radius: var(--lf-radius-icon);
-      color: var(--lf-text);
-      background: var(--lf-control) center / cover no-repeat;
-      --mdc-icon-size: 28px;
+      color: var(--lf-muted);
       transition:
         background-color var(--lf-move),
         color var(--lf-move),
         transform var(--lf-fast);
     }
 
+    .dock-item.on {
+      background: var(--lf-surface-active);
+      color: var(--lf-text-active);
+    }
+
+    .dock-item:active {
+      transform: scale(0.97);
+    }
+
+    .dock-icon {
+      flex: none;
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+      background: center / cover no-repeat;
+      --mdc-icon-size: 22px;
+    }
+
     .dock-icon.lit {
       color: var(--lf-accent);
     }
 
-    .dock-item.on .dock-icon {
-      background-color: var(--lf-surface-active);
-      color: var(--lf-text-active);
-    }
-
-    /* Artwork fills the media icon; picked, a ring says so. */
-    .dock-item.on .dock-icon.art {
-      box-shadow: 0 0 0 3px var(--lf-surface-active);
-    }
-
-    .dock-item:active .dock-icon {
-      transform: scale(0.96);
+    .dock-item.on .dock-icon.lit {
+      color: inherit;
     }
 
     .glyph {
-      font-size: 22px;
+      font-size: 17px;
       font-weight: 600;
     }
 
     .dock-label {
-      max-width: 100%;
+      min-width: 0;
       overflow: hidden;
-      font-size: 13px;
-      color: var(--lf-muted);
+      font-size: 15px;
+      font-weight: 600;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .dock-item.on .dock-label {
-      color: var(--lf-text);
-    }
-
     .stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
       min-width: 0;
       animation: stage-in var(--lf-move) var(--lf-ease);
+    }
+
+    /* The widget fills its column, down to the bottom of the one beside it. */
+    .stage > .card {
+      flex: 1;
+    }
+
+    /* In the tabbed card, the widget sits on the card itself. */
+    .tabbed .stage > .card:not(.bare) {
+      background: none;
+    }
+
+    .tabbed .stage > .card.bare,
+    .tabbed .stage > .tile-box {
+      margin: 10px;
     }
 
     @keyframes stage-in {

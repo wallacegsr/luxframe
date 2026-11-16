@@ -6,6 +6,15 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.16.3] - 2026-11-15
+
+### Changed
+
+- The quick panel's widgets, when there's more than one, share one card
+  with a tab for each along its top, in place of the row of icons above
+  them. The card lines up with the column beside it, top and bottom, and
+  Ask Home Assistant sits at the bottom of that column.
+
 ## [0.16.2] - 2026-11-11
 
 ### Added
@@ -596,7 +605,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.16.2...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.16.3...HEAD
+[0.16.3]: https://github.com/wallacegsr/luxframe/compare/v0.16.2...v0.16.3
 [0.16.2]: https://github.com/wallacegsr/luxframe/compare/v0.16.1...v0.16.2
 [0.16.1]: https://github.com/wallacegsr/luxframe/compare/v0.16.0...v0.16.1
 [0.16.0]: https://github.com/wallacegsr/luxframe/compare/v0.15.1...v0.16.0
