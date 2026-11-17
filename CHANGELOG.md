@@ -6,6 +6,23 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.17.2] - 2026-11-16
+
+### Changed
+
+- The xBloom page's warning (no water, out of beans) is a chip in the middle
+  of the heading instead of a banner across the page, so the cards keep their
+  room. A tap shows the whole message.
+- The empty-tank warning no longer shows while the machine's water source is
+  set to something other than the tank.
+
+### Fixed
+
+- In Customize, the xBloom page's Title and Glow when ready switches did
+  nothing.
+- Changing a page's badge settings could drop other settings of that page
+  that were off or empty.
+
 ## [0.17.1] - 2026-11-16
 
 ### Fixed
@@ -667,7 +684,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.1...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.2...HEAD
+[0.17.2]: https://github.com/wallacegsr/luxframe/compare/v0.17.1...v0.17.2
 [0.17.1]: https://github.com/wallacegsr/luxframe/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/wallacegsr/luxframe/compare/v0.16.3...v0.17.0
 [0.16.3]: https://github.com/wallacegsr/luxframe/compare/v0.16.2...v0.16.3

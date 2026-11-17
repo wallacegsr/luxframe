@@ -65,11 +65,12 @@ export function cardsOf(config: XBloomPageConfig | undefined, tab: LaidOut): XBl
 const TAB_NAMES: Record<Tab, string> = { brew: 'Brew', recipes: 'Recipes', manual: 'Manual', settings: 'Settings' };
 
 /** Machine Status problems, in words. */
-const PROBLEMS: Record<string, string> = {
-  no_water: 'The water tank is empty. Fill it to brew.',
-  no_beans: 'The grinder is out of beans.',
-  dose_water_error: 'The machine couldn’t dose the water. Check the tank and the water line.',
-  gear_position_error: 'The grinder’s gear is out of place. Check the grinder.',
+/** What the machine says is wrong: a few words for the chip, and the whole of it for a tap. */
+const PROBLEMS: Record<string, [short: string, full: string]> = {
+  no_water: ['Water tank empty', 'The machine says its water tank is empty.'],
+  no_beans: ['Out of beans', 'The grinder is out of beans.'],
+  dose_water_error: ['Water didn’t dose', 'The machine couldn’t dose the water. Check the tank and the water line.'],
+  gear_position_error: ['Grinder gear', 'The grinder’s gear is out of place. Check the grinder.'],
 };
 
 export class LuxFrameXBloomStudio extends StudioBase {
@@ -82,6 +83,7 @@ export class LuxFrameXBloomStudio extends StudioBase {
     _recipes: { state: true },
     _loadError: { state: true },
     _sheet: { state: true },
+    _told: { state: true },
   };
 
   /** The tab to open on. */
@@ -94,6 +96,9 @@ export class LuxFrameXBloomStudio extends StudioBase {
   declare editing: boolean;
   /** While editing: a card's options, by index, or the hidden cards to add back. */
   declare _sheet?: { index: number } | { add: true };
+
+  /** The problem whose whole sentence is showing, under its chip. */
+  declare _told?: string;
 
   private _portrait = window.matchMedia('(orientation: portrait)');
   private _onRotate = () => this.requestUpdate();
@@ -175,6 +180,7 @@ export class LuxFrameXBloomStudio extends StudioBase {
       <div class="top" style="zoom: ${this._scale}">
       <div class="head">
         ${this._title ? html`<h1>${this._title}</h1>` : nothing}
+        ${this._problem()}
         ${this._presence()}
       </div>
       <nav class="tabs" role="tablist" aria-label="xBloom" data-no-swipe>
@@ -188,7 +194,6 @@ export class LuxFrameXBloomStudio extends StudioBase {
             }}>${TAB_NAMES[t]}</button>`,
         )}
       </nav>
-      ${this._problem()}
       </div>
       ${laidOut ? this._grid(this._tab as LaidOut) : html`<div class="scaled" style="zoom: ${this._scale}">${this._page()}</div>`}
       ${this._renderSheet()}
@@ -338,11 +343,28 @@ export class LuxFrameXBloomStudio extends StudioBase {
     `;
   }
 
+  /**
+   * What the machine says is wrong, as a chip in the middle of the heading,
+   * clear of the connection on its right: it tells, and stops nothing, since
+   * the machine is sometimes wrong. A tap says the rest.
+   */
   private _problem() {
     const machine = this._usable('sensor.machine_status');
     if (!machine || machine.state === 'ok') return nothing;
-    const text = PROBLEMS[machine.state] ?? this._label(machine, machine.state);
-    return html`<div class="banner" role="alert">${text}</div>`;
+    // Fed from a water line, the machine still reports its empty tank.
+    const source = this._usable('select.water_source')?.state;
+    if (machine.state === 'no_water' && source && !/tank/i.test(source)) return nothing;
+    const known = PROBLEMS[machine.state];
+    const short = known?.[0] ?? this._label(machine, machine.state);
+    const full = known?.[1];
+    const open = !!full && this._told === machine.state;
+    return html`<span class="problem">
+      <button class="chip warn" role="status" aria-expanded=${open} ?disabled=${!full}
+        @click=${() => (this._told = open ? undefined : machine.state)}>
+        <span class="bang" aria-hidden="true">!</span>${short}
+      </button>
+      ${open ? html`<span class="told" role="note" @click=${() => (this._told = undefined)}>${full}</span>` : nothing}
+    </span>`;
   }
 
   static styles = [
@@ -471,13 +493,79 @@ export class LuxFrameXBloomStudio extends StudioBase {
         opacity: 1;
       }
 
-      .banner {
-        margin-bottom: var(--lf-gap);
-        padding: 14px 18px;
-        border-radius: var(--lf-radius-s);
+      /* Between the title and the connection, where there's room for it. */
+      .problem {
+        position: relative;
+        display: inline-flex;
+        margin-inline: auto;
+      }
+
+      /* On a wide screen, the middle of the page whatever is either side. */
+      @media (min-width: 900px) {
+        .head {
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
+        }
+
+        .head h1 {
+          grid-column: 1;
+        }
+
+        .problem {
+          grid-column: 2;
+          margin-inline: 0;
+        }
+
+        .presence {
+          grid-column: 3;
+          justify-self: end;
+        }
+      }
+
+      /* Readable on light glass and dark: white on a red deep enough for it. */
+      .chip.warn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
         color: #fff;
-        background: color-mix(in srgb, var(--lf-danger) 82%, transparent);
-        font-weight: 500;
+        background: color-mix(in srgb, var(--lf-danger) 62%, rgb(40 20 20));
+      }
+
+      .chip.warn:disabled {
+        opacity: 1;
+      }
+
+      .bang {
+        display: grid;
+        place-items: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        font-size: 14px;
+        font-weight: 700;
+        color: color-mix(in srgb, var(--lf-danger) 62%, rgb(40 20 20));
+        background: #fff;
+      }
+
+      /* The whole sentence, over the page rather than in it: nothing moves. */
+      .told {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 4;
+        box-sizing: border-box;
+        width: max-content;
+        max-width: min(320px, 80vw);
+        padding: 12px 16px;
+        border-radius: var(--lf-radius-s);
+        font-size: 15px;
+        line-height: 1.35;
+        color: var(--lf-text);
+        background: var(--lf-sheet);
+        -webkit-backdrop-filter: var(--lf-blur-strong);
+        backdrop-filter: var(--lf-blur-strong);
+        box-shadow: 0 10px 28px rgb(0 0 0 / 30%);
       }
     `,
   ];

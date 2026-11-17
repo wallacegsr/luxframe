@@ -191,13 +191,21 @@ export class LuxFrameCustomize extends LitElement {
     this._setPages(pages);
   }
 
+  /**
+   * Changes a page. Something set to nothing, empty or off is dropped from
+   * its YAML; `exact` keeps empty and off, for the settings where they mean
+   * something (an xBloom page with no title, or no glow).
+   */
   private _setPage(
     index: number,
     changes: Partial<GridPageConfig> & PhotoSettings & { hidden?: boolean; home?: boolean },
+    exact = false,
   ): void {
     const pages = [...this.config!.pages];
     const next: Record<string, unknown> = { ...pages[index], ...changes };
-    for (const [key, value] of Object.entries(changes)) if (value === undefined || value === '' || value === false) delete next[key];
+    for (const [key, value] of Object.entries(changes)) {
+      if (value === undefined || (!exact && (value === '' || value === false))) delete next[key];
+    }
     pages[index] = next as unknown as PageConfig;
     this._setPages(pages);
   }
@@ -343,7 +351,7 @@ export class LuxFrameCustomize extends LitElement {
       <span class="line-text">${label}${note ? html`<span class="sub">${note}</span>` : nothing}</span>
       <span class="pick">
         <select @change=${(e: Event) => set((e.target as HTMLSelectElement).value)}>
-          ${options.map((o) => html`<option value=${o.value} ?selected=${o.value === value}>${o.label}</option>`)}
+          ${options.map((o) => html`<option value=${o.value} .selected=${o.value === value}>${o.label}</option>`)}
         </select>
         <span class="chevron" aria-hidden="true">›</span>
       </span>
@@ -387,7 +395,7 @@ export class LuxFrameCustomize extends LitElement {
   /** The xBloom page's layout with xBloom Studio: the grid of its Brew and Manual tabs, and how big it's drawn. */
   private _renderXBloom(page: XBloomPageConfig) {
     const set = (changes: Partial<Omit<XBloomPageConfig, 'type'>>) =>
-      this._setPage(this.page, changes as unknown as Partial<GridPageConfig>);
+      this._setPage(this.page, changes as unknown as Partial<GridPageConfig>, true);
     const rows = page.rows ?? 2;
     // In tenths, so the stepper moves 10% at a time.
     const size = Math.round((page.scale ?? 1) * 10);
@@ -425,7 +433,9 @@ export class LuxFrameCustomize extends LitElement {
    * Where badges sit and whether they have a background. `own` is what's set
    * here, `fallback` what shows when it isn't.
    */
-  private _badgeLook(own: BadgeLook, fallback: Required<BadgeLook>, set: (look: BadgeLook) => void) {
+  private _badgeLook(from: BadgeLook, fallback: Required<BadgeLook>, set: (look: BadgeLook) => void) {
+    // Only the look: `from` is a whole page or the whole card.
+    const own: BadgeLook = { badge_align: from.badge_align, badge_style: from.badge_style };
     const align = own.badge_align ?? fallback.badge_align;
     const style = own.badge_style ?? fallback.badge_style;
     return html`
