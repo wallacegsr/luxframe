@@ -6,6 +6,15 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.17.3] - 2026-11-16
+
+### Changed
+
+- On the xBloom page's Start brew card, loading the beans is a Beans loaded
+  switch above the button rather than a note and a chip under it, marked
+  while it's the one thing left to do. It reads Grounds loaded when the
+  grinder's left out. Clear recipe is a quiet link under the button.
+
 ## [0.17.2] - 2026-11-16
 
 ### Changed
@@ -684,7 +693,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.2...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.3...HEAD
+[0.17.3]: https://github.com/wallacegsr/luxframe/compare/v0.17.2...v0.17.3
 [0.17.2]: https://github.com/wallacegsr/luxframe/compare/v0.17.1...v0.17.2
 [0.17.1]: https://github.com/wallacegsr/luxframe/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/wallacegsr/luxframe/compare/v0.16.3...v0.17.0

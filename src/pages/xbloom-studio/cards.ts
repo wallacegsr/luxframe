@@ -492,9 +492,11 @@ export class LuxFrameXBloomCard extends StudioBase {
     const isReady = ready?.state === 'on';
     const busy = BUSY.includes(status);
     const beans = this._beansIn();
+    // The one thing left before a brew: the row above the button says so, not a note under it.
+    const load = isReady && beans === false && !busy;
     let note: string;
     if (busy) note = 'Brewing now.';
-    else if (isReady && beans === false) note = 'Load the beans to brew.';
+    else if (load) note = '';
     else if (isReady) note = 'Ready to brew.';
     else if (ready?.attributes.preparing) note = 'Getting the recipe ready…';
     else {
@@ -502,20 +504,27 @@ export class LuxFrameXBloomCard extends StudioBase {
       note = reason ? NOT_READY[reason] ?? `The recipe isn’t ready (${humanize(reason)}).` : 'Pick a recipe to brew.';
     }
     const picked = this._usable('select.recipe');
+    // Beans to grind, or grounds when the grinder's left out.
+    const what = this._state('switch.use_grinder')?.state === 'off' ? 'Grounds loaded' : 'Beans loaded';
+    // A helper can be switched from here; a sensor only shows.
+    const domain = (this.beansLoaded ?? '').split('.')[0];
+    const settable = domain === 'input_boolean' || domain === 'switch';
     return html`
+      ${beans === undefined
+        ? nothing
+        : html`<div class="opt loaded ${load ? 'needed' : ''}">
+            <span class="label">${what}</span>
+            <button class="switch" role="switch" aria-checked=${beans} aria-label=${what} ?disabled=${!settable || busy}
+              @click=${() => this.hass?.callService(domain, beans ? 'turn_off' : 'turn_on', { entity_id: this.beansLoaded })}></button>
+          </div>`}
       <div class="start">
         <button class="pill on start-brew" ?disabled=${!this._canStart(status)} @click=${() => this._press('button.start_brew')}>
           ${icon('play', 22)} Start brew
         </button>
         <div class="start-foot">
           <p class="muted" aria-live="polite">${note}</p>
-          ${beans === false && !busy && /^(input_boolean|switch)\./.test(this.beansLoaded ?? '')
-            ? html`<button class="chip" @click=${() =>
-                this.hass?.callService(this.beansLoaded!.split('.')[0], 'turn_on', { entity_id: this.beansLoaded })}>
-                Beans are in</button>`
-            : nothing}
           ${picked && !busy && this.entities['button.cancel_preparation']
-            ? html`<button class="chip" @click=${() => {
+            ? html`<button class="quiet" @click=${() => {
                 this._adjusting = undefined;
                 this._press('button.cancel_preparation');
               }}>Clear recipe</button>`
@@ -868,6 +877,46 @@ export class LuxFrameXBloomCard extends StudioBase {
 
       .start-foot p {
         margin: 0;
+      }
+
+      /* Loaded or not: the last row before the button, with the switch at its end. */
+      .opt.loaded {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 36px;
+      }
+
+      /* The one thing still to do. */
+      .opt.loaded.needed .label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--lf-text);
+      }
+
+      .opt.loaded.needed .label::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--luxframe-xbloom-gold, var(--lf-accent));
+      }
+
+      /* Clearing the recipe is there, and out of the button's way. */
+      .quiet {
+        margin-left: auto;
+        padding: 10px 4px;
+        border: 0;
+        font: inherit;
+        font-size: 15px;
+        color: var(--lf-muted);
+        background: none;
+        cursor: pointer;
+      }
+
+      .quiet:active {
+        color: var(--lf-text);
       }
     `,
   ];

@@ -272,7 +272,7 @@ ha-xbloom's panel, in LuxFrame's style:
   beans, and Start brew, which lights up once the machine has the recipe
   ready, and its card's edge glows gold. Point `beans_loaded` at an entity
   that's on once beans are in (an input_boolean you keep, say) and Start
-  Brew waits for that too, with a Beans are in button to turn it on; one
+  Brew waits for that too, with a Beans loaded switch above the button; one
   that's missing or unavailable is ignored. After a brew, Coffee Lab asks how
   it was.
 - **Recipes** has My recipes, as cards to search and filter by coffee or tea.
