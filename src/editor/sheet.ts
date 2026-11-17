@@ -111,7 +111,7 @@ export class LuxFrameSheet extends LitElement {
     }
 
     :host([wide]) .panel {
-      width: min(720px, 100%);
+      width: min(820px, 100%);
     }
 
     header {

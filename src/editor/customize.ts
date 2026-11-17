@@ -6,6 +6,7 @@ import { MAX_PINNED } from '../quick/panel';
 import { define } from '../define';
 import { zoomOf } from '../zoom';
 import { domainOf, resolve } from '../entity';
+import { icon, type IconName } from '../icons';
 import type {
   BadgeLook,
   GridPageConfig,
@@ -70,14 +71,20 @@ const ACCENTS: Array<{ value: string; label: string }> = [
 /** The sheet's sections, one showing at a time. */
 export type CustomizeSection = 'page' | 'pages' | 'quick' | 'look' | 'alerts' | 'tablet';
 
-const SECTIONS: Array<{ id: CustomizeSection; label: string }> = [
-  { id: 'page', label: 'This page' },
-  { id: 'pages', label: 'Pages' },
-  { id: 'quick', label: 'Quick panel' },
-  { id: 'look', label: 'Look' },
-  { id: 'alerts', label: 'Alerts' },
-  { id: 'tablet', label: 'This tablet' },
+const SECTIONS: Array<{ id: CustomizeSection; label: string; icon: IconName }> = [
+  { id: 'page', label: 'This page', icon: 'grid' },
+  { id: 'pages', label: 'Pages', icon: 'list' },
+  { id: 'quick', label: 'Quick panel', icon: 'dock' },
+  { id: 'look', label: 'Look', icon: 'sliders' },
+  { id: 'alerts', label: 'Alerts', icon: 'shield-alert' },
+  { id: 'tablet', label: 'This tablet', icon: 'refresh' },
 ];
+
+/**
+ * The part of each section last looked at (the quick panel's Pinned, say),
+ * kept while the sheet gives way to another and comes back.
+ */
+const remembered: Partial<Record<CustomizeSection, string>> = {};
 
 /** A row being dragged to a new place in its list. */
 interface Drag {
@@ -266,22 +273,6 @@ export class LuxFrameCustomize extends LitElement {
     return '';
   }
 
-  /** A setting that's an entity: a list of the ones that would do. */
-  private _entityRow(label: string, value: string | undefined, domains: string[], none: string, set: (id?: string) => void) {
-    const options = Object.keys(this.hass?.states ?? {})
-      .filter((id) => domains.includes(domainOf(id)))
-      .sort((a, b) => resolve(this.hass, a).name.localeCompare(resolve(this.hass, b).name));
-    // One set in YAML that Home Assistant doesn't have still shows.
-    if (value && !options.includes(value)) options.unshift(value);
-    return html`<label class="field">
-      ${label}
-      <select @change=${(e: Event) => set((e.target as HTMLSelectElement).value || undefined)}>
-        <option value="" ?selected=${!value}>${none}</option>
-        ${options.map((id) => html`<option value=${id} ?selected=${value === id}>${resolve(this.hass, id).name}</option>`)}
-      </select>
-    </label>`;
-  }
-
   /**
    * Adds a page and shows it behind the sheet. A blank page of tiles has
    * nothing to tell it apart yet, so its name field is ready to type in.
@@ -310,6 +301,7 @@ export class LuxFrameCustomize extends LitElement {
     this._setPages(pages);
   }
 
+  /** A row in a group: a number with − and + beside it. */
   private _stepper(
     label: string,
     value: number,
@@ -320,8 +312,8 @@ export class LuxFrameCustomize extends LitElement {
     words: [string, string] = ['Fewer', 'More'],
   ) {
     return html`
-      <div class="setting">
-        <span>${label}</span>
+      <div class="line">
+        <span class="line-text">${label}</span>
         <div class="stepper" role="group" aria-label=${label}>
           <button aria-label="${words[0]} ${label.toLowerCase()}" ?disabled=${value <= min} @click=${() => set(value - 1)}>−</button>
           <output>${format(value)}</output>
@@ -331,11 +323,64 @@ export class LuxFrameCustomize extends LitElement {
     `;
   }
 
-  /** A setting that's on or off. */
-  private _switch(label: string, on: boolean, set: (on: boolean) => void) {
-    return html`<div class="setting">
-      <span>${label}</span>
+  /** A row in a group: something that's on or off. */
+  private _switch(label: string, on: boolean, set: (on: boolean) => void, note?: string) {
+    return html`<div class="line">
+      <span class="line-text">${label}${note ? html`<span class="sub">${note}</span>` : nothing}</span>
       <button class="switch" role="switch" aria-checked=${on} aria-label=${label} @click=${() => set(!on)}></button>
+    </div>`;
+  }
+
+  /** A row in a group: one of a few choices, showing the one chosen; a tap lists the rest. */
+  private _select(
+    label: string,
+    options: Array<{ value: string; label: string }>,
+    value: string,
+    set: (value: string) => void,
+    note?: string,
+  ) {
+    return html`<label class="line">
+      <span class="line-text">${label}${note ? html`<span class="sub">${note}</span>` : nothing}</span>
+      <span class="pick">
+        <select @change=${(e: Event) => set((e.target as HTMLSelectElement).value)}>
+          ${options.map((o) => html`<option value=${o.value} ?selected=${o.value === value}>${o.label}</option>`)}
+        </select>
+        <span class="chevron" aria-hidden="true">›</span>
+      </span>
+    </label>`;
+  }
+
+  /** A row in a group: an entity, from the ones that would do. */
+  private _entityRow(label: string, value: string | undefined, domains: string[], none: string, set: (id?: string) => void) {
+    const ids = Object.keys(this.hass?.states ?? {})
+      .filter((id) => domains.includes(domainOf(id)))
+      .sort((a, b) => resolve(this.hass, a).name.localeCompare(resolve(this.hass, b).name));
+    // One set in YAML that Home Assistant doesn't have still shows.
+    if (value && !ids.includes(value)) ids.unshift(value);
+    return this._select(
+      label,
+      [{ value: '', label: none }, ...ids.map((id) => ({ value: id, label: resolve(this.hass, id).name }))],
+      value ?? '',
+      (id) => set(id || undefined),
+    );
+  }
+
+  /** The part of a section showing, where it has parts. */
+  private _sub<T extends string>(section: CustomizeSection, parts: readonly T[]): T {
+    const kept = remembered[section] as T | undefined;
+    return kept && parts.includes(kept) ? kept : parts[0];
+  }
+
+  /** A section's parts, as a segmented control across its top. */
+  private _segments<T extends string>(section: CustomizeSection, parts: ReadonlyArray<{ id: T; label: string }>, shown: T) {
+    return html`<div class="seg" role="tablist" aria-label="Part">
+      ${parts.map(
+        (p) => html`<button role="tab" class=${shown === p.id ? 'on' : ''} aria-selected=${shown === p.id}
+          @click=${() => {
+            remembered[section] = p.id;
+            this.requestUpdate();
+          }}>${p.label}</button>`,
+      )}
     </div>`;
   }
 
@@ -349,10 +394,14 @@ export class LuxFrameCustomize extends LitElement {
     const laidOut = page.brew !== undefined || page.manual !== undefined;
     const titled = page.title !== '';
     return html`
-      <p class="muted note">With xBloom Studio. Hold a card on the Brew or Manual tab to move or resize it.</p>
-      <div class="settings">
+      <div class="group">
         ${this._switch('Title', titled, (on) => set({ title: on ? undefined : '' }))}
         ${this._switch('Glow when ready', page.glow !== false, (on) => set({ glow: on ? undefined : false }))}
+        ${this._entityRow('Beans are in', page.beans_loaded, ['input_boolean', 'switch', 'binary_sensor'],
+          'Not tracked', (id) => set({ beans_loaded: id }))}
+      </div>
+      <h3>Brew and Manual cards</h3>
+      <div class="group">
         ${this._stepper('Columns', page.columns ?? 6, 1, 12, (columns) => set({ columns }))}
         ${this._stepper('Columns upright', page.portrait_columns ?? 2, 1, 8, (v) => set({ portrait_columns: v }))}
         ${this._stepper('Rows', rows, 1, 8, (v) => set({ rows: v }))}
@@ -361,43 +410,37 @@ export class LuxFrameCustomize extends LitElement {
           'Smaller',
           'Larger',
         ])}
+        ${laidOut
+          ? html`<div class="line">
+              <span class="line-text">Cards<span class="sub">Moved or resized</span></span>
+              <button class="chip" @click=${() => set({ brew: undefined, manual: undefined })}>Reset</button>
+            </div>`
+          : nothing}
       </div>
-      ${this._entityRow('Beans are in', page.beans_loaded, ['input_boolean', 'switch', 'binary_sensor'],
-        'Not tracked', (id) => set({ beans_loaded: id }))}
-      ${laidOut
-        ? html`<div class="row look-from">
-            <span class="muted">The cards are moved or resized.</span>
-            <button class="chip" @click=${() => set({ brew: undefined, manual: undefined })}>Reset cards</button>
-          </div>`
-        : nothing}
+      <p class="muted foot">Hold a card on the Brew or Manual tab to move or resize it.</p>
     `;
   }
 
   /**
-   * Badge placement and look chips. `own` is what's set here, `fallback` what
-   * shows when it isn't; `set` gets undefined to go back to the fallback.
+   * Where badges sit and whether they have a background. `own` is what's set
+   * here, `fallback` what shows when it isn't.
    */
-  private _badgeLookRow(
-    label: string,
-    own: BadgeLook,
-    fallback: Required<BadgeLook>,
-    set: (look: BadgeLook) => void,
-  ) {
+  private _badgeLook(own: BadgeLook, fallback: Required<BadgeLook>, set: (look: BadgeLook) => void) {
     const align = own.badge_align ?? fallback.badge_align;
     const style = own.badge_style ?? fallback.badge_style;
-    return html`<div class="row badge-look" role="group" aria-label=${label}>
-      <span class="label">${label}</span>
-      ${(['left', 'center', 'right'] as const).map((a) => {
-        const on = align === a;
-        return html`<button class="chip ${on ? 'on' : ''}" aria-pressed=${on}
-          @click=${() => set({ ...own, badge_align: a })}>
-          ${a === 'left' ? 'Left' : a === 'center' ? 'Center' : 'Right'}</button>`;
-      })}
-      <button class="chip ${style === 'pill' ? 'on' : ''}" aria-pressed=${style === 'pill'}
-        @click=${() => set({ ...own, badge_style: 'pill' })}>With background</button>
-      <button class="chip ${style === 'plain' ? 'on' : ''}" aria-pressed=${style === 'plain'}
-        @click=${() => set({ ...own, badge_style: 'plain' })}>No background</button>
-    </div>`;
+    return html`
+      ${this._select(
+        'Badges sit',
+        [
+          { value: 'left', label: 'Left' },
+          { value: 'center', label: 'Center' },
+          { value: 'right', label: 'Right' },
+        ],
+        align,
+        (a) => set({ ...own, badge_align: a as BadgeLook['badge_align'] }),
+      )}
+      ${this._switch('Badge background', style === 'pill', (on) => set({ ...own, badge_style: on ? 'pill' : 'plain' }))}
+    `;
   }
 
   /** The badge look every page has unless it says otherwise. */
@@ -414,8 +457,10 @@ export class LuxFrameCustomize extends LitElement {
     if (page.type === 'night' || page.type === 'weather') {
       const key = page.type === 'night' ? 'weather' : 'entity';
       const value = page.type === 'night' ? (page as NightPageConfig).weather : (page as WeatherPageConfig).entity;
-      return this._entityRow('Weather from', value, ['weather'], page.type === 'night' ? 'None' : 'The first one found',
-        (id) => this._setPage(this.page, { [key]: id } as Partial<GridPageConfig>));
+      return html`<div class="group">
+        ${this._entityRow('Weather from', value, ['weather'], page.type === 'night' ? 'None' : 'The first one found',
+          (id) => this._setPage(this.page, { [key]: id } as Partial<GridPageConfig>))}
+      </div>`;
     }
     if (page.type === 'photos') {
       return html`<luxframe-photo-settings
@@ -430,24 +475,29 @@ export class LuxFrameCustomize extends LitElement {
     const ownLook = look.badge_align !== undefined || look.badge_style !== undefined;
     return html`
       ${grid
-        ? html`<div class="settings">
-            ${this._stepper('Columns', page.columns ?? 4, 1, 8, (columns) => this._setPage(this.page, { columns }))}
-            ${this._stepper('Rows', rows, 1, 8, (v) => this._setPage(this.page, { rows: v }))}
-            ${this._stepper('Rows upright', page.portrait_rows ?? rows + 2, 1, 10, (v) =>
-              this._setPage(this.page, { portrait_rows: v }),
-            )}
-          </div>`
+        ? html`<h3>Grid</h3>
+            <div class="group">
+              ${this._stepper('Columns', page.columns ?? 4, 1, 8, (columns) => this._setPage(this.page, { columns }))}
+              ${this._stepper('Rows', rows, 1, 8, (v) => this._setPage(this.page, { rows: v }))}
+              ${this._stepper('Rows upright', page.portrait_rows ?? rows + 2, 1, 10, (v) =>
+                this._setPage(this.page, { portrait_rows: v }),
+              )}
+            </div>`
         : nothing}
       ${titled
-        ? html`${this._badgeLookRow('Badges', look, this._frameLook, (l) => this._setPage(this.page, l))}
-            <div class="row look-from">
+        ? html`<h3>Badges</h3>
+            <div class="group">
+              ${this._badgeLook(look, this._frameLook, (l) => this._setPage(this.page, l))}
               ${ownLook
-                ? html`<span class="muted">Its own badge look.</span>
+                ? html`<div class="line">
+                    <span class="line-text">This page has its own badge look</span>
                     <button class="chip"
                       @click=${() => this._setPage(this.page, { badge_align: undefined, badge_style: undefined })}>
-                      Same as every page</button>`
-                : html`<span class="muted">The same as every page, set under Look.</span>`}
-            </div>`
+                      Same as every page</button>
+                  </div>`
+                : nothing}
+            </div>
+            ${ownLook ? nothing : html`<p class="muted foot">The same as every page, until you change it here.</p>`}`
         : nothing}
     `;
   }
@@ -461,8 +511,10 @@ export class LuxFrameCustomize extends LitElement {
     );
     const suggestions = suggestPages(this.hass, pages);
     const homeAfter = this.config!.home_after ?? DEFAULT_HOME_AFTER;
+    const afters = HOME_AFTER.map((h) => ({ value: String(h.value), label: h.label }));
+    if (!HOME_AFTER.some((h) => h.value === homeAfter)) afters.push({ value: String(homeAfter), label: secondsLabel(homeAfter) });
     return html`
-      <ul class="list ${this._settling ? 'settling' : ''}">
+      <ul class="list group rows ${this._settling ? 'settling' : ''}">
         ${pages.map((page, i) => {
           const home = i === homeIndex;
           const label = pageLabel(page, i);
@@ -518,26 +570,17 @@ export class LuxFrameCustomize extends LitElement {
             ${k.type === 'grid' ? 'Blank' : k.label}
           </button>`,
         )}
+        ${suggestions.length
+          ? html`<button class="chip" @click=${() => this._setPages([...pages, ...suggestions])}>
+              ${suggestions.length} ${suggestions.length === 1 ? 'room' : 'rooms'} from Home Assistant
+            </button>`
+          : nothing}
       </div>
-      ${suggestions.length
-        ? html`<div class="row add">
-            <button class="chip" @click=${() => this._setPages([...pages, ...suggestions])}>
-              Add ${suggestions.length} ${suggestions.length === 1 ? 'room' : 'rooms'} from Home Assistant
-            </button>
-          </div>`
-        : nothing}
-      <h3>Back to the start page</h3>
-      <div class="row" role="group" aria-label="Back to the start page after no touch for">
-        ${HOME_AFTER.map(
-          (h) => html`<button class="chip ${homeAfter === h.value ? 'on' : ''}"
-            aria-pressed=${homeAfter === h.value}
-            @click=${() => this._set({ home_after: h.value === DEFAULT_HOME_AFTER ? undefined : h.value })}>${h.label}</button>`,
-        )}
-        ${HOME_AFTER.some((h) => h.value === homeAfter)
-          ? nothing
-          : html`<button class="chip on" aria-pressed="true">${secondsLabel(homeAfter)}</button>`}
+      <h3>When nobody’s touching it</h3>
+      <div class="group">
+        ${this._select('Back to the start page', afters, String(homeAfter), (v) =>
+          this._set({ home_after: Number(v) === DEFAULT_HOME_AFTER ? undefined : Number(v) }), 'After this long without a touch')}
       </div>
-      <p class="muted hint">After this long without a touch.</p>
     `;
   }
 
@@ -567,33 +610,56 @@ export class LuxFrameCustomize extends LitElement {
     const dock = dockOf(this.config!.quick_panel || undefined);
     const hasMedia = dock.some((raw) => dockKind(normalizeDock(raw)) === 'media');
     return html`
-      <p class="muted">Each of these is a tab on the panel. With only one, it just shows.</p>
-      <ul class="list ${this._settling ? 'settling' : ''}">
-        ${dock.map((raw, i) => {
-          const item = normalizeDock(raw);
-          const label = dockLabel(this.hass, item);
-          const sub = [
-            DOCK_KINDS[dockKind(item) ?? 'card'],
-            item.visibility?.length ? 'Sometimes' : '',
-            item.open ? 'Opens first' : '',
-          ]
-            .filter(Boolean)
-            .join(' · ');
-          return html`<li class="item page ${this._drag?.list === 'dock' && this._drag.from === i ? 'dragging' : ''}"
-            style=${this._dragStyle('dock', i)}>
-            ${this._grip('dock', i, dock.length, label)}
-            <button class="open" aria-label="Edit ${label}"
-              @click=${() => this.dispatchEvent(new CustomEvent('dock-edit', { detail: { index: i } }))}>
-              <span class="text"><span class="name">${label}</span><div class="sub">${sub}</div></span>
-              <span class="chevron" aria-hidden="true">›</span>
-            </button>
-          </li>`;
-        })}
-      </ul>
+      ${dock.length
+        ? html`<ul class="list group rows ${this._settling ? 'settling' : ''}">
+            ${dock.map((raw, i) => {
+              const item = normalizeDock(raw);
+              const label = dockLabel(this.hass, item);
+              const sub = [
+                DOCK_KINDS[dockKind(item) ?? 'card'],
+                item.visibility?.length ? 'Sometimes' : '',
+                item.open ? 'Opens first' : '',
+              ]
+                .filter(Boolean)
+                .join(' · ');
+              return html`<li class="item page ${this._drag?.list === 'dock' && this._drag.from === i ? 'dragging' : ''}"
+                style=${this._dragStyle('dock', i)}>
+                ${this._grip('dock', i, dock.length, label)}
+                <button class="open" aria-label="Edit ${label}"
+                  @click=${() => this.dispatchEvent(new CustomEvent('dock-edit', { detail: { index: i } }))}>
+                  <span class="text"><span class="name">${label}</span><div class="sub">${sub}</div></span>
+                  <span class="chevron" aria-hidden="true">›</span>
+                </button>
+              </li>`;
+            })}
+          </ul>`
+        : nothing}
       <div class="row add">
         <button class="chip" @click=${() => this.dispatchEvent(new CustomEvent('dock-add'))}>Add a tab</button>
         ${hasMedia ? nothing : html`<button class="chip" @click=${() => this._setDock([...dock, 'media'])}>Add media</button>`}
       </div>
+      <p class="muted foot">Each is a tab on the panel. With only one, it just shows.</p>
+    `;
+  }
+
+  private _renderPinned(pinned: string[]) {
+    return html`
+      ${pinned.length
+        ? html`<ul class="list group rows">
+            ${pinned.map(
+              (id, i) => html`<li class="item page pin">
+                <span class="text"><span class="name">${resolve(this.hass, id).name}</span></span>
+                <button class="round small plain" aria-label="Unpin ${resolve(this.hass, id).name}"
+                  @click=${() => this._setQuick({ pinned: pinned.filter((_, n) => n !== i) })}>✕</button>
+              </li>`,
+            )}
+          </ul>`
+        : nothing}
+      <div class="row add">
+        <button class="chip" ?disabled=${pinned.length >= MAX_PINNED}
+          @click=${() => this.dispatchEvent(new CustomEvent('pin'))}>Pin a device</button>
+      </div>
+      <p class="muted foot">Up to ${MAX_PINNED} tiles beside the tabs. One tap switches them.</p>
     `;
   }
 
@@ -602,32 +668,26 @@ export class LuxFrameCustomize extends LitElement {
     if (quick === false) return html`<p class="muted">The quick panel is turned off in this dashboard’s YAML.</p>`;
     const pinned = quick?.pinned ?? [];
     const brightness = quick?.brightness !== false;
-    const players = Object.keys(this.hass?.states ?? {}).filter((id) => id.startsWith('media_player.'));
+    const part = this._sub('quick', ['tabs', 'pinned', 'options'] as const);
     return html`
-      ${this._renderDock()}
-      <h3>Pinned</h3>
-      <ul class="list">
-        ${pinned.map(
-          (id, i) => html`<li class="item page">
-            <span class="text"><span class="name">${resolve(this.hass, id).name}</span></span>
-            <button class="round small plain" aria-label="Unpin ${resolve(this.hass, id).name}"
-              @click=${() => this._setQuick({ pinned: pinned.filter((_, n) => n !== i) })}>✕</button>
-          </li>`,
-        )}
-      </ul>
-      <div class="row add">
-        <button class="chip" ?disabled=${pinned.length >= MAX_PINNED}
-          @click=${() => this.dispatchEvent(new CustomEvent('pin'))}>Pin a device</button>
-        <span class="muted">Up to ${MAX_PINNED}. One tap switches them.</span>
-      </div>
-      <div class="settings">
-        ${this._switch('Brightness slider', brightness, (on) => this._setQuick({ brightness: on ? undefined : false }))}
-      </div>
-      ${players.length
-        ? html`<h3>Speaker</h3>
-            ${this._entityRow('What the media tab controls', quick?.media_player, ['media_player'], 'Whatever’s playing',
-              (id) => this._setQuick({ media_player: id }))}`
-        : nothing}
+      ${this._segments(
+        'quick',
+        [
+          { id: 'tabs', label: 'Tabs' },
+          { id: 'pinned', label: 'Pinned' },
+          { id: 'options', label: 'Options' },
+        ] as const,
+        part,
+      )}
+      ${part === 'tabs'
+        ? this._renderDock()
+        : part === 'pinned'
+          ? this._renderPinned(pinned)
+          : html`<div class="group">
+              ${this._entityRow('Speaker', quick?.media_player, ['media_player'], 'Whatever’s playing', (id) =>
+                this._setQuick({ media_player: id }))}
+              ${this._switch('Brightness slider', brightness, (on) => this._setQuick({ brightness: on ? undefined : false }))}
+            </div>`}
     `;
   }
 
@@ -637,85 +697,93 @@ export class LuxFrameCustomize extends LitElement {
     // In twentieths, so the stepper moves 5% at a time.
     const size = Math.round((config.scale ?? 1) * 20);
     const customAccent = !!config.accent && !ACCENTS.some((a) => a.value === config.accent);
-    return html`
-      <h3>Theme</h3>
-      <div class="row" role="group" aria-label="Theme">
-        ${THEMES.map(
-          (t) => html`<button class="chip ${theme === t.value ? 'on' : ''}" aria-pressed=${theme === t.value}
-            @click=${() => this._set({ theme: t.value === 'auto' ? undefined : t.value })}>${t.label}</button>`,
-        )}
-      </div>
-      <h3>Accent</h3>
-      <div class="row" role="group" aria-label="Accent color">
-        <button class="chip ${config.accent ? '' : 'on'}" aria-pressed=${!config.accent}
-          @click=${() => this._set({ accent: undefined })}>From theme</button>
-        ${ACCENTS.map(
-          (a) => html`<button class="swatch ${config.accent === a.value ? 'on' : ''}" aria-pressed=${config.accent === a.value}
-            aria-label=${a.label} title=${a.label} style="--swatch: ${a.value}"
-            @click=${() => this._set({ accent: a.value })}></button>`,
-        )}
-        <input
-          type="color"
-          class=${customAccent ? 'on' : ''}
-          aria-label="Another accent color"
-          .value=${/^#[0-9a-f]{6}$/i.test(config.accent ?? '') ? config.accent! : '#ff9f0a'}
-          @change=${(e: Event) => this._set({ accent: (e.target as HTMLInputElement).value })}
-        />
-      </div>
-      <div class="settings">
-        ${this._stepper('Size', size, 14, 30, (v) => this._set({ scale: v === 20 ? undefined : v / 20 }), (v) => `${v * 5}%`, [
-          'Smaller',
-          'Larger',
-        ])}
-      </div>
-      <h3>Tiles</h3>
-      <div class="row" role="group" aria-label="Tiles">
-        ${TILE_STYLES.map(
-          (t) => html`<button class="chip ${(config.tile_style ?? 'center') === t.value ? 'on' : ''}"
-            aria-pressed=${(config.tile_style ?? 'center') === t.value}
-            @click=${() => this._set({ tile_style: t.value === 'center' ? undefined : t.value })}>${t.label}</button>`,
-        )}
-      </div>
-      <h3>Corners</h3>
-      <div class="row" role="group" aria-label="Corners">
-        ${CORNERS.map(
-          (c) => html`<button class="chip ${config.corner_radius === c.value ? 'on' : ''}"
-            aria-pressed=${config.corner_radius === c.value}
-            @click=${() => this._set({ corner_radius: c.value })}>${c.label}</button>`,
-        )}
-        ${config.corner_radius !== undefined && !CORNERS.some((c) => c.value === config.corner_radius)
-          ? html`<button class="chip on" aria-pressed="true">${config.corner_radius}px</button>`
+    const part = this._sub('look', ['theme', 'tiles', 'background'] as const);
+    const corners = CORNERS.map((c) => ({ value: c.value === undefined ? '' : String(c.value), label: c.label }));
+    if (config.corner_radius !== undefined && !CORNERS.some((c) => c.value === config.corner_radius)) {
+      corners.push({ value: String(config.corner_radius), label: `${config.corner_radius}px` });
+    }
+    const segments = this._segments(
+      'look',
+      [
+        { id: 'theme', label: 'Theme' },
+        { id: 'tiles', label: 'Tiles' },
+        { id: 'background', label: 'Background' },
+      ] as const,
+      part,
+    );
+    if (part === 'theme') {
+      return html`${segments}
+        <div class="group">
+          ${this._select('Theme', THEMES, theme, (v) =>
+            this._set({ theme: v === 'auto' ? undefined : (v as LuxFrameConfig['theme']) }))}
+          <div class="line tall" role="group" aria-label="Accent color">
+            <span class="line-text">Accent</span>
+            <div class="swatches">
+              <button class="chip ${config.accent ? '' : 'on'}" aria-pressed=${!config.accent}
+                @click=${() => this._set({ accent: undefined })}>From theme</button>
+              ${ACCENTS.map(
+                (a) => html`<button class="swatch ${config.accent === a.value ? 'on' : ''}" aria-pressed=${config.accent === a.value}
+                  aria-label=${a.label} title=${a.label} style="--swatch: ${a.value}"
+                  @click=${() => this._set({ accent: a.value })}></button>`,
+              )}
+              <input
+                type="color"
+                class=${customAccent ? 'on' : ''}
+                aria-label="Another accent color"
+                .value=${/^#[0-9a-f]{6}$/i.test(config.accent ?? '') ? config.accent! : '#ff9f0a'}
+                @change=${(e: Event) => this._set({ accent: (e.target as HTMLInputElement).value })}
+              />
+            </div>
+          </div>
+          ${this._stepper('Size', size, 14, 30, (v) => this._set({ scale: v === 20 ? undefined : v / 20 }), (v) => `${v * 5}%`, [
+            'Smaller',
+            'Larger',
+          ])}
+        </div>`;
+    }
+    if (part === 'tiles') {
+      return html`${segments}
+        <div class="group">
+          ${this._select('Layout', TILE_STYLES, config.tile_style ?? 'center', (v) =>
+            this._set({ tile_style: v === 'center' ? undefined : (v as LuxFrameConfig['tile_style']) }))}
+          ${this._select('Corners', corners, config.corner_radius === undefined ? '' : String(config.corner_radius), (v) =>
+            this._set({ corner_radius: v === '' ? undefined : Number(v) }))}
+        </div>
+        <h3>Badges, every page</h3>
+        <div class="group">
+          ${this._badgeLook(config, { badge_align: 'right', badge_style: 'pill' }, (l) =>
+            this._set({
+              badge_align: l.badge_align === 'right' ? undefined : l.badge_align,
+              badge_style: l.badge_style === 'pill' ? undefined : l.badge_style,
+            }),
+          )}
+        </div>`;
+    }
+    return html`${segments}
+      <div class="group">
+        <label class="line tall">
+          <span class="line-text">Wallpaper<span class="sub">An image under /local/, or any CSS background</span></span>
+          <input
+            type="text"
+            placeholder="/local/wallpaper.jpg"
+            .value=${config.background ?? ''}
+            @change=${(e: Event) => this._set({ background: toBackground((e.target as HTMLInputElement).value) })}
+          />
+        </label>
+        ${this._switch('Glass tint from the wallpaper', !config.tint, (on) =>
+          this._set({ tint: on ? undefined : '#a77d58' }))}
+        ${config.tint
+          ? html`<label class="line">
+              <span class="line-text">Tint color</span>
+              <input
+                type="color"
+                aria-label="Tint color"
+                .value=${/^#[0-9a-f]{6}$/i.test(config.tint) ? config.tint : '#a77d58'}
+                @change=${(e: Event) => this._set({ tint: (e.target as HTMLInputElement).value })}
+              />
+            </label>`
           : nothing}
-      </div>
-      <h3>Wallpaper</h3>
-      <label class="field">
-        An image under /local/, or any CSS background
-        <input
-          type="text"
-          placeholder="/local/wallpaper.jpg"
-          .value=${config.background ?? ''}
-          @change=${(e: Event) => this._set({ background: toBackground((e.target as HTMLInputElement).value) })}
-        />
-      </label>
-      <h3>Glass tint</h3>
-      <div class="row">
-        <button class="chip ${config.tint ? '' : 'on'}" aria-pressed=${!config.tint}
-          @click=${() => this._set({ tint: undefined })}>From wallpaper</button>
-        <input
-          type="color"
-          aria-label="Tint color"
-          .value=${/^#[0-9a-f]{6}$/i.test(config.tint ?? '') ? config.tint! : '#a77d58'}
-          @change=${(e: Event) => this._set({ tint: (e.target as HTMLInputElement).value })}
-        />
-      </div>
-      <h3>Badges, every page</h3>
-      ${this._badgeLookRow('', config, { badge_align: 'right', badge_style: 'pill' }, (l) =>
-        this._set({
-          badge_align: l.badge_align === 'right' ? undefined : l.badge_align,
-          badge_style: l.badge_style === 'pill' ? undefined : l.badge_style,
-        }),
-      )}
-    `;
+      </div>`;
   }
 
   private _setAlerts(alerts: NonNullable<LuxFrameConfig['alerts']>): void {
@@ -725,24 +793,26 @@ export class LuxFrameCustomize extends LitElement {
   private _renderAlerts() {
     const alerts = this.config!.alerts ?? [];
     return html`
-      <p class="muted">
-        A banner across the top of every page while one of these needs you: a door left open, a leak, the alarm going off.
-      </p>
-      <ul class="list">
-        ${alerts.map((raw, i) => {
-          const alert = alertOf(raw);
-          const name = resolve(this.hass, alert.entity).name;
-          return html`<li class="item page">
-            <span class="text"><span class="name">${name}</span>
-              <div class="sub">${alertWhen(this.hass, alert)}</div></span>
-            <button class="round small plain" aria-label="Remove the alert for ${name}"
-              @click=${() => this._setAlerts(alerts.filter((_, n) => n !== i))}>✕</button>
-          </li>`;
-        })}
-      </ul>
+      ${alerts.length
+        ? html`<ul class="list group rows">
+            ${alerts.map((raw, i) => {
+              const alert = alertOf(raw);
+              const name = resolve(this.hass, alert.entity).name;
+              return html`<li class="item page pin">
+                <span class="text"><span class="name">${name}</span>
+                  <div class="sub">${alertWhen(this.hass, alert)}</div></span>
+                <button class="round small plain" aria-label="Remove the alert for ${name}"
+                  @click=${() => this._setAlerts(alerts.filter((_, n) => n !== i))}>✕</button>
+              </li>`;
+            })}
+          </ul>`
+        : nothing}
       <div class="row add">
         <button class="chip" @click=${() => this.dispatchEvent(new CustomEvent('alert-add'))}>Add an alert</button>
       </div>
+      <p class="muted foot">
+        A banner across the top of every page while one of these needs you: a door left open, a leak, the alarm going off.
+      </p>
     `;
   }
 
@@ -776,61 +846,280 @@ export class LuxFrameCustomize extends LitElement {
     }
   }
 
+  /** How a section stands, in a few words under its name. */
+  private _status(section: CustomizeSection): string {
+    const config = this.config!;
+    switch (section) {
+      case 'page': {
+        const page = config.pages[this.page];
+        return page ? pageLabel(page, this.page) : '';
+      }
+      case 'pages': {
+        const hidden = config.pages.filter((p) => p.hidden).length;
+        const n = config.pages.length;
+        return `${n} ${n === 1 ? 'page' : 'pages'}${hidden ? ` · ${hidden} hidden` : ''}`;
+      }
+      case 'quick': {
+        if (config.quick_panel === false) return 'Off';
+        const tabs = dockOf(config.quick_panel || undefined).length;
+        const pinned = config.quick_panel?.pinned?.length ?? 0;
+        return `${tabs} ${tabs === 1 ? 'tab' : 'tabs'}${pinned ? ` · ${pinned} pinned` : ''}`;
+      }
+      case 'look': {
+        const theme = THEMES.find((t) => t.value === (config.theme ?? 'auto'))?.label ?? 'Auto';
+        const accent = config.accent ? (ACCENTS.find((a) => a.value === config.accent)?.label.toLowerCase() ?? 'own accent') : '';
+        return [theme, accent].filter(Boolean).join(' · ');
+      }
+      case 'alerts': {
+        const n = config.alerts?.length ?? 0;
+        return n ? `${n} set` : 'None';
+      }
+      case 'tablet':
+        return 'Its own layout';
+    }
+  }
+
   protected render() {
     if (!this.config) return nothing;
     const shown = this._shownSection;
     return html`
-      <nav class="tabs" role="tablist" aria-label="Customize">
-        ${SECTIONS.filter((s) => s.id !== 'tablet' || this.local).map(
-          (s) => html`<button class="chip ${shown === s.id ? 'on' : ''}" role="tab" aria-selected=${shown === s.id}
-            @click=${() => {
-              this._menu = undefined;
-              this.section = s.id;
-              this.dispatchEvent(new CustomEvent('section', { detail: { section: s.id } }));
-            }}>${s.label}</button>`,
-        )}
-      </nav>
-      <div class="section" role="tabpanel">${this._renderSection(shown)}</div>
+      <div class="shell">
+        <div class="layout">
+          <nav class="rail" role="tablist" aria-label="Customize">
+            ${SECTIONS.filter((s) => s.id !== 'tablet' || this.local).map(
+              (s) => html`<button class="rail-item ${shown === s.id ? 'on' : ''}" role="tab" aria-selected=${shown === s.id}
+                @click=${() => {
+                  this._menu = undefined;
+                  this.section = s.id;
+                  this.dispatchEvent(new CustomEvent('section', { detail: { section: s.id } }));
+                }}>
+                <span class="rail-icon">${icon(s.icon, 22)}</span>
+                <span class="rail-text"><span class="rail-name">${s.label}</span>
+                  <span class="rail-status">${this._status(s.id)}</span></span>
+              </button>`,
+            )}
+          </nav>
+          <div class="section" role="tabpanel">${this._renderSection(shown)}</div>
+        </div>
+      </div>
     `;
   }
 
   static styles = [
     editorStyles,
     css`
-      .settings {
+      /* The sections down the side, the one chosen beside them. */
+      .shell {
+        container-type: inline-size;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 216px minmax(0, 1fr);
+        gap: 22px;
+        align-items: start;
+        /* Tall enough that the sheet keeps its size from one section to the next. */
+        min-height: min(520px, 62vh);
+      }
+
+      .rail {
+        position: sticky;
+        top: 0;
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        margin-top: 12px;
+        gap: 2px;
       }
 
-      .setting {
+      .rail-item {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        min-height: 44px;
-        font-size: 17px;
+        gap: 12px;
+        min-height: 56px;
+        padding: 6px 12px;
+        border-radius: var(--lf-radius-s);
+        text-align: left;
+        background: none;
+        transition:
+          background-color var(--lf-move),
+          color var(--lf-move);
       }
 
-      .tabs {
-        display: flex;
-        gap: 8px;
-        margin: 0 -24px 18px;
-        padding: 0 24px 2px;
-        overflow-x: auto;
-        scrollbar-width: none;
+      .rail-item.on {
+        color: var(--lf-text-active);
+        background: var(--lf-surface-active);
       }
 
-      .tabs::-webkit-scrollbar {
-        display: none;
-      }
-
-      .tabs .chip {
+      .rail-icon {
         flex: none;
+        display: grid;
+        place-items: center;
+        color: var(--lf-muted);
+      }
+
+      .rail-item.on .rail-icon {
+        color: inherit;
+      }
+
+      .rail-text {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .rail-name {
+        font-size: 17px;
+        font-weight: 600;
+      }
+
+      .rail-status {
+        font-size: 13px;
+        color: var(--lf-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .rail-item.on .rail-status {
+        color: var(--lf-muted-active);
+      }
+
+      .section {
+        min-width: 0;
       }
 
       .section > h3:first-child {
         margin-top: 4px;
+      }
+
+      /* A section's parts, as one control: the chosen one is lit. */
+      .seg {
+        display: inline-flex;
+        max-width: 100%;
+        margin-bottom: 14px;
+        padding: 4px;
+        border-radius: 999px;
+        background: var(--lf-control-row);
+      }
+
+      .seg button {
+        min-height: 40px;
+        padding: 0 18px;
+        border-radius: 999px;
+        font-size: 15px;
+        font-weight: 600;
+        background: none;
+        transition:
+          background-color var(--lf-move),
+          color var(--lf-move);
+      }
+
+      .seg button.on {
+        color: var(--lf-text-active);
+        background: var(--lf-surface-active);
+      }
+
+      /* Settings that belong together, as rows on one card. */
+      .group {
+        border-radius: var(--lf-radius-s);
+        background: var(--lf-control-row);
+      }
+
+      .line {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 56px;
+        padding: 4px 8px 4px 16px;
+        font-size: 17px;
+        box-sizing: border-box;
+      }
+
+      .line + .line,
+      .rows > li + li {
+        border-top: 1px solid color-mix(in srgb, var(--lf-text) 9%, transparent);
+      }
+
+      .line-text {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .line .sub {
+        display: block;
+        font-size: 13px;
+        color: var(--lf-muted);
+      }
+
+      /* A row whose control goes under its name. */
+      .line.tall {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding: 12px 16px;
+      }
+
+      .line .chip {
+        flex: none;
+        margin-right: 6px;
+        font-size: 15px;
+      }
+
+      .line > .switch,
+      .line > input[type='color'] {
+        margin-right: 8px;
+      }
+
+      .line .stepper {
+        background: none;
+      }
+
+      /* The choice made, and a chevron: a tap lists the others. */
+      .pick {
+        flex: 0 1 auto;
+        min-width: 0;
+        max-width: 62%;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding-right: 8px;
+        color: var(--lf-muted);
+      }
+
+      .pick select {
+        width: auto;
+        min-width: 0;
+        max-width: 100%;
+        min-height: 44px;
+        padding: 0 4px;
+        color: inherit;
+        background: none;
+        text-align: right;
+        text-align-last: right;
+        text-overflow: ellipsis;
+        cursor: pointer;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      .swatches {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .swatches .chip {
+        margin-right: 0;
+      }
+
+      .foot {
+        margin: 10px 4px 0;
+      }
+
+      /* Lists of pages, tabs and alerts sit on a card too. */
+      .rows {
+        gap: 0;
+        padding: 0 4px;
       }
 
       .page {
@@ -838,7 +1127,12 @@ export class LuxFrameCustomize extends LitElement {
         gap: 6px;
         padding-left: 0;
         padding-right: 0;
+        border-radius: 0;
         transition: transform var(--lf-move) var(--lf-ease);
+      }
+
+      .page.pin {
+        padding-left: 12px;
       }
 
       .settling .page {
@@ -847,7 +1141,8 @@ export class LuxFrameCustomize extends LitElement {
 
       .page.dragging {
         border-radius: var(--lf-radius-s);
-        background: var(--lf-surface);
+        border-top-color: transparent;
+        background: var(--lf-sheet);
         box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
       }
 
@@ -893,13 +1188,14 @@ export class LuxFrameCustomize extends LitElement {
       .chevron {
         flex: none;
         font-size: 24px;
+        line-height: 1;
         color: var(--lf-faint);
       }
 
       .swatch {
         flex: none;
-        width: 44px;
-        height: 44px;
+        width: 36px;
+        height: 36px;
         padding: 0;
         border-radius: 50%;
         background: var(--swatch);
@@ -912,10 +1208,6 @@ export class LuxFrameCustomize extends LitElement {
         outline-offset: 2px;
       }
 
-      .hint {
-        margin-top: 8px;
-      }
-
       .page.hidden .name,
       .page.hidden input.title {
         opacity: 0.55;
@@ -923,7 +1215,7 @@ export class LuxFrameCustomize extends LitElement {
 
       /* A page's name, edited where it's listed. */
       .page input.title {
-        min-height: 44px;
+        min-height: 40px;
         margin-bottom: 2px;
         padding: 0 10px;
         font-weight: 500;
@@ -931,43 +1223,13 @@ export class LuxFrameCustomize extends LitElement {
       }
 
       .add {
-        margin-top: 10px;
-      }
-
-      .pinned-note {
-        margin-top: 22px;
-      }
-
-      .add .label,
-      .look-from {
-        margin-top: 4px;
-        align-items: center;
-        font-size: 15px;
-      }
-
-      .badge-look .label {
-        width: 100%;
-        font-size: 15px;
-        color: var(--lf-muted);
-      }
-
-      .badge-look .label:empty {
-        display: none;
-      }
-
-      .field {
-        margin-top: 14px;
-      }
-
-      h3 + .field,
-      p + .field {
-        margin-top: 0;
+        margin-top: 12px;
       }
 
       input[type='color'] {
         flex: none;
-        width: 44px;
-        height: 44px;
+        width: 36px;
+        height: 36px;
         padding: 0;
         border: 0;
         border-radius: 50%;
@@ -990,6 +1252,50 @@ export class LuxFrameCustomize extends LitElement {
       p {
         margin: 0 0 10px;
         font-size: 15px;
+      }
+
+      /* Last, so they win. A narrow sheet: the sections across the top instead. */
+      @container (max-width: 600px) {
+        .layout {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 16px;
+          min-height: 0;
+        }
+
+        .rail {
+          position: static;
+          flex-direction: row;
+          gap: 8px;
+          margin: 0 -24px;
+          padding: 0 24px 2px;
+          overflow-x: auto;
+          scrollbar-width: none;
+        }
+
+        .rail::-webkit-scrollbar {
+          display: none;
+        }
+
+        .rail-item {
+          flex: none;
+          min-height: 44px;
+          padding: 0 18px;
+          border-radius: 999px;
+          background: var(--lf-control);
+        }
+
+        .rail-item.on {
+          background: var(--lf-surface-active);
+        }
+
+        .rail-icon,
+        .rail-status {
+          display: none;
+        }
+
+        .rail-name {
+          font-weight: 500;
+        }
       }
     `,
   ];

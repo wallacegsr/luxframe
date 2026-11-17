@@ -11,7 +11,6 @@
   <a href="https://github.com/wallacegsr/luxframe/releases"><img src="https://img.shields.io/github/downloads/wallacegsr/luxframe/total?style=for-the-badge&label=downloads&color=e8604c" alt="Downloads"></a>
   <a href="https://github.com/wallacegsr/luxframe/releases/latest"><img src="https://img.shields.io/github/v/release/wallacegsr/luxframe?style=for-the-badge&label=release&color=5f9ea0" alt="Latest release"></a>
   <a href="https://github.com/wallacegsr/luxframe/actions/workflows/validate.yml"><img src="https://img.shields.io/github/actions/workflow/status/wallacegsr/luxframe/validate.yml?branch=main&style=for-the-badge&label=build" alt="Build"></a>
-  <a href="https://hacs.xyz"><img src="https://img.shields.io/badge/HACS-custom-41bdf5?style=for-the-badge" alt="HACS custom repository"></a>
 </p>
 
 <p align="center">
@@ -133,11 +132,16 @@ panel. It also offers to reload when HACS installs a new version.
 
 ## Install
 
-### HACS (custom repository)
+### HACS
 
-1. HACS → ⋮ → **Custom repositories** → add `https://github.com/wallacegsr/luxframe`
-   as type **Dashboard**.
-2. Install **LuxFrame** and reload the browser.
+LuxFrame is in the HACS default catalog.
+
+1. Open HACS and search for **LuxFrame**.
+2. Open it, choose **Download**, and reload the browser.
+
+If it doesn't come up in the search, add it as a custom repository: HACS → ⋮ →
+**Custom repositories** → add `https://github.com/wallacegsr/luxframe` as type
+**Dashboard**, then download it as above.
 
 A tablet keeps running the version it loaded until its page reloads, which a
 kiosk app may never do. LuxFrame checks for a newer version installed through
@@ -231,6 +235,8 @@ that one the start page instead.
   are on. A tap on the bulb turns the room's lights on or off; a tap on the
   name opens the room.
 - **Scenes**: one tap runs one.
+
+![The home page: summaries of lights, climate, security and speakers, then rooms and scenes](docs/screenshots/home.webp)
 
 ```yaml
 pages:
@@ -672,7 +678,9 @@ tile.
   the end, adds one: a card from one of your dashboards, a widget such as a
   clock, a room, or any entity, searchable by name or room. Thermostats and
   weather entities get their own tile kinds.
-- **Customize** has a tab for each thing it sets:
+- **Customize** lists its sections down the side, each with a line on how
+  it stands ("14 pages", "6 tabs · 3 pinned"), and shows the one you pick
+  beside them. On a narrow screen the sections run across the top instead.
   - **This page**: the page on screen: its columns and rows, its badges, a
     photo page's folder, a weather or night page's weather entity.
   - **Pages**: drag a page by its handle (≡) to reorder it, type in its row
@@ -683,11 +691,16 @@ tile.
     Cameras and Scenes have one, while Weather, Clock, Photos and Night fill
     the screen and don't. **Blank** adds an empty page of tiles, turns to it
     and asks for its name; then **+ Add tile** fills it.
-  - **Quick panel**: its tabs (drag to reorder, tap one to edit it), the
-    pinned tiles, the brightness slider and the speaker.
-  - **Look**: the theme, the accent color, the size everything is drawn at,
-    the tile style, corners, wallpaper, glass tint and badges.
+  - **Quick panel**, in three parts: **Tabs** (drag to reorder, tap one to
+    edit it), **Pinned** tiles, and **Options** (the speaker and the
+    brightness slider).
+  - **Look**, in three parts: **Theme** (the theme, the accent color and the
+    size everything is drawn at), **Tiles** (their layout, corners and the
+    badges' look) and **Background** (the wallpaper and the glass tint).
   - **Alerts**: what raises a banner. See [Alerts](#alerts).
+
+  ![Customize: its sections down the side, the pages beside them](docs/screenshots/customize.webp)
+
 - **Done** saves, **Cancel** drops the changes.
 
 Where Done saves:

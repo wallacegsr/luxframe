@@ -6,6 +6,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-16
+
 ### Added
 
 - A home page (`type: home`): the whole home at a glance. Chips sum up the
@@ -28,10 +30,16 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ### Changed
 
-- Customize shows one section at a time, on tabs: This page, Pages, Quick
-  panel, Look and Alerts. Pages and quick panel tabs are reordered by
-  dragging, and a page's other actions (start here, hide, delete) are behind
-  one ⋯ button in place of five.
+- The README's install steps lead with searching for LuxFrame in HACS, now
+  that it's in the default catalog; the custom repository steps stay as a
+  fallback. Its screenshots are new.
+- Customize is laid out like a settings app. Its sections (This page,
+  Pages, Quick panel, Look, Alerts) run down the side, each with a line on
+  how it stands; the quick panel and the look are split into parts (Tabs,
+  Pinned, Options; Theme, Tiles, Background); and settings sit as rows on
+  cards, each choice showing its value and opening a short list. Pages and
+  quick panel tabs are reordered by dragging, and a page's other actions
+  (start here, hide, delete) are behind one ⋯ button in place of five.
 - Editor sheets close with ✕, or go Back to the sheet they came from, so a
   sheet's Done no longer sits beside the frame's.
 - On/off settings are one switch everywhere, in place of Show/Hide and
@@ -650,7 +658,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.16.3...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/wallacegsr/luxframe/compare/v0.16.3...v0.17.0
 [0.16.3]: https://github.com/wallacegsr/luxframe/compare/v0.16.2...v0.16.3
 [0.16.2]: https://github.com/wallacegsr/luxframe/compare/v0.16.1...v0.16.2
 [0.16.1]: https://github.com/wallacegsr/luxframe/compare/v0.16.0...v0.16.1
