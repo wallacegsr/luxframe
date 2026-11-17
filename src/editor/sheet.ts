@@ -3,18 +3,21 @@ import { define } from '../define';
 import { controls, sectionLabel } from '../theme';
 
 /**
- * A glass panel over the frame for the editor: a title, a Done button, and
- * whatever is slotted in. Escape or a tap outside closes it too. Fires
- * `close`.
+ * A glass panel over the frame for the editor: a title, a close button, and
+ * whatever is slotted in. Escape or a tap outside closes it too. With `back`
+ * it leads back to the sheet it was opened from. Fires `close`.
  */
 export class LuxFrameSheet extends LitElement {
   static properties = {
     heading: {},
     wide: { type: Boolean, reflect: true },
+    back: { type: Boolean },
   };
 
   declare heading: string;
   declare wide: boolean;
+  /** Closing goes back to another sheet rather than to the page. */
+  declare back: boolean;
 
   private _returnFocus?: Element | null;
 
@@ -22,6 +25,7 @@ export class LuxFrameSheet extends LitElement {
     super();
     this.heading = '';
     this.wide = false;
+    this.back = false;
   }
 
   connectedCallback(): void {
@@ -37,7 +41,7 @@ export class LuxFrameSheet extends LitElement {
   }
 
   protected firstUpdated(): void {
-    (this.renderRoot.querySelector('.done') as HTMLElement | null)?.focus();
+    (this.renderRoot.querySelector('.close') as HTMLElement | null)?.focus();
   }
 
   private _onKey = (e: KeyboardEvent): void => {
@@ -56,8 +60,13 @@ export class LuxFrameSheet extends LitElement {
       <div class="backdrop" @click=${this._close}></div>
       <section class="panel" role="dialog" aria-modal="true" aria-label=${this.heading}>
         <header>
+          ${this.back
+            ? html`<button class="chip close" @click=${this._close}>‹ Back</button>`
+            : nothing}
           <h2>${this.heading}</h2>
-          <button class="chip on done" @click=${this._close}>Done</button>
+          ${this.back
+            ? nothing
+            : html`<button class="round small close" aria-label="Close" @click=${this._close}>✕</button>`}
         </header>
         <div class="body"><slot></slot></div>
       </section>
@@ -121,10 +130,6 @@ export class LuxFrameSheet extends LitElement {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-    }
-
-    .done {
-      font-weight: 600;
     }
 
     .body {

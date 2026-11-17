@@ -37,7 +37,7 @@ export class LuxFrameGenericDetail extends LitElement {
     } else if (TOGGLES.has(domain)) {
       action = html`<button class="pill ${on ? 'on' : 'glass'}" ?disabled=${unavailable}
         @click=${() => this.hass?.callService(domain, on ? 'turn_off' : 'turn_on', target)}>
-        ${on ? 'Turn Off' : 'Turn On'}
+        ${on ? 'Turn off' : 'Turn on'}
       </button>`;
     }
 

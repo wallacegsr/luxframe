@@ -397,8 +397,8 @@ export class LuxFrameTileEditor extends LitElement {
         min-height: 180px;
         padding: 12px 14px;
         border: 0;
-        border-radius: 14px;
-        background: rgb(127 127 127 / 16%);
+        border-radius: var(--lf-radius-s);
+        background: var(--lf-control);
         color: inherit;
         font: 14px/1.5 ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
         resize: vertical;
@@ -412,7 +412,7 @@ export class LuxFrameTileEditor extends LitElement {
 
       .error {
         margin: 8px 0 0;
-        color: #ff6961;
+        color: var(--lf-danger);
         font-size: 15px;
       }
     `,

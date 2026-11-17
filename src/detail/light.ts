@@ -185,7 +185,7 @@ export class LuxFrameLightDetail extends LitElement {
             ?disabled=${unavailable}
             @click=${() => this._toggle(on)}
           >
-            ${on ? 'Turn Off' : 'Turn On'}
+            ${on ? 'Turn off' : 'Turn on'}
           </button>
         </div>
       </div>

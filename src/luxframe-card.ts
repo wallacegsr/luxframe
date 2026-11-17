@@ -1,13 +1,16 @@
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
+import { activeAlerts, alertOf } from './alerts';
 import { badgeItems, compactBadge, normalizeBadge } from './badges';
 import { define } from './define';
 import './editor/badge-editor';
 import './editor/dock-editor';
 import './editor/customize';
+import type { CustomizeSection } from './editor/customize';
+import { icon } from './icons';
 import './editor/picker';
 import './editor/sheet';
 import './editor/tile-editor';
-import { normalizeTile, tileLabel } from './editor/layout';
+import { normalizeTile, starterPages, tileLabel } from './editor/layout';
 import { clearLocal, describe, loadLocal, save, stableJson } from './editor/store';
 import { openMoreInfo, resolve, type DetailView } from './entity';
 import { kiosk, onKiosk, type KioskTheme } from './kiosk';
@@ -101,7 +104,13 @@ function badgeLook(page: PageConfig, config: LuxFrameConfig): string {
   const style = own.badge_style ?? config.badge_style ?? 'pill';
   return [BADGE_ALIGN[align] ?? '', style === 'plain' ? BADGE_PLAIN : ''].filter(Boolean).join('; ');
 }
-const PAGE_TYPES = ['clock', 'room', 'scenes', 'grid', 'weather', 'calendar', 'cameras', 'photos', 'night', 'xbloom'];
+/** The frame's size, kept to what still fits a screen. */
+function frameScale(scale: unknown): number {
+  const n = Number(scale);
+  return Number.isFinite(n) && n > 0 ? Math.min(1.5, Math.max(0.7, n)) : 1;
+}
+
+const PAGE_TYPES = ['home', 'clock', 'room', 'scenes', 'grid', 'weather', 'calendar', 'cameras', 'photos', 'night', 'xbloom'];
 const TOAST_MS = 4500;
 /** A pull from the top edge this far opens the quick panel. */
 const PULL_OPEN = 40;
@@ -116,8 +125,9 @@ type Sheet =
   | { kind: 'tile'; page: number; index: number }
   | { kind: 'add'; page: number }
   | { kind: 'replace'; page: number; index: number }
-  | { kind: 'customize' }
+  | { kind: 'customize'; section?: CustomizeSection }
   | { kind: 'pin' }
+  | { kind: 'alert-add' }
   | { kind: 'dock-add' }
   | { kind: 'dock'; index: number }
   | { kind: 'badge-add'; page: number }
@@ -151,6 +161,7 @@ export class LuxFrameCard extends LitElement {
     _assist: { state: true },
     _brightness: { state: true },
     _slow: { state: true },
+    _dismissed: { state: true },
   };
 
   declare hass?: HomeAssistant;
@@ -182,6 +193,8 @@ export class LuxFrameCard extends LitElement {
   declare _brightness: number;
   /** This device can't blur, or blurs too slowly: `style: auto` goes flat. */
   declare _slow: boolean;
+  /** Alerts tapped away; each comes back the next time it's raised. */
+  declare _dismissed: Set<string>;
 
   /** A pull on the quick panel: from the strip along the top edge, or down a page that's at its top. */
   private _edge?: {
@@ -228,12 +241,14 @@ export class LuxFrameCard extends LitElement {
     this._assist = false;
     this._brightness = 100;
     this._slow = false;
+    this._dismissed = new Set();
   }
 
-  static getStubConfig(): LuxFrameConfig {
+  /** A new LuxFrame starts with pages made from this home's areas, ready to rearrange. */
+  static getStubConfig(hass?: HomeAssistant): LuxFrameConfig {
     return {
       type: 'custom:luxframe-card',
-      pages: [{ type: 'clock' }],
+      pages: starterPages(hass),
     };
   }
 
@@ -951,7 +966,7 @@ export class LuxFrameCard extends LitElement {
     }
   }
 
-  private _picked(tile: GridTileConfig | string): void {
+  private _picked(tile: GridTileConfig | string, edit = false): void {
     const sheet = this._sheet;
     if (sheet?.kind === 'dock-add' && this._draft) {
       const item = toDockItem(tile);
@@ -967,7 +982,16 @@ export class LuxFrameCard extends LitElement {
       if (entity && !quick.pinned?.includes(entity)) {
         this._draft = { ...this._draft, quick_panel: { ...quick, pinned: [...(quick.pinned ?? []), entity] } };
       }
-      this._sheet = { kind: 'customize' };
+      this._sheet = { kind: 'customize', section: 'quick' };
+      return;
+    }
+    if (sheet?.kind === 'alert-add' && this._draft) {
+      const entity = typeof tile === 'string' ? tile : 'entity' in tile ? tile.entity : undefined;
+      const alerts = this._draft.alerts ?? [];
+      if (entity && !alerts.some((a) => alertOf(a).entity === entity)) {
+        this._draft = { ...this._draft, alerts: [...alerts, entity] };
+      }
+      this._sheet = { kind: 'customize', section: 'alerts' };
       return;
     }
     if (sheet?.kind === 'badge-add') {
@@ -983,9 +1007,9 @@ export class LuxFrameCard extends LitElement {
     const tiles = [...(this._gridAt(sheet.page)?.tiles ?? [])];
     if (sheet.kind === 'add') {
       tiles.push(tile);
-      // An empty card tile is for pasting YAML, so go straight to that.
+      // A new card wants setting up, and an empty one its YAML pasted: straight to that.
       this._sheet =
-        typeof tile !== 'string' && tile.type === 'card' && !tile.card?.type
+        edit || (typeof tile !== 'string' && tile.type === 'card' && !tile.card?.type)
           ? { kind: 'tile', page: sheet.page, index: tiles.length - 1 }
           : undefined;
     } else {
@@ -1032,7 +1056,11 @@ export class LuxFrameCard extends LitElement {
           .hass=${this.hass}
           .config=${draft}
           .page=${this._visible[this._index]?.i ?? 0}
+          .section=${sheet.section}
           ?local=${this._local}
+          @section=${(e: CustomEvent<{ section: CustomizeSection }>) =>
+            (this._sheet = { kind: 'customize', section: e.detail.section })}
+          @alert-add=${() => (this._sheet = { kind: 'alert-add' })}
           @change=${(e: CustomEvent) => (this._draft = e.detail.config)}
           @show-page=${(e: CustomEvent<{ page: number }>) => this._showPage(e.detail.page)}
           @reset=${this._useDashboardLayout}
@@ -1043,7 +1071,8 @@ export class LuxFrameCard extends LitElement {
       </luxframe-sheet>`;
     }
     if (sheet.kind === 'dock-add') {
-      return html`<luxframe-sheet heading="Add to the quick panel" @close=${() => (this._sheet = { kind: 'customize' })}>
+      return html`<luxframe-sheet heading="Add to the quick panel" back
+        @close=${() => (this._sheet = { kind: 'customize', section: 'quick' })}>
         <luxframe-picker .hass=${this.hass} @pick=${(e: CustomEvent) => this._picked(e.detail.tile)}>
         </luxframe-picker>
       </luxframe-sheet>`;
@@ -1053,7 +1082,8 @@ export class LuxFrameCard extends LitElement {
       const raw = dock[sheet.index];
       if (raw === undefined) return nothing;
       const on = (e: CustomEvent) => this._dockSheetEvent(sheet.index, e);
-      return html`<luxframe-sheet heading="Quick panel" @close=${() => (this._sheet = { kind: 'customize' })}>
+      return html`<luxframe-sheet heading="Quick panel" back
+        @close=${() => (this._sheet = { kind: 'customize', section: 'quick' })}>
         <luxframe-dock-editor
           .hass=${this.hass}
           .item=${normalizeDock(raw)}
@@ -1066,8 +1096,15 @@ export class LuxFrameCard extends LitElement {
       </luxframe-sheet>`;
     }
     if (sheet.kind === 'pin') {
-      return html`<luxframe-sheet heading="Pin to the quick panel"
-        @close=${() => (this._sheet = { kind: 'customize' })}>
+      return html`<luxframe-sheet heading="Pin to the quick panel" back
+        @close=${() => (this._sheet = { kind: 'customize', section: 'quick' })}>
+        <luxframe-picker .hass=${this.hass} entities-only
+          @pick=${(e: CustomEvent) => this._picked(e.detail.tile)}></luxframe-picker>
+      </luxframe-sheet>`;
+    }
+    if (sheet.kind === 'alert-add') {
+      return html`<luxframe-sheet heading="Alert me about" back
+        @close=${() => (this._sheet = { kind: 'customize', section: 'alerts' })}>
         <luxframe-picker .hass=${this.hass} entities-only
           @pick=${(e: CustomEvent) => this._picked(e.detail.tile)}></luxframe-picker>
       </luxframe-sheet>`;
@@ -1102,8 +1139,8 @@ export class LuxFrameCard extends LitElement {
     if (sheet.kind === 'add' || sheet.kind === 'replace') {
       const back = sheet.kind === 'add' ? close : () => (this._sheet = { ...sheet, kind: 'tile' });
       return html`<luxframe-sheet heading=${sheet.kind === 'add' ? 'Add a tile' : 'Show on this tile'}
-        @close=${back}>
-        <luxframe-picker .hass=${this.hass} @pick=${(e: CustomEvent) => this._picked(e.detail.tile)}>
+        ?back=${sheet.kind === 'replace'} @close=${back}>
+        <luxframe-picker .hass=${this.hass} @pick=${(e: CustomEvent) => this._picked(e.detail.tile, e.detail.edit)}>
         </luxframe-picker>
       </luxframe-sheet>`;
     }
@@ -1174,6 +1211,9 @@ export class LuxFrameCard extends LitElement {
   private _renderPage(page: PageConfig, i: number) {
     const badges = badgeItems(page, this._shown!);
     switch (page.type) {
+      case 'home':
+        return html`<luxframe-home-page .hass=${this.hass} .config=${page} .badges=${badges}
+          ?editing=${this._editing}></luxframe-home-page>`;
       case 'clock':
         return html`<luxframe-clock .hass=${this.hass} .config=${page}></luxframe-clock>`;
       case 'room':
@@ -1218,8 +1258,12 @@ export class LuxFrameCard extends LitElement {
     const height =
       config.height ?? (this._hideHeader ? '100dvh' : 'calc(100dvh - var(--header-height, 0px))');
     const visible = this._visible;
+    const scale = frameScale(config.scale);
+    const alerts = this._editing ? [] : activeAlerts(this.hass, config.alerts).filter((a) => !this._dismissed.has(a.key));
     const style = [
-      `height: ${height}`,
+      // Zoomed, the frame is laid out smaller or larger and then fills the same space.
+      scale === 1 ? `height: ${height}` : `zoom: ${scale}; height: calc((${height}) / ${scale})`,
+      config.accent ? `--lf-accent: ${config.accent}` : '',
       config.background ? `--lf-backdrop: ${config.background}` : '',
       config.tile_style === 'corner' ? '--lf-tile-style: corner' : '',
       config.corner_radius !== undefined ? cornerStyle(config.corner_radius) : '',
@@ -1315,6 +1359,17 @@ export class LuxFrameCard extends LitElement {
               ></luxframe-assist>
             </luxframe-sheet>`
           : nothing}
+        ${alerts.length
+          ? html`<div class="alert" role="alert">
+              <button class="alert-open" @click=${() => (this._detail = { entityId: alerts[0].entity })}>
+                ${icon('shield-alert', 22)}
+                <span class="alert-text">${alerts[0].text}</span>
+                ${alerts.length > 1 ? html`<span class="alert-more">+${alerts.length - 1} more</span>` : nothing}
+              </button>
+              <button class="alert-close" aria-label="Dismiss"
+                @click=${() => (this._dismissed = new Set([...this._dismissed, ...alerts.map((a) => a.key)]))}>✕</button>
+            </div>`
+          : nothing}
         ${this._editing ? this._renderEditBar() : nothing} ${this._renderSheet()}
         ${this._toast ? html`<div class="toast" role="status">${this._toast}</div>` : this._renderUpdate()}
         <div class="veil" style="opacity: ${veilOpacity(this._brightness)}"></div>
@@ -1370,11 +1425,16 @@ export class LuxFrameCard extends LitElement {
         bottom: 14px;
         transform: translateX(-50%);
         display: flex;
-        gap: 4px;
+        gap: 0;
+        padding: 0 6px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--lf-sheet) 55%, transparent);
+        -webkit-backdrop-filter: var(--lf-blur);
+        backdrop-filter: var(--lf-blur);
       }
 
       .dot {
-        width: 24px;
+        width: 22px;
         height: 24px;
         padding: 0;
         border: 0;
@@ -1463,6 +1523,66 @@ export class LuxFrameCard extends LitElement {
         font-weight: 600;
       }
 
+      /* Something needs attention: over every page, until it clears or is dismissed. */
+      .alert {
+        position: absolute;
+        top: max(14px, calc(var(--lf-pad) / 3));
+        left: 50%;
+        z-index: 6;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        max-width: min(640px, calc(100% - 32px));
+        border-radius: 999px;
+        color: #fff;
+        background: var(--lf-danger);
+        box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
+        animation: alert var(--lf-move) var(--lf-ease);
+      }
+
+      .alert-open {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 48px;
+        padding: 0 6px 0 18px;
+        border-radius: 999px 0 0 999px;
+        font-size: 17px;
+        font-weight: 600;
+        background: none;
+      }
+
+      .alert-text {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .alert-more {
+        flex: none;
+        font-weight: 500;
+        opacity: 0.85;
+      }
+
+      .alert-close {
+        flex: none;
+        width: 48px;
+        height: 48px;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 17px;
+        background: none;
+      }
+
+      @keyframes alert {
+        from {
+          opacity: 0;
+          transform: translate(-50%, -12px);
+        }
+      }
+
       .toast {
         position: absolute;
         left: 50%;
@@ -1514,7 +1634,8 @@ export class LuxFrameCard extends LitElement {
           scroll-behavior: auto;
         }
 
-        .toast {
+        .toast,
+        .alert {
           animation: none;
         }
       }

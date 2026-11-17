@@ -49,11 +49,9 @@ export class LuxFrameClock extends LitElement {
     const weather = id ? this.hass?.states[id] : undefined;
     if (!weather) return nothing;
     const temp = weather.attributes.temperature;
-    const unit =
-      weather.attributes.temperature_unit ?? this.hass?.config?.unit_system?.temperature ?? '°';
     return html`
       <div class="weather glass">
-        ${temp !== undefined ? html`<span class="temp">${Math.round(temp)}${unit}</span>` : nothing}
+        ${temp !== undefined ? html`<span class="temp">${Math.round(temp)}°</span>` : nothing}
         <span class="condition">${conditionLabel(this.hass, weather)}</span>
       </div>
     `;

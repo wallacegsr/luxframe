@@ -60,11 +60,6 @@ export class LuxFrameWeatherPage extends LitElement {
     ];
   }
 
-  private _unit(): string {
-    const s = firstWeather(this.hass, this.config?.entity);
-    return s?.attributes.temperature_unit ?? this.hass?.config?.unit_system?.temperature ?? '°';
-  }
-
   private _renderDays() {
     const days = (this._daily ?? []).slice(0, DAYS);
     if (!days.length) return nothing;
@@ -126,7 +121,7 @@ export class LuxFrameWeatherPage extends LitElement {
       <div class="layout">
         <section class="now">
           <div class="condition-icon">${conditionIcon(s.state, 72)}</div>
-          <div class="temp">${typeof a.temperature === 'number' ? Math.round(a.temperature) : '–'}<span class="unit">${this._unit()}</span></div>
+          <div class="temp">${typeof a.temperature === 'number' ? Math.round(a.temperature) : '–'}°</div>
           <div class="condition">${conditionLabel(this.hass, s)}</div>
           <div class="muted details">${details.join(' · ')}</div>
         </section>
@@ -194,12 +189,6 @@ export class LuxFrameWeatherPage extends LitElement {
         line-height: 1;
         letter-spacing: -0.04em;
         font-variant-numeric: tabular-nums;
-      }
-
-      .unit {
-        font-size: 0.4em;
-        vertical-align: top;
-        margin-left: 4px;
       }
 
       .condition {

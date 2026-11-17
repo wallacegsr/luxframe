@@ -56,7 +56,7 @@ export class LuxFrameClimateDetail extends LitElement {
     if (!Array.isArray(options) || options.length < 2) return nothing;
     const s = this.stateObj!;
     return html`<div class="labelled">
-      <div class="muted">${label}</div>
+      <h4>${label}</h4>
       <div class="row" role="group" aria-label=${label}>
         ${options.map(
           (option: string) => html`<button
@@ -91,9 +91,9 @@ export class LuxFrameClimateDetail extends LitElement {
       </div>
       ${range
         ? html`<div class="row range">
-            <div class="labelled"><div class="muted">Low</div>
+            <div class="labelled"><h4>Low</h4>
               ${this._stepper('low', this._low, a.target_temp_low, 'small')}</div>
-            <div class="labelled"><div class="muted">High</div>
+            <div class="labelled"><h4>High</h4>
               ${this._stepper('high', this._high, a.target_temp_high, 'small')}</div>
           </div>`
         : this._stepper('target', this._target, a.temperature, 'large')}
@@ -154,7 +154,7 @@ export class LuxFrameClimateDetail extends LitElement {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
         font-size: 17px;
       }
     `,

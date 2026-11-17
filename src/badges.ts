@@ -38,7 +38,7 @@ export function badgeRuns(badge: BadgeConfig): boolean {
 
 /** The pages with a title bar, where badges show. */
 export function hasTitleBar(page: PageConfig): boolean {
-  return ['grid', 'calendar', 'cameras', 'scenes', 'room'].includes(page.type);
+  return ['grid', 'home', 'calendar', 'cameras', 'scenes', 'room'].includes(page.type);
 }
 
 /** A page's badges in order: a room's sensors, the page's own, then the frame's. */

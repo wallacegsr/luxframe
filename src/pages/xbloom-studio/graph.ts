@@ -139,7 +139,7 @@ export class LuxFrameXBloomGraph extends LitElement {
 
   static styles = css`
     :host {
-      --weight: var(--luxframe-xbloom-gold, #e8cd8f);
+      --weight: var(--luxframe-xbloom-gold, var(--lf-accent));
       --flow: var(--luxframe-xbloom-flow, #8fcfae);
       display: block;
       height: 100%;
@@ -166,8 +166,11 @@ export class LuxFrameXBloomGraph extends LitElement {
 
     h2 {
       margin: 0;
-      font-size: 20px;
+      font-size: 13px;
       font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--lf-muted);
       white-space: nowrap;
     }
 
@@ -198,9 +201,9 @@ export class LuxFrameXBloomGraph extends LitElement {
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       color: var(--lf-muted);
     }
@@ -220,7 +223,7 @@ export class LuxFrameXBloomGraph extends LitElement {
     }
 
     .reading strong {
-      font-family: var(--luxframe-serif, 'Iowan Old Style', 'New York', ui-serif, 'Palatino Linotype', Palatino, Georgia, serif);
+      font-family: var(--luxframe-serif, var(--lf-font));
       font-size: 28px;
       font-weight: 400;
       line-height: 1.1;
@@ -353,10 +356,6 @@ export class LuxFrameXBloomGraph extends LitElement {
 
     /* Last, so they win over the rules above. A short card: the readings in a smaller row, so the plot keeps room. */
     @container (max-height: 300px) {
-      .head h2 {
-        font-size: 17px;
-      }
-
       .readings {
         margin: 6px 0 8px;
         gap: 4px 20px;

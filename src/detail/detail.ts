@@ -4,6 +4,7 @@ import { domainOf, resolve, type DetailView } from '../entity';
 import { controls } from '../theme';
 import type { HassEntity, HomeAssistant } from '../types';
 import { renderWidgetView } from './views';
+import { zoomOf } from '../zoom';
 
 const CLOSE_DISTANCE = 120;
 const CLOSE_MS = 180;
@@ -136,7 +137,7 @@ export class LuxFrameDetail extends LitElement {
   private _move(e: PointerEvent): void {
     const swipe = this._swipe;
     if (!swipe) return;
-    const dy = Math.max(0, e.clientY - swipe.y);
+    const dy = Math.max(0, e.clientY - swipe.y) / zoomOf(this);
     if (!swipe.active && dy > 8) {
       swipe.active = true;
       (e.currentTarget as HTMLElement).setPointerCapture(swipe.id);

@@ -6,6 +6,51 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A home page (`type: home`): the whole home at a glance. Chips sum up the
+  lights, climate, security and speakers and open what they count; under
+  them, a tile for every room, and scenes. It builds itself from Home
+  Assistant's areas.
+- Adding LuxFrame from Home Assistant's card picker now starts with pages
+  made from your areas: the home page, a page of tiles for each of the first
+  six rooms, the weather and a clock.
+- Alerts: a banner on every page while something needs you, such as a door
+  left open or the alarm going off. Set under Customize → Alerts, or with the
+  new `alerts` option.
+- New card, when adding a tile: any Home Assistant card, or any custom card
+  you've installed, made from scratch and set up in its own visual editor.
+  A card no longer has to be on another dashboard first.
+- An accent color and a size for the whole frame, under Customize → Look
+  (`accent` and `scale`).
+- Customize can now set the xBloom page's "beans are in" entity and a
+  weather or night page's weather entity, which needed YAML before.
+
+### Changed
+
+- Customize shows one section at a time, on tabs: This page, Pages, Quick
+  panel, Look and Alerts. Pages and quick panel tabs are reordered by
+  dragging, and a page's other actions (start here, hide, delete) are behind
+  one ⋯ button in place of five.
+- Editor sheets close with ✕, or go Back to the sheet they came from, so a
+  sheet's Done no longer sits beside the frame's.
+- On/off settings are one switch everywhere, in place of Show/Hide and
+  On/Off pairs and the xBloom settings' single chip.
+- The xBloom page looks like the rest of LuxFrame: the frame's font for
+  names and numbers, the accent color where it had its own gold, card
+  headings as small section labels, plain tabs, and card options that open
+  in the middle like other sheets. `luxframe-serif` and
+  `luxframe-xbloom-gold` in a theme still bring the old look back.
+- In the xBloom settings, the mode reads "Home Assistant control" (it said
+  "Ha control"), and Disconnect is marked in red.
+- Buttons are in sentence case throughout: "Turn off", "Arm away",
+  "Start brew".
+- Temperatures read the same everywhere, a number and a degree sign: "21.5°".
+- The page dots sit on a small capsule, so they stay readable over a page
+  that scrolls under them.
+- The thermostat's Fan, Preset and Swing labels match the section labels
+  used everywhere else.
+
 ## [0.16.3] - 2026-11-15
 
 ### Changed

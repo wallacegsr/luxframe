@@ -1,7 +1,7 @@
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import '../chart';
 import { define } from '../define';
-import { changedAgo, stateLabel } from '../entity';
+import { changedAgo, stateLabel, withUnit } from '../entity';
 import { fetchChanges, fetchSeries, formatNumber, isNumeric, type Change, type Point } from '../history';
 import { formatClock } from '../time';
 import type { HassEntity, HomeAssistant } from '../types';
@@ -83,7 +83,7 @@ export class LuxFrameSensorDetail extends LitElement {
   private _renderStats(points: Point[], unit: string, like: string) {
     if (points.length < 2) return nothing;
     const values = points.map((p) => p.v);
-    const fmt = (v: number) => `${formatNumber(this.hass, v, like)}${unit ? ` ${unit}` : ''}`;
+    const fmt = (v: number) => withUnit(formatNumber(this.hass, v, like), unit);
     const stats = [
       { label: 'Low', value: Math.min(...values) },
       { label: 'Average', value: values.reduce((a, b) => a + b, 0) / values.length },

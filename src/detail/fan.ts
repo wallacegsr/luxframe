@@ -92,7 +92,7 @@ export class LuxFrameFanDetail extends LitElement {
               </button>`
             : nothing}
           <button class="pill ${on ? 'on' : 'glass'}" ?disabled=${unavailable} @click=${() => this._toggle(on)}>
-            ${on ? 'Turn Off' : 'Turn On'}
+            ${on ? 'Turn off' : 'Turn on'}
           </button>
         </div>
       </div>

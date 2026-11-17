@@ -308,7 +308,7 @@ export class LuxFrameMediaDetail extends LitElement {
               : nothing}
           </div>
           ${off && supports(s, MEDIA.TURN_ON)
-            ? html`<button class="pill" @click=${() => this._call('turn_on')}>Turn On</button>`
+            ? html`<button class="pill" @click=${() => this._call('turn_on')}>Turn on</button>`
             : this._renderVolume(s)}
           ${this._upNext ? html`<div class="next muted">Up next · ${this._upNext}</div>` : nothing}
         </section>

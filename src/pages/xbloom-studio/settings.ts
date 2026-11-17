@@ -70,8 +70,8 @@ export class LuxFrameXBloomSettings extends StudioBase {
     const on = s.state === 'on';
     return html`<div class="row">
       <span>${label}${note ? html`<span class="sub muted">${note}</span>` : nothing}</span>
-      <button class="chip ${on ? 'on' : ''}" role="switch" aria-checked=${on} ?disabled=${s.state === 'unavailable'}
-        @click=${() => this._toggle(key)}>${on ? 'On' : 'Off'}</button>
+      <button class="switch" role="switch" aria-checked=${on} aria-label=${label} ?disabled=${s.state === 'unavailable'}
+        @click=${() => this._toggle(key)}></button>
     </div>`;
   }
 
@@ -102,7 +102,7 @@ export class LuxFrameXBloomSettings extends StudioBase {
           ? html`<button class="pill glass" @click=${() => this._press('button.ble_connect')}>Reconnect</button>`
           : nothing}
         ${this.entities['button.ble_disconnect']
-          ? html`<button class="pill glass" @click=${() => this._press('button.ble_disconnect')}>Disconnect</button>`
+          ? html`<button class="pill glass risky" @click=${() => this._press('button.ble_disconnect')}>Disconnect</button>`
           : nothing}
       </div>
     </section>`;

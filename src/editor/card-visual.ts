@@ -1,6 +1,7 @@
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { define } from '../define';
 import type { HomeAssistant } from '../types';
+import { cardClass } from './card-types';
 
 /** A card's own visual editor, as Home Assistant's card dialog shows it. */
 interface ConfigEditor extends HTMLElement {
@@ -12,13 +13,6 @@ interface ConfigEditor extends HTMLElement {
 interface CardClass {
   getConfigElement?: () => Promise<ConfigEditor> | ConfigEditor;
 }
-
-/** "thermostat" → "hui-thermostat-card"; "custom:mushroom-light-card" → "mushroom-light-card". */
-function cardTag(type: string): string {
-  return type.startsWith('custom:') ? type.slice(7) : `hui-${type}-card`;
-}
-
-const DEFINE_WAIT_MS = 4000;
 
 /**
  * The dashboard's lovelace object, which some editors (stacks, conditional
@@ -97,21 +91,8 @@ export class LuxFrameCardVisual extends LitElement {
     this._editor = undefined;
     this._status = 'loading';
     if (!type) return this._none('Paste the card’s YAML first.');
-    const tag = cardTag(type);
-    let cls = customElements.get(tag) as (CustomElementConstructor & CardClass) | undefined;
-    if (!cls && window.loadCardHelpers) {
-      // Home Assistant defines its own cards as they're first made.
-      try {
-        (await window.loadCardHelpers()).createCardElement({ ...this.card });
-      } catch {
-        // Still waiting on it below.
-      }
-      await Promise.race([
-        customElements.whenDefined(tag),
-        new Promise((r) => setTimeout(r, DEFINE_WAIT_MS)),
-      ]);
-      cls = customElements.get(tag) as (CustomElementConstructor & CardClass) | undefined;
-    }
+    // Home Assistant defines its own cards as they're first made.
+    const cls = (await cardClass(type, this.card)) as (CustomElementConstructor & CardClass) | undefined;
     if (type !== this._type) return;
     if (!cls?.getConfigElement) return this._none('This card has no visual editor.');
 

@@ -8,7 +8,7 @@ import { formatDuration, ringStyles, timerLeft, timerRing } from '../detail/time
 import { batteryOf, isCleaning, startOrPause } from '../detail/vacuum';
 import { define } from '../define';
 import { energySensors, flowDiagram, flowStyles, formatPower, readFlow } from '../energy';
-import { changedAgo, domainOf, openDetail, openView, resolve, stateLabel } from '../entity';
+import { changedAgo, domainOf, openDetail, openView, resolve, shortUnit, stateLabel, withUnit } from '../entity';
 import { fetchSeries, formatNumber, isNumeric, type Point } from '../history';
 import { stateIcon } from '../icon';
 import { icon } from '../icons';
@@ -329,7 +329,7 @@ export class LuxFrameSensorTile extends SizedTile {
         <div class="words">
           <div class="value">
             ${numeric
-              ? html`${formatNumber(this.hass, Number(s.state), s.state)}<span class="unit">${unit}</span>`
+              ? html`${formatNumber(this.hass, Number(s.state), s.state)}<span class="unit">${shortUnit(unit)}</span>`
               : stateLabel(this.hass, s)}
           </div>
           <div class="name">${name}</div>
@@ -759,7 +759,7 @@ export class LuxFrameNumberTile extends SizedTile {
     const { name } = resolve(this.hass, { entity: s.entity_id, name: this.config?.name });
     const { min, max, step, value: reported, unit } = numberRange(s);
     const value = this._value.get(reported) ?? reported;
-    const shown = Number.isFinite(value) ? `${formatNumber(this.hass, value, String(step))}${unit ? ` ${unit}` : ''}` : stateLabel(this.hass, s);
+    const shown = Number.isFinite(value) ? withUnit(formatNumber(this.hass, value, String(step)), unit) : stateLabel(this.hass, s);
     const open = () => openDetail(this, s.entity_id);
     return html`
       <div class="tile glass" role="button" tabindex="0" aria-label="${name}, ${shown}" @click=${open} @keydown=${onKey(open)}>

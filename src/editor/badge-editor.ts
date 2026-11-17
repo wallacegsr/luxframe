@@ -233,8 +233,8 @@ export class LuxFrameBadgeEditor extends LitElement {
         height: 48px;
         padding: 0 14px;
         border: 0;
-        border-radius: 14px;
-        background: rgb(127 127 127 / 16%);
+        border-radius: var(--lf-radius-s);
+        background: var(--lf-control);
         color: inherit;
         font: inherit;
         font-size: 17px;
@@ -250,8 +250,8 @@ export class LuxFrameBadgeEditor extends LitElement {
         min-height: 140px;
         padding: 12px 14px;
         border: 0;
-        border-radius: 14px;
-        background: rgb(127 127 127 / 16%);
+        border-radius: var(--lf-radius-s);
+        background: var(--lf-control);
         color: inherit;
         font: 14px/1.5 ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
         resize: vertical;

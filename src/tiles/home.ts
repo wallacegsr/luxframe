@@ -350,7 +350,7 @@ export class LuxFrameRoomTile extends SizedTile {
       (s) => domainOf(s.entity_id) === 'sensor' && s.attributes.device_class === 'temperature' && !isNaN(Number(s.state)),
     );
     const parts = [
-      temp ? `${Math.round(Number(temp.state) * 10) / 10}${temp.attributes.unit_of_measurement ?? '°'}` : undefined,
+      temp ? `${Math.round(Number(temp.state) * 10) / 10}°` : undefined,
       lights.length ? (on ? `${on} ${on === 1 ? 'light' : 'lights'} on` : 'Lights off') : undefined,
     ].filter(Boolean);
 

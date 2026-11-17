@@ -155,9 +155,10 @@ export const tokens = css`
 
 /**
  * The buttons every part of LuxFrame shares: chips (a choice), pills (the
- * main action), round ones (an icon), and how they press, disable and focus.
- * `.on` is the chosen or active one; `.glass` makes one frosted instead of
- * flat.
+ * main action), round ones (an icon), a switch (on or off), and how they
+ * press, disable and focus. `.on` is the chosen or active one; `.glass` makes
+ * one frosted instead of flat. A switch is a button with `role="switch"` and
+ * `aria-checked`.
  */
 export const controls = css`
   button {
@@ -243,6 +244,53 @@ export const controls = css`
   .on {
     color: var(--lf-text-active);
     background: var(--lf-surface-active);
+  }
+
+  /* On or off, and nothing else: the one control for it everywhere. */
+  .switch {
+    flex: none;
+    position: relative;
+    width: 51px;
+    height: 31px;
+    padding: 0;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--lf-text) 22%, transparent);
+    transition: background-color var(--lf-move);
+  }
+
+  /* A finger-sized target around it. */
+  .switch::before {
+    content: '';
+    position: absolute;
+    inset: -7px;
+  }
+
+  .switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 27px;
+    height: 27px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 30%);
+    transition: transform var(--lf-move) var(--lf-ease);
+  }
+
+  .switch[aria-checked='true'] {
+    background: var(--lf-success);
+  }
+
+  .switch[aria-checked='true']::after {
+    transform: translateX(20px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .switch,
+    .switch::after {
+      transition: none;
+    }
   }
 
   .glass {

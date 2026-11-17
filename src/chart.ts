@@ -1,6 +1,7 @@
 import { LitElement, css, html, nothing, svg } from 'lit';
 import { define } from './define';
 import { formatNumber, type Point } from './history';
+import { withUnit } from './entity';
 import { formatClock } from './time';
 import type { HomeAssistant } from './types';
 
@@ -67,7 +68,7 @@ export class LuxFrameChart extends LitElement {
     const line = points.map((p, i) => `${i ? 'L' : 'M'}${x(p.t).toFixed(2)} ${y(p.v).toFixed(2)}`).join(' ');
     const area = `${line} L100 100 L0 100 Z`;
     const at = this._at !== undefined ? points[this._at] : undefined;
-    const fmt = (v: number) => `${formatNumber(this.hass, v)}${this.unit ? ` ${this.unit}` : ''}`;
+    const fmt = (v: number) => withUnit(formatNumber(this.hass, v), this.unit);
 
     return html`
       <div class="plot"

@@ -1,5 +1,5 @@
 import { css } from 'lit';
-import { controls } from '../theme';
+import { controls, sectionLabel } from '../theme';
 
 /**
  * Shared by every detail view. A view is a status line under the header,
@@ -8,6 +8,7 @@ import { controls } from '../theme';
  */
 export const detailStyles = [
   controls,
+  sectionLabel,
   css`
     :host {
       display: flex;

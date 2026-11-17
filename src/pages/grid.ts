@@ -8,6 +8,7 @@ import { pageStyles } from '../theme';
 import { renderTile } from '../tiles/render';
 import { MAX_ROWS, shapeOf, sizeFor, spanOf } from '../sizes';
 import type { GridPageConfig, GridTileConfig, HomeAssistant, TileSize } from '../types';
+import { zoomOf } from '../zoom';
 
 const HOLD_MS = 1000;
 const MOVE_TOLERANCE = 10;
@@ -32,6 +33,8 @@ interface Resize {
   index: number;
   x: number;
   y: number;
+  /** The frame's size, which the pointer's distance is divided by. */
+  zoom: number;
   /** The cell's size in pixels when picked up. */
   width: number;
   height: number;
@@ -229,12 +232,15 @@ export class LuxFrameGrid extends LitElement {
     const style = getComputedStyle(grid);
     const gapX = parseFloat(style.columnGap) || 0;
     const gapY = parseFloat(style.rowGap) || 0;
-    const rect = cell.getBoundingClientRect();
+    // The cell as it's laid out, whatever size the frame is drawn at.
+    const zoom = zoomOf(cell);
+    const rect = { width: cell.getBoundingClientRect().width / zoom, height: cell.getBoundingClientRect().height / zoom };
     this._resize = {
       pointerId: e.pointerId,
       index,
       x: e.clientX,
       y: e.clientY,
+      zoom,
       width: rect.width,
       height: rect.height,
       colPitch: (rect.width - (w - 1) * gapX) / w + gapX,
@@ -258,8 +264,8 @@ export class LuxFrameGrid extends LitElement {
     // n cells and the n − 1 gaps between them are n pitches less one gap.
     const fit = (size: number, gap: number, pitch: number, max: number) =>
       Math.min(max, Math.max(1, Math.round((size + gap) / pitch)));
-    const w = fit(r.width + e.clientX - r.x, r.gap[0], r.colPitch, r.columns);
-    const h = fit(r.height + e.clientY - r.y, r.gap[1], r.rowPitch, MAX_ROWS);
+    const w = fit(r.width + (e.clientX - r.x) / r.zoom, r.gap[0], r.colPitch, r.columns);
+    const h = fit(r.height + (e.clientY - r.y) / r.zoom, r.gap[1], r.rowPitch, MAX_ROWS);
     if (w !== r.w || h !== r.h) this._resize = { ...r, w, h };
   }
 
@@ -299,11 +305,12 @@ export class LuxFrameGrid extends LitElement {
     const grid = this.renderRoot.querySelector('.cells') as HTMLElement | null;
     if (!grid) return;
     const box = grid.getBoundingClientRect();
+    const zoom = zoomOf(grid);
     for (const cell of grid.querySelectorAll<HTMLElement>('.cell[data-index]')) {
       if (drag && cell.classList.contains('dragging')) {
         // Keep the lifted tile under the finger, wherever its slot now is.
-        const x = drag.x - drag.grabX - box.left - cell.offsetLeft;
-        const y = drag.y - drag.grabY - box.top - cell.offsetTop;
+        const x = (drag.x - drag.grabX - box.left) / zoom - cell.offsetLeft;
+        const y = (drag.y - drag.grabY - box.top) / zoom - cell.offsetTop;
         cell.style.transform = `translate(${x}px, ${y}px) scale(1.04)`;
       } else if (cell.style.transform) {
         cell.style.removeProperty('transform');

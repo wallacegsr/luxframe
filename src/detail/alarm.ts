@@ -89,7 +89,7 @@ export class LuxFrameAlarmDetail extends LitElement {
   }
 
   private _renderCode(action: Mode | 'disarm') {
-    const label = action === 'disarm' ? 'Disarm' : `Arm ${ARM_MODES.find((m) => m.mode === action)?.label}`;
+    const label = action === 'disarm' ? 'Disarm' : `Arm ${ARM_MODES.find((m) => m.mode === action)?.label.toLowerCase()}`;
     const text = this.stateObj?.attributes.code_format === 'text';
     return html`
       <div class="code">
@@ -140,7 +140,7 @@ export class LuxFrameAlarmDetail extends LitElement {
               : html`<div class="modes">
                   ${armModes(s).map(
                     (m) => html`<button class="pill glass" ?disabled=${unavailable} @click=${() => this._choose(m.mode)}>
-                      Arm ${m.label}
+                      Arm ${m.label.toLowerCase()}
                     </button>`,
                   )}
                 </div>`}

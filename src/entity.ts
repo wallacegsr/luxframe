@@ -68,6 +68,18 @@ export function isMomentary(stateObj: HassEntity | undefined): boolean {
   return !!stateObj && MOMENTARY.has(domainOf(stateObj.entity_id));
 }
 
+/** A reading with its unit: "21.5°" for a temperature, "45%", "120 W". */
+export function withUnit(text: string, unit: string | undefined): string {
+  if (!unit) return text;
+  if (unit === '°C' || unit === '°F' || unit === '°') return `${text}°`;
+  return unit === '%' ? `${text}%` : `${text} ${unit}`;
+}
+
+/** The unit as it's shown beside a number: a bare degree sign for temperatures. */
+export function shortUnit(unit: string | undefined): string {
+  return unit === '°C' || unit === '°F' ? '°' : (unit ?? '');
+}
+
 export function stateLabel(hass: HomeAssistant | undefined, stateObj: HassEntity | undefined): string {
   if (!stateObj) return 'Not found';
   const { state, attributes } = stateObj;
@@ -81,9 +93,10 @@ export function stateLabel(hass: HomeAssistant | undefined, stateObj: HassEntity
   if (domain === 'light' && state === 'on' && attributes.brightness) {
     return `${Math.round((attributes.brightness / 255) * 100)}%`;
   }
-  if (hass?.formatEntityState) return hass.formatEntityState(stateObj);
+  // A temperature reads "21.5°" everywhere, as on the thermostat.
+  if (hass?.formatEntityState) return hass.formatEntityState(stateObj).replace(/\s*°[CF]$/, '°');
   const unit = attributes.unit_of_measurement;
-  if (unit) return `${state} ${unit}`;
+  if (unit) return withUnit(state, unit);
   return (state.charAt(0).toUpperCase() + state.slice(1)).replace(/_/g, ' ');
 }
 

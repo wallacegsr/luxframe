@@ -514,7 +514,7 @@ export class LuxFrameXBloomRecipes extends StudioBase {
       }
 
       .recipe-card.picked {
-        outline: 2px solid var(--luxframe-xbloom-gold, #e8cd8f);
+        outline: 2px solid var(--luxframe-xbloom-gold, var(--lf-accent));
         outline-offset: -2px;
       }
 

@@ -168,11 +168,6 @@ export class LuxFrameVacuumDetail extends LitElement {
 
       h3 {
         margin: 8px 0 -6px;
-        font-size: 13px;
-        font-weight: 600;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: var(--lf-muted);
       }
 
       .row {

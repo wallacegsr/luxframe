@@ -76,6 +76,18 @@ export interface RoomPageConfig extends BadgeLook {
   badges?: Badge[];
 }
 
+/** The whole home at a glance: summaries of lights, climate, security and speakers, then rooms and scenes. */
+export interface HomePageConfig extends BadgeLook {
+  type: 'home';
+  /** Default "Home"; empty for none. */
+  title?: string;
+  badges?: Badge[];
+  /** Areas to show as rooms, by id or name, in this order. Default: all of them. */
+  areas?: string[];
+  /** Scenes to offer. Default: the first eight; an empty list for none. */
+  scenes?: string[];
+}
+
 export interface ScenesPageConfig extends BadgeLook {
   type: 'scenes';
   title?: string;
@@ -444,14 +456,15 @@ export interface XBloomPageConfig {
   manual?: XBloomCardConfig[];
   /**
    * xBloom Studio: an entity that's on once beans are in the machine, such
-   * as an input_boolean. Start Brew waits for it too.
+   * as an input_boolean. Start brew waits for it too.
    */
   beans_loaded?: string;
-  /** xBloom Studio: the Start Brew card glows once it's ready to brew. Default true. */
+  /** xBloom Studio: the Start brew card glows once it's ready to brew. Default true. */
   glow?: boolean;
 }
 
 export type PageConfig = (
+  | HomePageConfig
   | ClockPageConfig
   | RoomPageConfig
   | ScenesPageConfig
@@ -468,6 +481,18 @@ export type PageConfig = (
   /** The page the frame opens on and goes back to when idle. Default: the first. */
   home?: boolean;
 };
+
+/** Something that shows a banner on every page while it needs attention. */
+export interface AlertConfig {
+  entity: string;
+  /**
+   * The state, or states, that raise it. Default: `on`; `triggered` for an
+   * alarm panel; `unlocked` or `jammed` for a lock; `open` for a cover.
+   */
+  state?: string | string[];
+  /** What the banner says. Default: the entity's name and state. */
+  message?: string;
+}
 
 export interface LuxFrameConfig {
   type: string;
@@ -498,6 +523,12 @@ export interface LuxFrameConfig {
   badge_align?: BadgeAlign;
   /** The badges' look on pages that don't say. Default `pill`. */
   badge_style?: BadgeStyle;
+  /** The color of sliders, focus rings and things that are on. Defaults to the theme's. */
+  accent?: string;
+  /** How big everything is drawn; 1 is normal, 0.7 to 1.5. For a tablet read from across the room, or a small one. */
+  scale?: number;
+  /** Entities that show a banner on every page while they need attention: a door left open, a leak, the alarm. */
+  alerts?: Array<string | AlertConfig>;
 }
 
 export interface QuickPanelConfig {

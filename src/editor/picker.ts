@@ -5,6 +5,7 @@ import { isNumeric } from '../history';
 import { stateIcon } from '../icon';
 import { icon, type IconName } from '../icons';
 import type { GridTileConfig, HassEntity, HomeAssistant } from '../types';
+import { cardTypes, newCard, type CardType } from './card-types';
 import { dashboardCards, type FoundCard } from './dashboard-cards';
 import { isUseful, pickable, tileFor } from './layout';
 import { editorStyles } from './sheet';
@@ -80,9 +81,11 @@ const LIMIT = 200;
 const FEW_CARDS = 5;
 
 /**
- * Choosing what a tile shows: a card from one of the user's dashboards, a
- * clock, or any entity, searchable by name, id or area. Thermostats and
- * weather entities become their own tile kinds. Fires `pick` with the tile.
+ * Choosing what a tile shows: a Home Assistant card (a new one of any kind
+ * installed, or one from the user's dashboards), a widget, or any entity,
+ * searchable by name, id or area. Thermostats and weather entities become
+ * their own tile kinds. Fires `pick` with the tile, and `edit` set when the
+ * tile wants setting up next.
  */
 export class LuxFramePicker extends LitElement {
   static properties = {
@@ -92,6 +95,8 @@ export class LuxFramePicker extends LitElement {
     _found: { state: true },
     _allCards: { state: true },
     _widget: { state: true },
+    _newCard: { state: true },
+    _making: { state: true },
   };
 
   declare hass?: HomeAssistant;
@@ -103,6 +108,10 @@ export class LuxFramePicker extends LitElement {
   declare _allCards: boolean;
   /** A widget waiting for its device to be chosen. */
   declare _widget?: Widget;
+  /** Choosing which kind of card to make. */
+  declare _newCard: boolean;
+  /** The card type being made, while Home Assistant loads it. */
+  declare _making?: string;
 
   private _looking = false;
 
@@ -111,6 +120,7 @@ export class LuxFramePicker extends LitElement {
     this._query = '';
     this.entitiesOnly = false;
     this._allCards = false;
+    this._newCard = false;
   }
 
   protected willUpdate(changed: PropertyValues): void {
@@ -170,8 +180,53 @@ export class LuxFramePicker extends LitElement {
     `;
   }
 
-  private _pick(tile: GridTileConfig | string): void {
-    this.dispatchEvent(new CustomEvent('pick', { detail: { tile } }));
+  private _pick(tile: GridTileConfig | string, edit = false): void {
+    this.dispatchEvent(new CustomEvent('pick', { detail: { tile, edit } }));
+  }
+
+  /** Makes a card of a type, with the entities Home Assistant would start it with. */
+  private async _make(t: CardType): Promise<void> {
+    if (this._making) return;
+    this._making = t.type;
+    const card = await newCard(this.hass, t.type);
+    this._making = undefined;
+    this._pick({ type: 'card', size: t.size, card }, true);
+  }
+
+  /** The second step of a new card: which kind. */
+  private _renderCardTypes() {
+    const q = this._query.trim().toLowerCase();
+    const types = cardTypes().filter(
+      (t) => !q || [t.name, t.description, t.type].some((text) => text.toLowerCase().includes(q)),
+    );
+    const builtIn = types.filter((t) => !t.type.startsWith('custom:'));
+    const custom = types.filter((t) => t.type.startsWith('custom:'));
+    const row = (t: CardType) => html`<li>
+      <button class="item" ?disabled=${!!this._making} @click=${() => this._make(t)}>
+        <span class="icon">${icon('grid', 24)}</span>
+        <span class="text"><span class="name">${t.name}</span>
+          <div class="sub">${this._making === t.type ? 'Loading…' : t.description}</div></span>
+      </button>
+    </li>`;
+    return html`
+      <div class="row">
+        <button class="chip" @click=${() => ((this._newCard = false), (this._query = ''))}>‹ Back</button>
+      </div>
+      <h3>Which card?</h3>
+      <input
+        type="search"
+        placeholder="Search cards…"
+        aria-label="Search cards"
+        .value=${this._query}
+        @input=${(e: Event) => (this._query = (e.target as HTMLInputElement).value)}
+      />
+      ${custom.length ? html`<h3>Custom cards</h3><ul class="list">${custom.map(row)}</ul>` : nothing}
+      ${builtIn.length ? html`<h3>Home Assistant</h3><ul class="list">${builtIn.map(row)}</ul>` : nothing}
+      ${types.length ? nothing : html`<p class="muted">Nothing matches “${this._query}”.</p>`}
+      <p class="muted">
+        Custom cards show here once they’re installed, even if no dashboard uses them yet.
+      </p>
+    `;
   }
 
   private _entities() {
@@ -203,21 +258,28 @@ export class LuxFramePicker extends LitElement {
 
   private _renderCards(q: string) {
     if (this.entitiesOnly) return nothing;
-    const paste = !q || 'paste yaml home assistant card'.includes(q);
+    const paste = !q || 'new paste yaml home assistant card'.includes(q);
     const matching = this._matchingCards(q);
     const shown = q || this._allCards ? matching : matching.slice(0, FEW_CARDS);
     if (!paste && !matching.length && this._found) return nothing;
 
-    return html`<h3>From your dashboards</h3>
+    return html`<h3>Home Assistant cards</h3>
       <ul class="list">
         ${paste
           ? html`<li>
-              <button class="item" @click=${() => this._pick({ type: 'card', card: {} })}>
-                <span class="icon">${icon('plus', 24)}</span>
-                <span class="text"><span class="name">Paste a card’s YAML</span>
-                  <div class="sub">Any Home Assistant card</div></span>
-              </button>
-            </li>`
+                <button class="item" @click=${() => ((this._newCard = true), (this._query = ''))}>
+                  <span class="icon">${icon('plus', 24)}</span>
+                  <span class="text"><span class="name">New card</span>
+                    <div class="sub">Any card Home Assistant has, set up here</div></span>
+                </button>
+              </li>
+              <li>
+                <button class="item" @click=${() => this._pick({ type: 'card', card: {} }, true)}>
+                  <span class="icon">${icon('list', 24)}</span>
+                  <span class="text"><span class="name">Paste a card’s YAML</span>
+                    <div class="sub">Copied from another dashboard or a card’s instructions</div></span>
+                </button>
+              </li>`
           : nothing}
         ${shown.map(
           (f) => html`<li>
@@ -244,6 +306,7 @@ export class LuxFramePicker extends LitElement {
 
   protected render() {
     if (this._widget) return this._renderDevices(this._widget);
+    if (this._newCard) return this._renderCardTypes();
     const q = this._query.trim().toLowerCase();
     const widgets = this.entitiesOnly ? [] : WIDGETS.filter((w) => !q || w.label.toLowerCase().includes(q));
     const rooms = this.entitiesOnly

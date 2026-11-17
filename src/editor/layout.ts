@@ -66,6 +66,7 @@ export function pageLabel(page: PageConfig, index: number): string {
  */
 export const TITLE_DEFAULTS: Partial<Record<PageConfig['type'], string>> = {
   grid: '',
+  home: 'Home',
   calendar: 'Calendar',
   cameras: 'Cameras',
   scenes: 'Scenes',
@@ -76,6 +77,7 @@ export const TITLE_DEFAULTS: Partial<Record<PageConfig['type'], string>> = {
 /** Pages that can be added on the tablet, blank or with their defaults. */
 export const PAGE_KINDS: Array<{ type: PageConfig['type']; label: string; blank?: PageConfig }> = [
   { type: 'grid', label: 'Tiles', blank: { type: 'grid', tiles: [] } },
+  { type: 'home', label: 'Home', blank: { type: 'home' } },
   { type: 'weather', label: 'Weather', blank: { type: 'weather' } },
   { type: 'calendar', label: 'Calendar', blank: { type: 'calendar' } },
   { type: 'cameras', label: 'Cameras', blank: { type: 'cameras' } },
@@ -152,6 +154,19 @@ export function isUseful(entityId: string): boolean {
  * with nothing useful are skipped, and so are areas already on a page of the
  * same title.
  */
+/**
+ * A first layout for a new LuxFrame, from what Home Assistant has: the home
+ * summary, a page of tiles for each room (up to six), the weather if there's
+ * a forecast, and a clock.
+ */
+export function starterPages(hass: HomeAssistant | undefined): PageConfig[] {
+  if (!hass?.states) return [{ type: 'clock' }];
+  const pages: PageConfig[] = [{ type: 'home' }, ...suggestPages(hass, []).slice(0, 6)];
+  if (Object.keys(hass.states).some((id) => domainOf(id) === 'weather')) pages.push({ type: 'weather' });
+  pages.push({ type: 'clock' });
+  return pages;
+}
+
 export function suggestPages(hass: HomeAssistant | undefined, existing: PageConfig[]): GridPageConfig[] {
   if (!hass?.areas) return [];
   const taken = new Set(

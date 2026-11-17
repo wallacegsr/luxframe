@@ -9,6 +9,7 @@ import './tiles/card';
 import './tiles/widgets';
 import './pages/clock';
 import './pages/grid';
+import './pages/home';
 import './pages/room';
 import './pages/scenes';
 import './pages/weather';

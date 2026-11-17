@@ -39,7 +39,7 @@ import {
  *   screen the machine is on. After a brew, Coffee Lab asks how it was.
  * - `graph`: the brew's weight and flow over time.
  * - `recipe`: the recipe's banner, picker, numbers and pours.
- * - `brew`: the bag of coffee, taste, and Start Brew once the recipe's ready.
+ * - `brew`: the bag of coffee, taste, and Start brew once the recipe's ready.
  *
  * Manual tab: `grinder`, `pour` and `scale`, run on their own.
  *
@@ -92,9 +92,9 @@ export class LuxFrameXBloomCard extends StudioBase {
   declare card: XBloomCardName;
   declare fit: 'shrink' | 'scroll';
   declare scale: number;
-  /** An entity that's on once beans are in; Start Brew waits for it. */
+  /** An entity that's on once beans are in; Start brew waits for it. */
   declare beansLoaded?: string;
-  /** The Start Brew card glows while it's ready. */
+  /** The Start brew card glows while it's ready. */
   declare glow: boolean;
 
   /** The recipe list is open over the picked recipe. */
@@ -505,7 +505,7 @@ export class LuxFrameXBloomCard extends StudioBase {
     return html`
       <div class="start">
         <button class="pill on start-brew" ?disabled=${!this._canStart(status)} @click=${() => this._press('button.start_brew')}>
-          ${icon('play', 22)} Start Brew
+          ${icon('play', 22)} Start brew
         </button>
         <div class="start-foot">
           <p class="muted" aria-live="polite">${note}</p>
@@ -604,7 +604,7 @@ export class LuxFrameXBloomCard extends StudioBase {
       }
 
       .ring .bar {
-        stroke: var(--luxframe-xbloom-gold, #e8cd8f);
+        stroke: var(--luxframe-xbloom-gold, var(--lf-accent));
         stroke-linecap: round;
         transition: stroke-dashoffset 0.6s var(--lf-ease);
       }
@@ -644,10 +644,8 @@ export class LuxFrameXBloomCard extends StudioBase {
         flex-direction: column;
         align-items: center;
         gap: 6px;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 600;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
         color: var(--lf-faint);
       }
 
@@ -657,11 +655,11 @@ export class LuxFrameXBloomCard extends StudioBase {
       }
 
       .stages li.done {
-        color: color-mix(in srgb, var(--luxframe-xbloom-gold, #e8cd8f) 60%, transparent);
+        color: color-mix(in srgb, var(--luxframe-xbloom-gold, var(--lf-accent)) 60%, transparent);
       }
 
       .stages li.active {
-        color: var(--luxframe-xbloom-gold, #e8cd8f);
+        color: var(--luxframe-xbloom-gold, var(--lf-accent));
       }
 
       .stages li.active .dots {
@@ -695,9 +693,9 @@ export class LuxFrameXBloomCard extends StudioBase {
       }
 
       .stat .label {
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 600;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
         color: var(--lf-muted);
       }
@@ -717,7 +715,7 @@ export class LuxFrameXBloomCard extends StudioBase {
       .chips.machine .dots {
         width: 16px;
         height: 16px;
-        color: var(--luxframe-xbloom-gold, #e8cd8f);
+        color: var(--luxframe-xbloom-gold, var(--lf-accent));
       }
 
       .back {
@@ -796,9 +794,9 @@ export class LuxFrameXBloomCard extends StudioBase {
       }
 
       .opt .label {
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 600;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.06em;
         text-transform: uppercase;
         color: var(--lf-muted);
       }
@@ -815,7 +813,7 @@ export class LuxFrameXBloomCard extends StudioBase {
 
       /* Ready to brew: the card's edge breathes in the gold of the weight. */
       .panel.ready {
-        --glow: var(--luxframe-xbloom-gold, #e8cd8f);
+        --glow: var(--luxframe-xbloom-gold, var(--lf-accent));
         animation: ready-glow 2.4s ease-in-out infinite;
       }
 

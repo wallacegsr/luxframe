@@ -154,8 +154,13 @@ offers **Reload**. The clock page's corner shows the version running.
 
 ## Set up a dashboard
 
-Create a new dashboard for the tablet, open its raw configuration editor and
-paste something like this:
+The quick way: on a new dashboard, choose **Add card → LuxFrame**. It starts
+with a [home page](#home-page) summing up the house, a page of tiles for each
+of your first six rooms, the weather if you have a forecast, and a clock, all
+made from Home Assistant's areas. Hold any tile to rearrange it from there.
+
+Or write it yourself: open the dashboard's raw configuration editor and paste
+something like this:
 
 ```yaml
 views:
@@ -197,6 +202,7 @@ views:
 | Type     | Options                                                                      |
 | -------- | ---------------------------------------------------------------------------- |
 | `grid`   | `tiles`, `columns` (default 4), `rows` (default 3), `portrait_rows` (default `rows` + 2), `title` |
+| `home`   | The [whole home at a glance](#home-page). `title` (default "Home"; empty for none), `areas` (default: every area), `scenes` (default: the first eight; `[]` for none) |
 | `clock`  | `weather` (a `weather.*` entity), `greeting` (default `true`)                |
 | `room`   | `title`, `entities` (ids or `{entity, name, icon}`), `sensors` (shown as badges beside the title) |
 | `scenes` | `title` (default "Scenes"), `scenes` (scene or script ids, or objects)       |
@@ -205,12 +211,33 @@ views:
 | `cameras` | `entities` (default: every camera), `title`. Stills every 10 s; tap one to stream it. |
 | `photos` | `folder` (a media folder, default the whole local media folder) or `album` (an [Immich album](#photos-from-immich)), `interval` (seconds, default 30), `clock` (default `true`). Tap the right half for the next photo, the left half to go back. |
 | `night`  | `weather` (optional, for the temperature). A dim clock on black that drifts a little each minute. |
-| `xbloom` | Your [xBloom](#xbloom-page) coffee machine: LuxFrame's own view for xBloom Studio, or ha-xbloom's panel. `tab` (`home`, `recipes`, `manual` or `settings`). With xBloom Studio: `title` (default "xBloom"; empty for none), `columns` (default 6), `portrait_columns` (2), `rows` (2), `portrait_rows` (rows + 2), `scale` (1), `beans_loaded` (an entity Start Brew waits for), `glow` (default `true`), and `brew` and `manual`, the cards on those tabs (`card`, `size`, `fit`). With ha-xbloom: `theme` (`auto`, `light`, `dark`), `backdrop` (default `false`). |
+| `xbloom` | Your [xBloom](#xbloom-page) coffee machine: LuxFrame's own view for xBloom Studio, or ha-xbloom's panel. `tab` (`home`, `recipes`, `manual` or `settings`). With xBloom Studio: `title` (default "xBloom"; empty for none), `columns` (default 6), `portrait_columns` (2), `rows` (2), `portrait_rows` (rows + 2), `scale` (1), `beans_loaded` (an entity Start brew waits for), `glow` (default `true`), and `brew` and `manual`, the cards on those tabs (`card`, `size`, `fit`). With ha-xbloom: `theme` (`auto`, `light`, `dark`), `backdrop` (default `false`). |
 
 Any page can have `hidden: true` to keep it in the config but out of the frame.
 The frame opens on the first page, and goes back to it after `home_after`
 seconds without a touch (`0` turns that off); `home: true` on another page makes
 that one the start page instead.
+
+### Home page
+
+`type: home` needs no setting up: it reads Home Assistant's areas and devices.
+
+- **Summaries** along the top: Lights ("4 on"), Climate (the average
+  temperature), Security (locks, doors, windows, garage doors and the alarm:
+  "All secure", or what's unlocked or open) and Speakers ("1 playing"). A tap
+  opens that group as tiles under the row, the ones that are on first; a
+  second tap closes it. A group with nothing in it isn't shown.
+- **Rooms**: a tile for each area, with its temperature and how many lights
+  are on. A tap on the bulb turns the room's lights on or off; a tap on the
+  name opens the room.
+- **Scenes**: one tap runs one.
+
+```yaml
+pages:
+  - type: home
+    areas: [living_room, kitchen, bedroom]   # these, in this order
+    scenes: [scene.movie_night, scene.good_night]
+```
 
 ### xBloom page
 
@@ -236,7 +263,7 @@ ha-xbloom's panel, in LuxFrame's style:
   and temperature (tap Dose, Ratio or Grind to change it), and each pour in
   turn with its running total, temperature, flow rate, pattern and wait, then
   any bypass water. Then the bag of coffee, taste, whether to grind the
-  beans, and Start Brew, which lights up once the machine has the recipe
+  beans, and Start brew, which lights up once the machine has the recipe
   ready, and its card's edge glows gold. Point `beans_loaded` at an entity
   that's on once beans are in (an input_boolean you keep, say) and Start
   Brew waits for that too, with a Beans are in button to turn it on; one
@@ -267,7 +294,7 @@ you can fit them to your screen. In edit mode, drag a card to move it, drag
 its corner to resize it, or tap it to choose what it does when its contents
 don't fit (shrink to fit, the default, or scroll) and to hide it; + adds a
 hidden card back. Customize sets the grid's columns and rows, upright too,
-the page's size, which scales the whole view, whether Start Brew glows, and
+the page's size, which scales the whole view, whether Start brew glows, and
 whether the title shows;
 rename the page under Pages to change it. In YAML:
 
@@ -275,8 +302,8 @@ rename the page under Pages to change it. In YAML:
 pages:
   - type: xbloom
     title: Coffee bar    # default "xBloom"; '' hides it
-    beans_loaded: input_boolean.xbloom_beans_loaded   # Start Brew waits for it
-    glow: true           # Start Brew's card glows when ready; false for none
+    beans_loaded: input_boolean.xbloom_beans_loaded   # Start brew waits for it
+    glow: true           # Start brew's card glows when ready; false for none
     columns: 6           # default 6; portrait_columns, default 2
     rows: 2              # rows on one screen; portrait_rows, default rows + 2
     scale: 0.9           # the view's size, 0.5 to 2
@@ -532,14 +559,20 @@ scaled, everything moves together, and anything close to the trimmed edges
 can be cut off; a tile closer to the card's shape trims less. The tile editor
 has the same three choices under **Fit**.
 
-On the tablet, **Add tile → From your dashboards** lists the cards on your
+On the tablet, **Add tile → New card** makes a card from scratch. It lists
+Home Assistant's own cards and every custom card you've installed, whether
+or not a dashboard uses it yet, and starts the one you pick the way Home
+Assistant's own Add card does, with entities that suit it. The tile's
+settings then open on the card's visual editor.
+
+Under it, the same list has the cards on your
 other dashboards, with the dashboard and view each is on. A tap copies the
 card into a new tile, sized from its place in a sections view (a card 4 or more
 rows tall starts medium, or large at full width). The copy doesn't follow later
 changes to the original. Dashboards Home Assistant generates itself, and ones
 only admins may open when you aren't one, aren't listed.
 
-**Paste a card's YAML**, at the top of the same list, takes any card. In Home
+**Paste a card's YAML**, beside New card, takes any card. In Home
 Assistant, open the card's editor and choose **Show code editor** to copy it.
 Layout keys such as `grid_options` can stay; LuxFrame ignores them.
 
@@ -579,8 +612,8 @@ spins faster the higher its speed.
 Details open on a LuxFrame glass page over the frame:
 
 - **Light**: a tall brightness slider in the bulb's color, white and color
-  swatches, hue and warmth sliders, and Turn On/Off.
-- **Fan**: speed in the fan's own steps, presets, oscillation, Turn On/Off.
+  swatches, hue and warmth sliders, and Turn on/off.
+- **Fan**: speed in the fan's own steps, presets, oscillation, Turn on/off.
 - **Shade**: a position slider with Open, Stop and Close. Garage, door and
   gate covers open only after a second tap.
 - **Thermostat**: a large target with ▼/▲ (Low and High for a range), its
@@ -616,7 +649,7 @@ Details open on a LuxFrame glass page over the frame:
 - **Energy now, a room or a calendar without a page**: the flow large with a
   day's graph of each sensor; every device in the room as a tile; the next two
   weeks.
-- **Anything else**: its state, when it last changed, and Turn On/Off or Run.
+- **Anything else**: its state, when it last changed, and Turn on/off or Run.
 
 Close with ✕, by swiping down, or with Escape. **⋯** opens Home Assistant's own
 dialog for history, settings and attributes.
@@ -639,14 +672,22 @@ tile.
   the end, adds one: a card from one of your dashboards, a widget such as a
   clock, a room, or any entity, searchable by name or room. Thermostats and
   weather entities get their own tile kinds.
-- **Customize** sets the page's columns and rows; renames, shows, hides,
-  reorders, adds and deletes pages; picks the start page (⌂); adds a page for each room in Home
-  Assistant that doesn't have one; and sets the theme, wallpaper and glass
-  tint. A page's name is its heading, typed straight into the list of pages:
-  tile pages, rooms, Calendar, Cameras and Scenes have one, while Weather,
-  Clock, Photos and Night fill the screen and don't. **+ Blank page** adds an
-  empty page of tiles, turns to it and asks for its name; then **+ Add tile**
-  fills it.
+- **Customize** has a tab for each thing it sets:
+  - **This page**: the page on screen: its columns and rows, its badges, a
+    photo page's folder, a weather or night page's weather entity.
+  - **Pages**: drag a page by its handle (≡) to reorder it, type in its row
+    to rename it, and tap **⋯** to start on it, hide it or delete it. Under
+    the list: add a page, add a page for each room in Home Assistant that
+    doesn't have one, and how long before the frame goes back to the start
+    page. A page's name is its heading: tile pages, Home, rooms, Calendar,
+    Cameras and Scenes have one, while Weather, Clock, Photos and Night fill
+    the screen and don't. **Blank** adds an empty page of tiles, turns to it
+    and asks for its name; then **+ Add tile** fills it.
+  - **Quick panel**: its tabs (drag to reorder, tap one to edit it), the
+    pinned tiles, the brightness slider and the speaker.
+  - **Look**: the theme, the accent color, the size everything is drawn at,
+    the tile style, corners, wallpaper, glass tint and badges.
+  - **Alerts**: what raises a banner. See [Alerts](#alerts).
 - **Done** saves, **Cancel** drops the changes.
 
 Where Done saves:
@@ -752,9 +793,31 @@ icon shows only while they're met. Without its own, a card's or tile's
 `visibility` counts.
 
 The dock, the pinned tiles, the brightness slider and the speaker can also be
-set on the tablet, under **Customize → Quick panel**. **Add to the dock**
-offers the same choices as adding a tile, and **Edit** sets an item's name,
-icon and card, whether it opens first, and its YAML.
+set on the tablet, under **Customize → Quick panel**. **Add a tab**
+offers the same choices as adding a tile, and a tap on a tab's row sets its
+name, icon and card, whether it opens first, and its YAML.
+
+### Alerts
+
+An alert is a banner across the top of every page while something needs you:
+a door left open, a leak, the alarm going off. A tap opens the thing it's
+about; **✕** puts it away until the next time. Add them under **Customize →
+Alerts**, or in YAML:
+
+```yaml
+alerts:
+  - binary_sensor.front_door            # while it's on (open)
+  - alarm_control_panel.home            # while it's triggered
+  - lock.back_door                      # while it's unlocked or jammed
+  - entity: sensor.washer_status        # any state you name
+    state: done
+    message: The washing is done
+```
+
+Left to itself an alert shows while a sensor or switch is `on`, an alarm
+panel is `triggered`, a lock is `unlocked` or `jammed`, or a cover is `open`.
+`state` names another state, or a list of them; `message` is what the banner
+says in place of the entity's name and state.
 
 ### Card options
 
@@ -764,7 +827,10 @@ icon and card, whether it opens first, and its YAML.
 | `theme`      | `auto`                                     | `auto`, `light`, `dark`, or `ha`. See [Theming](#theming). |
 | `background` | a soft gradient                            | Any CSS background, e.g. `center / cover url('/local/wall.jpg')`. |
 | `tint`       | the background image's average color       | The color the glass picks up, e.g. `"#e07a2c"`.      |
-| `home_after` | `120`                                      | Seconds without a touch before going back to the start page; `0` stays on the page. Also under Customize → Look. |
+| `home_after` | `120`                                      | Seconds without a touch before going back to the start page; `0` stays on the page. Also under Customize → Pages. |
+| `accent`     | the theme's (orange)                       | The color of sliders, focus rings and things that are on, e.g. `"#0a84ff"`. Also under Customize → Look. |
+| `scale`      | `1`                                        | How big everything is drawn, from `0.7` to `1.5`: larger for a tablet read from across the room, smaller to fit more on a small one. Also under Customize → Look. |
+| `alerts`     | none                                       | [Alerts](#alerts): entities that raise a banner on every page. |
 | `height`     | `calc(100dvh - var(--header-height, 0px))` | Becomes `100dvh` when Kiosk Satellite hides HA's header. |
 | `quick_panel` | on: what's playing, nothing pinned        | `dock`, `pinned`, `brightness`, `media_player`; `false` turns the panel off. See [Quick panel](#quick-panel-and-assist). |
 | `badges`     | none                                       | [Badges](#badges) on every page with a title bar.    |

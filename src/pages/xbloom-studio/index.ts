@@ -15,7 +15,7 @@ import { CARD_NAMES } from './cards';
 import './recipes';
 import type { LuxFrameXBloomRecipes } from './recipes';
 import './settings';
-import { DOTS, RELOAD_EVENT, StudioBase, TAB_EVENT, xbAsk, type Recipe } from './shared';
+import { RELOAD_EVENT, StudioBase, TAB_EVENT, xbAsk, type Recipe } from './shared';
 
 export { studioEntities, type StudioEntities } from './shared';
 
@@ -185,7 +185,7 @@ export class LuxFrameXBloomStudio extends StudioBase {
                 this.renderRoot.querySelector<LuxFrameXBloomRecipes>('luxframe-xbloom-recipes')?.openRecipe('');
               }
               this._show(t);
-            }}>${DOTS[t]}${TAB_NAMES[t]}</button>`,
+            }}>${TAB_NAMES[t]}</button>`,
         )}
       </nav>
       ${this._problem()}
@@ -258,7 +258,7 @@ export class LuxFrameXBloomStudio extends StudioBase {
     if ('add' in sheet) {
       const hidden = CARDS[tab].filter((name) => !cards.some((c) => c.card === name));
       return html`<div class="sheet glass" role="dialog" aria-label="Add a card">
-        <div class="sheet-head"><h3>Add a card</h3><button class="chip" @click=${close}>Done</button></div>
+        <div class="sheet-head"><h3>Add a card</h3><button class="round small" aria-label="Close" @click=${close}>✕</button></div>
         ${hidden.length
           ? html`<div class="chips wrap">
               ${hidden.map(
@@ -281,7 +281,7 @@ export class LuxFrameXBloomStudio extends StudioBase {
     };
     const fit = card.fit ?? 'shrink';
     return html`<div class="sheet glass" role="dialog" aria-label=${CARD_NAMES[card.card]}>
-      <div class="sheet-head"><h3>${CARD_NAMES[card.card]}</h3><button class="chip" @click=${close}>Done</button></div>
+      <div class="sheet-head"><h3>${CARD_NAMES[card.card]}</h3><button class="round small" aria-label="Close" @click=${close}>✕</button></div>
       <p class="muted">Drag a card to move it, or its corner to resize it.</p>
       <h4>When it doesn’t fit</h4>
       <div class="chips wrap" role="radiogroup" aria-label="When it doesn’t fit">
@@ -370,15 +370,23 @@ export class LuxFrameXBloomStudio extends StudioBase {
 
       .sheet {
         position: fixed;
+        /* In the middle, where every other editor sheet opens. */
         left: 50%;
-        bottom: 24px;
+        top: 50%;
         z-index: 5;
         box-sizing: border-box;
         width: min(460px, calc(100% - 32px));
-        transform: translateX(-50%);
+        transform: translate(-50%, -50%);
         padding: 18px 20px 20px;
         border-radius: var(--lf-radius);
         box-shadow: 0 18px 40px rgb(0 0 0 / 35%);
+      }
+
+      /* The darker glass every editor sheet sits on. */
+      .sheet.glass {
+        background: var(--lf-sheet);
+        -webkit-backdrop-filter: var(--lf-blur-strong);
+        backdrop-filter: var(--lf-blur-strong);
       }
 
       .sheet-head {

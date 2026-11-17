@@ -16,7 +16,7 @@ export type StudioEntities = Record<string, string>;
 /**
  * xBloom Studio's entities, if it's installed: those of the first machine
  * with a Brew Status sensor. The older ha-xbloom integration shares the
- * `xbloom` platform name but has neither that sensor nor Start Brew.
+ * `xbloom` platform name but has neither that sensor nor Start brew.
  */
 export function studioEntities(hass: HomeAssistant | undefined): StudioEntities | undefined {
   const all = Object.values(hass?.entities ?? {}).filter((e) => e.platform === 'xbloom' && e.translation_key);
@@ -135,7 +135,8 @@ export function xbDo(hass: HomeAssistant | undefined, service: string, data: Rec
 
 /** "less_sour" → "Less sour". */
 export const humanize = (value: string): string => {
-  const words = value.replace(/_/g, ' ');
+  // "ha_control" is Home Assistant's, not a word.
+  const words = value.replace(/_/g, ' ').replace(/\bha\b/gi, 'Home Assistant');
   return words.charAt(0).toUpperCase() + words.slice(1);
 };
 
@@ -467,8 +468,9 @@ export class StudioBase extends LitElement {
 
 // ── The look ────────────────────────────────────────────────────────────
 
-const SERIF = css`var(--luxframe-serif, 'Iowan Old Style', 'New York', ui-serif, 'Palatino Linotype', Palatino, Georgia, serif)`;
-const GOLD = css`var(--luxframe-xbloom-gold, #e8cd8f)`;
+// The frame's own font; a theme can still set luxframe-serif for names and numbers.
+const SERIF = css`var(--luxframe-serif, var(--lf-font))`;
+const GOLD = css`var(--luxframe-xbloom-gold, var(--lf-accent))`;
 
 export const studioStyles = css`
   :host {
@@ -502,13 +504,22 @@ export const studioStyles = css`
     margin-top: 24px;
   }
 
+  /* A card's heading: the small label every section in LuxFrame has. */
   h2 {
     display: flex;
     align-items: center;
     gap: 10px;
     margin: 0 0 14px;
-    font-size: 20px;
+    font-size: 13px;
     font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--lf-muted);
+  }
+
+  /* Disconnect, delete: the ones to think about. */
+  .risky {
+    color: var(--lf-danger);
   }
 
   h2 .dots {
@@ -776,9 +787,9 @@ export const studioStyles = css`
   }
 
   .metric .label {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--lf-muted);
   }
