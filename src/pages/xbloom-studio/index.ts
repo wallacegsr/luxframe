@@ -1,5 +1,6 @@
 import { css, html, nothing, type PropertyValues } from 'lit';
 import { define } from '../../define';
+import { icon } from '../../icons';
 import '../grid';
 import { controls, pageStyles, sectionLabel } from '../../theme';
 import type {
@@ -84,6 +85,7 @@ export class LuxFrameXBloomStudio extends StudioBase {
     _loadError: { state: true },
     _sheet: { state: true },
     _told: { state: true },
+    _link: { state: true },
   };
 
   /** The tab to open on. */
@@ -100,6 +102,9 @@ export class LuxFrameXBloomStudio extends StudioBase {
   /** The problem whose whole sentence is showing, under its chip. */
   declare _told?: string;
 
+  /** The connection chip's popover is open. */
+  declare _link: boolean;
+
   private _portrait = window.matchMedia('(orientation: portrait)');
   private _onRotate = () => this.requestUpdate();
 
@@ -111,6 +116,7 @@ export class LuxFrameXBloomStudio extends StudioBase {
     super();
     this._tab = 'brew';
     this.editing = false;
+    this._link = false;
     this.addEventListener(TAB_EVENT, (e) => {
       const tab = (e as CustomEvent<string>).detail as Tab;
       if (TABS.includes(tab)) this._show(tab);
@@ -179,21 +185,27 @@ export class LuxFrameXBloomStudio extends StudioBase {
     return html`
       <div class="top" style="zoom: ${this._scale}">
       <div class="head">
-        ${this._title ? html`<h1>${this._title}</h1>` : nothing}
+        <div class="lead">
+          ${this._title ? html`<h1>${this._title}</h1>` : nothing}
+          <nav class="tabs" role="tablist" aria-label="xBloom" data-no-swipe>
+            ${TABS.filter((t) => t !== 'settings').map(
+              (t) => html`<button role="tab" class=${this._tab === t ? 'on' : ''} aria-selected=${this._tab === t}
+                @click=${() => {
+                  if (t === 'recipes' && this._tab === 'recipes') {
+                    this.renderRoot.querySelector<LuxFrameXBloomRecipes>('luxframe-xbloom-recipes')?.openRecipe('');
+                  }
+                  this._show(t);
+                }}>${TAB_NAMES[t]}</button>`,
+            )}
+          </nav>
+        </div>
         ${this._problem()}
-        ${this._presence()}
+        <div class="presence" data-no-swipe>
+          ${this._presence()}
+          <button class="round small ${this._tab === 'settings' ? 'on' : ''}" role="tab" aria-label="Settings"
+            aria-selected=${this._tab === 'settings'} @click=${() => this._show('settings')}>${icon('gear', 22)}</button>
+        </div>
       </div>
-      <nav class="tabs" role="tablist" aria-label="xBloom" data-no-swipe>
-        ${TABS.map(
-          (t) => html`<button role="tab" class="chip ${this._tab === t ? 'on' : ''}" aria-selected=${this._tab === t}
-            @click=${() => {
-              if (t === 'recipes' && this._tab === 'recipes') {
-                this.renderRoot.querySelector<LuxFrameXBloomRecipes>('luxframe-xbloom-recipes')?.openRecipe('');
-              }
-              this._show(t);
-            }}>${TAB_NAMES[t]}</button>`,
-        )}
-      </nav>
       </div>
       ${laidOut ? this._grid(this._tab as LaidOut) : html`<div class="scaled" style="zoom: ${this._scale}">${this._page()}</div>`}
       ${this._renderSheet()}
@@ -322,25 +334,41 @@ export class LuxFrameXBloomStudio extends StudioBase {
     }
   }
 
-  /** In range or not, and the connection switch. */
+  /**
+   * The connection, as one chip: connected, in range and ready to connect, or
+   * out of range. Connecting takes a tap. Disconnecting is behind a popover,
+   * so a stray tap on what reads as a status doesn't drop the machine.
+   */
   private _presence() {
     const range = this._state('binary_sensor.in_range');
     const connect = this._state('switch.connect');
-    const near = range?.state === 'on';
-    return html`
-      <div class="presence">
-        ${range
-          ? html`<span class="dot ${near ? 'near' : ''}"></span>
-              <span class="muted">${near ? 'In range' : 'Out of range'}</span>`
-          : nothing}
-        ${connect
-          ? html`<button class="chip ${connect.state === 'on' ? 'on' : ''}" aria-pressed=${connect.state === 'on'}
-              ?disabled=${connect.state === 'unavailable'} @click=${() => this._toggle('switch.connect')}>
-              ${connect.state === 'on' ? 'Connected' : 'Connect'}
-            </button>`
-          : nothing}
-      </div>
-    `;
+    if (!range && !connect) return nothing;
+    const near = range ? range.state === 'on' : undefined;
+    const on = connect?.state === 'on';
+    const label = on ? 'Connected' : near === false ? 'Out of range' : connect ? 'Connect' : 'In range';
+    const dot = html`<span class="dot ${on ? 'on' : near ? 'near' : ''}"></span>`;
+    // Nothing to connect with: it only tells.
+    if (!connect) return html`<span class="chip link still">${dot}${label}</span>`;
+    // In range and not connected: the chip is the button.
+    const direct = !on && near !== false;
+    const open = this._link && !direct;
+    const act = () => {
+      this._link = false;
+      this._toggle('switch.connect');
+    };
+    return html`<span class="linked">
+      <button class="chip link" aria-expanded=${direct ? nothing : open} ?disabled=${connect.state === 'unavailable'}
+        @click=${() => (direct ? act() : (this._link = !open))}>${dot}${label}</button>
+      ${open
+        ? html`<div class="shade" @click=${() => (this._link = false)}></div>
+            <div class="told menu" role="dialog" aria-label="Connection">
+              <p>${on
+                ? near === false ? 'Connected, though the machine reads as out of range.' : 'The machine is in range and connected.'
+                : 'The machine isn’t in range. Connecting may not work.'}</p>
+              <button class="pill ${on ? 'risky' : ''}" @click=${act}>${on ? 'Disconnect' : 'Try to connect'}</button>
+            </div>`
+        : nothing}
+    </span>`;
   }
 
   /**
@@ -356,12 +384,12 @@ export class LuxFrameXBloomStudio extends StudioBase {
     if (machine.state === 'no_water' && source && !/tank/i.test(source)) return nothing;
     const known = PROBLEMS[machine.state];
     const short = known?.[0] ?? this._label(machine, machine.state);
-    const full = known?.[1];
+    const full = known?.[1] ?? short;
     const open = !!full && this._told === machine.state;
     return html`<span class="problem">
-      <button class="chip warn" role="status" aria-expanded=${open} ?disabled=${!full}
+      <button class="chip warn" role="status" aria-label=${short} aria-expanded=${open} ?disabled=${!full}
         @click=${() => (this._told = open ? undefined : machine.state)}>
-        <span class="bang" aria-hidden="true">!</span>${short}
+        <span class="bang" aria-hidden="true">!</span><span class="word">${short}</span>
       </button>
       ${open ? html`<span class="told" role="note" @click=${() => (this._told = undefined)}>${full}</span>` : nothing}
     </span>`;
@@ -445,8 +473,21 @@ export class LuxFrameXBloomStudio extends StudioBase {
         margin-top: 18px;
       }
 
+      /* One row over the cards: where you are on the left, the machine on the right. */
       .head {
         align-items: center;
+        gap: 10px 16px;
+        min-height: 0;
+        margin-bottom: var(--lf-gap);
+      }
+
+      /* Narrow: the title has a line of its own, and the rest is one row under it. */
+      .lead {
+        display: contents;
+      }
+
+      .head h1 {
+        flex-basis: 100%;
       }
 
       .presence {
@@ -456,41 +497,87 @@ export class LuxFrameXBloomStudio extends StudioBase {
         margin-left: auto;
       }
 
+      .linked {
+        position: relative;
+        display: inline-flex;
+      }
+
+      .chip.link {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+
       .dot {
+        flex: none;
         width: 10px;
         height: 10px;
         border-radius: 50%;
         background: var(--lf-faint);
       }
 
+      /* In range and waiting: a ring. Connected: filled. */
       .dot.near {
+        background: none;
+        box-shadow: inset 0 0 0 2px var(--lf-success);
+      }
+
+      .dot.on {
         background: var(--lf-success);
       }
 
+      /* The three tabs as one control. */
       .tabs {
-        display: flex;
-        gap: 8px;
-        margin-bottom: var(--lf-gap);
-        overflow-x: auto;
-        scrollbar-width: none;
-      }
-
-      .tabs .chip {
         flex: none;
         display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding-inline: 18px;
+        padding: 4px;
+        border-radius: 999px;
+        background: var(--lf-control);
       }
 
-      .tabs .dots {
-        width: 16px;
-        height: 16px;
-        opacity: 0.75;
+      .tabs button {
+        min-height: 36px;
+        padding: 0 18px;
+        border-radius: 999px;
+        font-size: 16px;
+        font-weight: 600;
+        background: none;
+        transition:
+          background-color var(--lf-move),
+          color var(--lf-move);
       }
 
-      .tabs .chip.on .dots {
-        opacity: 1;
+      .tabs button.on {
+        color: var(--lf-text-active);
+        background: var(--lf-surface-active);
+      }
+
+      /* A tap anywhere else closes the popover. */
+      .shade {
+        position: fixed;
+        inset: 0;
+        z-index: 3;
+      }
+
+      .told.menu {
+        left: auto;
+        right: 0;
+        transform: none;
+        display: grid;
+        gap: 12px;
+      }
+
+      .told.menu p {
+        margin: 0;
+      }
+
+      .told.menu .pill {
+        min-height: 44px;
+      }
+
+      .told.menu .pill.risky {
+        color: #fff;
+        background: color-mix(in srgb, var(--lf-danger) 62%, rgb(40 20 20));
       }
 
       /* Between the title and the connection, where there's room for it. */
@@ -501,14 +588,22 @@ export class LuxFrameXBloomStudio extends StudioBase {
       }
 
       /* On a wide screen, the middle of the page whatever is either side. */
-      @media (min-width: 900px) {
+      @media (min-width: 960px) {
         .head {
           display: grid;
-          grid-template-columns: 1fr auto 1fr;
+          /* The middle of the page while both sides leave it room; else as near as they let it. */
+          grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr);
+        }
+
+        .lead {
+          grid-column: 1;
+          display: flex;
+          align-items: center;
+          gap: 20px;
         }
 
         .head h1 {
-          grid-column: 1;
+          flex-basis: auto;
         }
 
         .problem {
@@ -529,6 +624,17 @@ export class LuxFrameXBloomStudio extends StudioBase {
         gap: 8px;
         color: #fff;
         background: color-mix(in srgb, var(--lf-danger) 62%, rgb(40 20 20));
+      }
+
+      /* Narrow: the mark alone keeps everything on one row; a tap still says what's wrong. */
+      @media (max-width: 720px) {
+        .chip.warn {
+          padding-inline: 12px;
+        }
+
+        .chip.warn .word {
+          display: none;
+        }
       }
 
       .chip.warn:disabled {

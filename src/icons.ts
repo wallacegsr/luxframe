@@ -55,6 +55,7 @@ const ICONS = {
   gauge: svg`<path d="M4.5 17a8.5 8.5 0 1 1 15 0" /><path d="M12 13l4-4" /><circle cx="12" cy="13" r="1" />`,
   graph: svg`<path d="M3 17l5-6 4 3 4-7 5 6" /><path d="M3 21h18" />`,
   choice: svg`<path d="M10 6h10M10 12h10M10 18h10" /><circle cx="5" cy="6" r="2" /><circle cx="5" cy="12" r="2" /><circle cx="5" cy="18" r="2" />`,
+  gear: svg`<circle cx="12" cy="12" r="6.5" /><circle cx="12" cy="12" r="2.5" /><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" />`,
   sliders: svg`<path d="M4 7h9M17 7h3M4 17h3M11 17h9" /><circle cx="15" cy="7" r="2" /><circle cx="9" cy="17" r="2" />`,
   backspace: svg`<path d="M8.5 5H20v14H8.5L3 12z" /><path d="M11.5 9.5l5 5M16.5 9.5l-5 5" />`,
   dock: svg`<path d="M4 20h16M7 20v-6a5 5 0 0 1 10 0v6" /><path d="M12 6V3" />`,

@@ -289,10 +289,15 @@ ha-xbloom's panel, in LuxFrame's style:
   Easy slots; refreshing recipes and restoring archived ones; how-tos for
   descaling and calibrating the scale; and the firmware, with Install when
   there's an update.
-- A chip in the middle of the header says when the machine needs water or
-  beans (tap it for the rest). The header's right side shows whether the
-  machine is in range, with a button to connect or disconnect. It only tells you: nothing is blocked. The empty-tank warning is
-  left out while the water source isn't the tank.
+- Everything over the cards is one row: Brew, Recipes and Manual as one
+  control on the left, and on the right the connection and a gear for
+  Settings. The connection is one chip: Connected, Connect (in range), or
+  Out of range. A tap connects; when it's connected, a tap opens Disconnect,
+  so a stray touch doesn't drop the machine.
+- A chip in the middle of that row says when the machine needs water or
+  beans (tap it for the rest; on a narrow screen it's the mark alone). It
+  only tells you: nothing is blocked. The empty-tank warning is left out
+  while the water source isn't the tank.
 
 ha-xbloom's Pods and Store tabs aren't here: xBloom Studio has no pod library
 or store to show. `tab` picks the tab to open on with either integration.

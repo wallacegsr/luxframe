@@ -6,6 +6,19 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.17.4] - 2026-11-16
+
+### Changed
+
+- The xBloom page's heading is one row instead of two, which gives the cards
+  about a row more height. Brew, Recipes and Manual are one segmented
+  control, Settings is a gear on the right, and In range and Connected are
+  one chip.
+- Disconnecting the machine is behind a popover on that chip, so a stray tap
+  doesn't drop the connection. Connecting is still one tap.
+- On a narrow screen the xBloom warning chip shows its mark alone; a tap
+  still says what's wrong.
+
 ## [0.17.3] - 2026-11-16
 
 ### Changed
@@ -693,7 +706,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.3...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.4...HEAD
+[0.17.4]: https://github.com/wallacegsr/luxframe/compare/v0.17.3...v0.17.4
 [0.17.3]: https://github.com/wallacegsr/luxframe/compare/v0.17.2...v0.17.3
 [0.17.2]: https://github.com/wallacegsr/luxframe/compare/v0.17.1...v0.17.2
 [0.17.1]: https://github.com/wallacegsr/luxframe/compare/v0.17.0...v0.17.1
