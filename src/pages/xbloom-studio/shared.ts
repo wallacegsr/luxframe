@@ -518,8 +518,10 @@ export const studioStyles = css`
   }
 
   /* Disconnect, delete: the ones to think about. */
-  .risky {
-    color: var(--lf-danger);
+  .risky,
+  .risky.glass {
+    color: #fff;
+    background: color-mix(in srgb, var(--lf-danger) 62%, var(--lf-surface));
   }
 
   h2 .dots {

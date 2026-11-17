@@ -6,6 +6,15 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.17.1] - 2026-11-16
+
+### Fixed
+
+- On the xBloom page in the light theme, the stage names under the ring and
+  the Disconnect button were hard to read. The stage names are now in the
+  text color, with the accent on their dots, and Disconnect is a red button
+  with white text.
+
 ## [0.17.0] - 2026-11-16
 
 ### Added
@@ -658,7 +667,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.0...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.1...HEAD
+[0.17.1]: https://github.com/wallacegsr/luxframe/compare/v0.17.0...v0.17.1
 [0.17.0]: https://github.com/wallacegsr/luxframe/compare/v0.16.3...v0.17.0
 [0.16.3]: https://github.com/wallacegsr/luxframe/compare/v0.16.2...v0.16.3
 [0.16.2]: https://github.com/wallacegsr/luxframe/compare/v0.16.1...v0.16.2

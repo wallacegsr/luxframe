@@ -654,11 +654,23 @@ export class LuxFrameXBloomCard extends StudioBase {
         height: 30px;
       }
 
+      /*
+       * The accent goes on the dots, which are big enough to carry it; the
+       * words stay in the text color, so they read on light glass too.
+       */
       .stages li.done {
-        color: color-mix(in srgb, var(--luxframe-xbloom-gold, var(--lf-accent)) 60%, transparent);
+        color: var(--lf-muted);
       }
 
       .stages li.active {
+        color: var(--lf-text);
+      }
+
+      .stages li.done .dots {
+        color: color-mix(in srgb, var(--luxframe-xbloom-gold, var(--lf-accent)) 70%, transparent);
+      }
+
+      .stages li.active .dots {
         color: var(--luxframe-xbloom-gold, var(--lf-accent));
       }
 
