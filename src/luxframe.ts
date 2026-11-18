@@ -54,8 +54,11 @@ if (!window.customCards.some((card) => card.type === 'luxframe-card')) {
   });
 }
 
+// The build and the Kiosk Satellite's version go in as arguments, not into
+// the format string, where a "%" in either would be read as a directive.
 console.info(
-  `%c LuxFrame %c ${BUILD}${kiosk ? ` · Kiosk Satellite ${kiosk.version}` : ''} `,
+  '%c LuxFrame %c %s ',
   'background:#e39b2f;color:#1d1c1a;font-weight:600;border-radius:3px 0 0 3px',
   'background:#1d1c1a;color:#f3f1ec;border-radius:0 3px 3px 0',
+  `${BUILD}${kiosk ? ` · Kiosk Satellite ${kiosk.version}` : ''}`,
 );

@@ -4,7 +4,7 @@ import { openDetail, resolve } from './entity';
 import { icon } from './icons';
 import { MEDIA, pickPlayer, supports } from './media';
 import { Pending, near } from './pending';
-import { controls } from './theme';
+import { controls, cssUrl } from './theme';
 import type { HomeAssistant, TileSize } from './types';
 
 /**
@@ -80,7 +80,7 @@ export class LuxFrameNowPlaying extends LitElement {
           tabindex="0"
           aria-label="${name}: ${title}"
           data-swipe
-          style=${art ? `background-image: url("${art}")` : ''}
+          style=${art ? `background-image: ${cssUrl(art)}` : ''}
           @click=${() => openDetail(this, id)}
           @keydown=${(e: KeyboardEvent) => this._openKey(e, id)}
         >
@@ -93,7 +93,7 @@ export class LuxFrameNowPlaying extends LitElement {
 
     return html`
       <button class="now" data-swipe @click=${() => openDetail(this, id)}>
-        <div class="art" style=${art ? `background-image: url("${art}")` : ''}>
+        <div class="art" style=${art ? `background-image: ${cssUrl(art)}` : ''}>
           ${art ? nothing : icon('speaker', 30)}
         </div>
         <div class="info">

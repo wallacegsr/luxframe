@@ -7,6 +7,7 @@ import { define } from '../define';
 import { zoomOf } from '../zoom';
 import { domainOf, resolve } from '../entity';
 import { icon, type IconName } from '../icons';
+import { cssUrl } from '../theme';
 import type {
   BadgeLook,
   GridPageConfig,
@@ -1315,7 +1316,7 @@ export class LuxFrameCustomize extends LitElement {
 export function toBackground(value: string): string | undefined {
   const text = value.trim();
   if (!text) return undefined;
-  if (/^(\/|https?:)\S+$/.test(text) && !/[()]/.test(text)) return `center / cover no-repeat url('${text}')`;
+  if (/^(\/|https?:)\S+$/.test(text) && !/[()]/.test(text)) return `center / cover no-repeat ${cssUrl(text)}`;
   return text;
 }
 

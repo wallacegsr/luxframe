@@ -4,6 +4,10 @@ name: Release
 # release, which is where HACS downloads luxframe.js from. The release notes
 # are the version's section of CHANGELOG.md, which Home Assistant shows with
 # the update; the release fails if the changelog has no section for the tag.
+#
+# Actions are pinned to a commit, since a tag can be moved to other code. The
+# build skips the npm cache: a release is built only from what's in the lock
+# file, never from a cache another workflow could have filled.
 on:
   push:
     tags: ['v*']
@@ -15,17 +19,19 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
-          cache: npm
       - run: npm ci
       - run: npm run build
       - run: node scripts/release-notes.mjs "$GITHUB_REF_NAME" > "$RUNNER_TEMP/release-notes.md"
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: dist/luxframe.js
-          body_path: ${{ runner.temp }}/release-notes.md
-          # Adds the "Full Changelog" link below the notes.
-          generate_release_notes: true
+      # The notes, then GitHub's "Full Changelog" link below them.
+      - run: >-
+          gh release create "$GITHUB_REF_NAME" dist/luxframe.js
+          --repo "$GITHUB_REPOSITORY" --verify-tag --title "$GITHUB_REF_NAME"
+          --notes-file "$RUNNER_TEMP/release-notes.md" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}

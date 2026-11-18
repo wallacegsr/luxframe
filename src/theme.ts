@@ -1,5 +1,15 @@
 import { css } from 'lit';
 
+/**
+ * An image address as a CSS `url()`. Artwork comes from whatever a media
+ * player reports, so its quotes, backslashes and line breaks are escaped
+ * rather than trusted to end the string where the address does.
+ */
+export function cssUrl(address: string): string {
+  const escaped = address.replace(/["\\\n\r\f]/g, (c) => `\\${c.charCodeAt(0).toString(16)} `);
+  return `url("${escaped}")`;
+}
+
 // Design tokens live on the frame's host and inherit into every page's shadow
 // root, so a page only ever reads var(--lf-*) and never picks its own colors.
 //

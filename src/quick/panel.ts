@@ -7,7 +7,7 @@ import { icon } from '../icons';
 import { pickPlayer } from '../media';
 import '../now-playing';
 import { MIN_BRIGHTNESS } from '../screen';
-import { controls } from '../theme';
+import { controls, cssUrl } from '../theme';
 import { renderTile } from '../tiles/render';
 import type { HomeAssistant, QuickDockConfig, QuickPanelConfig, TileSize } from '../types';
 import { dockEntity, dockIcon, dockKind, dockLabel, dockOf, dockShows, normalizeDock } from './dock';
@@ -310,7 +310,7 @@ export class LuxFrameQuickPanel extends LitElement {
           @click=${() => this._pick(index, on)}
         >
           <span class="dock-icon ${art ? 'art' : ''} ${lit ? 'lit' : ''}"
-            style=${art ? `background-image: url("${art}")` : ''}>
+            style=${art ? `background-image: ${cssUrl(art)}` : ''}>
             ${art ? nothing : dockIcon(this.hass, item, label)}
           </span>
           <span class="dock-label">${label}</span>

@@ -3,7 +3,7 @@ import { define } from '../define';
 import { icon } from '../icons';
 import { MEDIA, favoriteButton, formatTime, isMusicAssistant, massUpNext, mediaPosition, supports } from '../media';
 import { Pending, near } from '../pending';
-import { controls, sectionLabel } from '../theme';
+import { controls, sectionLabel, cssUrl } from '../theme';
 import type { HassEntity, HomeAssistant } from '../types';
 import './media-library';
 import './media-speakers';
@@ -261,7 +261,7 @@ export class LuxFrameMediaDetail extends LitElement {
       <div class="layout">
         <section class="now" aria-label="Now playing">
           <div class="cover">
-            <div class="art" style=${art ? `background-image: url("${art}")` : ''}>
+            <div class="art" style=${art ? `background-image: ${cssUrl(art)}` : ''}>
               ${art ? nothing : icon('music', 56)}
             </div>
           </div>

@@ -6,6 +6,20 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.17.5] - 2026-11-17
+
+### Security
+
+- Album art and other image addresses are escaped where they go into CSS, so
+  a quote in an address a media player reports can't add styles of its own
+  (covering the screen, say).
+- The release and validation workflows pin each GitHub Action to a commit,
+  don't keep the checkout's credentials, and the release no longer builds
+  from the npm cache. The release is made with GitHub's own `gh` tool rather
+  than a third-party action.
+- The version in the browser console's start-up line is an argument, not part
+  of the format string.
+
 ## [0.17.4] - 2026-11-16
 
 ### Changed
@@ -706,7 +720,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.4...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.5...HEAD
+[0.17.5]: https://github.com/wallacegsr/luxframe/compare/v0.17.4...v0.17.5
 [0.17.4]: https://github.com/wallacegsr/luxframe/compare/v0.17.3...v0.17.4
 [0.17.3]: https://github.com/wallacegsr/luxframe/compare/v0.17.2...v0.17.3
 [0.17.2]: https://github.com/wallacegsr/luxframe/compare/v0.17.1...v0.17.2
