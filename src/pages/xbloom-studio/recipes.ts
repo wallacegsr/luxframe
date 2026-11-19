@@ -18,6 +18,7 @@ import {
   ratioOf,
   recipeArt,
   recipeMetrics,
+  SAVED_EVENT,
   rpmOf,
   studioStyles,
   tempLabel,
@@ -120,6 +121,7 @@ export class LuxFrameXBloomRecipes extends StudioBase {
           this._editing = undefined;
           this._open = e.detail;
           this._say(`Saved “${e.detail}”.`);
+          this.dispatchEvent(new CustomEvent(SAVED_EVENT, { detail: e.detail, bubbles: true, composed: true }));
           this._reload();
         }}></luxframe-xbloom-editor>`;
     }

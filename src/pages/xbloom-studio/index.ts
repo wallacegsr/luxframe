@@ -16,7 +16,7 @@ import { CARD_NAMES } from './cards';
 import './recipes';
 import type { LuxFrameXBloomRecipes } from './recipes';
 import './settings';
-import { RELOAD_EVENT, StudioBase, TAB_EVENT, xbAsk, type Recipe } from './shared';
+import { RELOAD_EVENT, SAVED_EVENT, StudioBase, TAB_EVENT, xbAsk, type Recipe } from './shared';
 
 export { studioEntities, type StudioEntities } from './shared';
 
@@ -112,6 +112,9 @@ export class LuxFrameXBloomStudio extends StudioBase {
   private _fetchedFor?: string;
   private _loading = false;
 
+  /** The Recipe select's state when last seen; `undefined` until it's been seen. */
+  private _recipeWas?: string;
+
   constructor() {
     super();
     this._tab = 'brew';
@@ -122,6 +125,10 @@ export class LuxFrameXBloomStudio extends StudioBase {
       if (TABS.includes(tab)) this._show(tab);
     });
     this.addEventListener(RELOAD_EVENT, () => this._fetch());
+    // Saving the picked recipe changes what's brewed, so the beans are for the old one.
+    this.addEventListener(SAVED_EVENT, (e) => {
+      if ((e as CustomEvent<string>).detail === this._state('select.recipe')?.state) this._unloadBeans();
+    });
   }
 
   connectedCallback(): void {
@@ -146,7 +153,23 @@ export class LuxFrameXBloomStudio extends StudioBase {
         this._fetchedFor = options;
         this._fetch();
       }
+      // A different recipe (or none) needs its own beans, so "Beans loaded" is
+      // set again on purpose. Dropping out of range and back isn't a change.
+      const recipe = this._state('select.recipe')?.state;
+      if (recipe !== undefined && recipe !== 'unavailable') {
+        if (this._recipeWas !== undefined && recipe !== this._recipeWas) this._unloadBeans();
+        this._recipeWas = recipe;
+      }
     }
+  }
+
+  /** Turns "Beans loaded" off, if it's a helper or switch that's on. */
+  private _unloadBeans(): void {
+    const id = this.config?.beans_loaded;
+    const domain = id?.split('.')[0];
+    if (!id || !this.hass || (domain !== 'input_boolean' && domain !== 'switch')) return;
+    if (this.hass.states[id]?.state !== 'on') return;
+    void this.hass.callService(domain, 'turn_off', { entity_id: id });
   }
 
   private _show(tab: Tab): void {

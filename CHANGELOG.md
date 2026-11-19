@@ -6,6 +6,15 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- xBloom: picking a different recipe, or saving changes to the picked one,
+  turns Beans loaded off, so the beans are confirmed for each recipe before
+  Start brew. A recipe dropping out of range and back doesn't count. This
+  works with an input_boolean or switch; a binary_sensor is left alone.
+- Dependabot keeps the GitHub Actions in the workflows up to date, weekly and
+  grouped into one pull request.
+
 ## [0.17.6] - 2026-11-18
 
 ### Changed

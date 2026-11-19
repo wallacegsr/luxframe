@@ -273,7 +273,9 @@ ha-xbloom's panel, in LuxFrame's style:
   ready, and its card's edge glows gold. Point `beans_loaded` at an entity
   that's on once beans are in (an input_boolean you keep, say) and Start
   Brew waits for that too, with a Beans loaded switch above the button; one
-  that's missing or unavailable is ignored. After a brew, Coffee Lab asks how
+  that's missing or unavailable is ignored. Picking a different recipe, or
+  saving changes to the picked one, turns the switch off again, so the beans
+  are confirmed for each recipe. After a brew, Coffee Lab asks how
   it was.
 - **Recipes** has My recipes, as cards to search and filter by coffee or tea.
   Open one for its numbers and pours, then Brew this, Edit, Duplicate,

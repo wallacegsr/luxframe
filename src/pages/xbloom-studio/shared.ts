@@ -307,6 +307,8 @@ export function pourTimeline(hass: HomeAssistant | undefined, r: Recipe) {
 export const TAB_EVENT = 'xbloom-tab';
 /** Asks the view to fetch the recipes again. */
 export const RELOAD_EVENT = 'xbloom-reload';
+/** Tells the view a recipe was saved: `detail` is its name. */
+export const SAVED_EVENT = 'xbloom-saved';
 
 export class StudioBase extends LitElement {
   static properties = {
