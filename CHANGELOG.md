@@ -6,6 +6,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.17.7] - 2026-11-19
+
 ### Changed
 
 - xBloom: picking a different recipe, or saving changes to the picked one,
@@ -741,7 +743,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.6...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.7...HEAD
+[0.17.7]: https://github.com/wallacegsr/luxframe/compare/v0.17.6...v0.17.7
 [0.17.6]: https://github.com/wallacegsr/luxframe/compare/v0.17.5...v0.17.6
 [0.17.5]: https://github.com/wallacegsr/luxframe/compare/v0.17.4...v0.17.5
 [0.17.4]: https://github.com/wallacegsr/luxframe/compare/v0.17.3...v0.17.4
