@@ -6,6 +6,18 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.17.6] - 2026-11-18
+
+### Changed
+
+- Dependencies updated: js-yaml 5 for the YAML fields in the editors, and
+  Vite 8.3.8 for the build. YAML fields still take `<<` merges, as Home
+  Assistant's own YAML does, and a date stays the text you typed rather than
+  becoming a date.
+- The release and validation workflows use actions/checkout 7 and
+  actions/setup-node 7, still pinned to commits. The release turns the npm
+  cache off explicitly.
+
 ## [0.17.5] - 2026-11-17
 
 ### Security
@@ -720,7 +732,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.5...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.6...HEAD
+[0.17.6]: https://github.com/wallacegsr/luxframe/compare/v0.17.5...v0.17.6
 [0.17.5]: https://github.com/wallacegsr/luxframe/compare/v0.17.4...v0.17.5
 [0.17.4]: https://github.com/wallacegsr/luxframe/compare/v0.17.3...v0.17.4
 [0.17.3]: https://github.com/wallacegsr/luxframe/compare/v0.17.2...v0.17.3

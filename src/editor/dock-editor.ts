@@ -1,4 +1,4 @@
-import { dump, load } from 'js-yaml';
+import { parseYaml, toYaml, yamlError } from './yaml';
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { define } from '../define';
 import { resolve } from '../entity';
@@ -7,11 +7,6 @@ import type { HomeAssistant, QuickDockConfig } from '../types';
 import './card-visual';
 import { tileLabel } from './layout';
 import { editorStyles } from './sheet';
-
-function yamlError(e: unknown): string {
-  const reason = (e as { reason?: string }).reason;
-  return `That isn’t valid YAML${reason ? ` (${reason})` : ''}`;
-}
 
 /**
  * One dock item's settings: its name and icon, whether it opens first, a
@@ -91,7 +86,7 @@ export class LuxFrameDockEditor extends LitElement {
     if (this._yaml === undefined) return;
     let parsed: unknown;
     try {
-      parsed = load(this._yaml);
+      parsed = parseYaml(this._yaml);
     } catch (e) {
       this._error = yamlError(e);
       return;
@@ -122,7 +117,7 @@ export class LuxFrameDockEditor extends LitElement {
     if (this._cardYaml === undefined) return;
     let card: unknown;
     try {
-      card = load(this._cardYaml);
+      card = parseYaml(this._cardYaml);
     } catch (e) {
       this._cardError = yamlError(e);
       return;
@@ -174,7 +169,7 @@ export class LuxFrameDockEditor extends LitElement {
               spellcheck="false"
               autocapitalize="off"
               placeholder=${'type: thermostat\nentity: climate.living_room'}
-              .value=${this._cardYaml ?? (typed ? dump(card, { lineWidth: -1 }) : '')}
+              .value=${this._cardYaml ?? (typed ? toYaml(card) : '')}
               @input=${(e: Event) => {
                 this._cardYaml = (e.target as HTMLTextAreaElement).value;
                 this._cardError = undefined;
@@ -253,7 +248,7 @@ export class LuxFrameDockEditor extends LitElement {
         aria-label="Dock item YAML"
         spellcheck="false"
         autocapitalize="off"
-        .value=${this._yaml ?? dump(normalizeDock(compactDock(item)), { lineWidth: -1 })}
+        .value=${this._yaml ?? toYaml(normalizeDock(compactDock(item)))}
         @input=${(e: Event) => {
           this._yaml = (e.target as HTMLTextAreaElement).value;
           this._error = undefined;

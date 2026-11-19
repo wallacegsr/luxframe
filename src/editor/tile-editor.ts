@@ -1,4 +1,4 @@
-import { dump, load } from 'js-yaml';
+import { parseYaml, toYaml, yamlError } from './yaml';
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { define } from '../define';
 import { energySensors, SOURCES } from '../energy';
@@ -95,10 +95,9 @@ export class LuxFrameTileEditor extends LitElement {
     if (this._yaml === undefined) return;
     let card: unknown;
     try {
-      card = load(this._yaml);
+      card = parseYaml(this._yaml);
     } catch (e) {
-      const reason = (e as { reason?: string }).reason;
-      this._error = `That isn\u2019t valid YAML${reason ? ` (${reason})` : ''}`;
+      this._error = yamlError(e);
       return;
     }
     if (!card || typeof card !== 'object' || Array.isArray(card) || typeof (card as { type?: unknown }).type !== 'string') {
@@ -109,7 +108,7 @@ export class LuxFrameTileEditor extends LitElement {
   }
 
   private _renderCard(tile: CardTileConfig) {
-    const text = this._yaml ?? (tile.card?.type ? dump(tile.card, { lineWidth: -1 }) : '');
+    const text = this._yaml ?? (tile.card?.type ? toYaml(tile.card) : '');
     const visual = this._mode === 'visual' && !this._noVisual && !!tile.card?.type;
     return html`
       <h3>Card</h3>

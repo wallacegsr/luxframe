@@ -1,4 +1,4 @@
-import { dump, load } from 'js-yaml';
+import { parseYaml, toYaml, yamlError } from './yaml';
 import { LitElement, css, html, nothing, type PropertyValues } from 'lit';
 import { TOGGLEABLE, badgeRuns, badgeState } from '../badges';
 import { define } from '../define';
@@ -51,10 +51,9 @@ export class LuxFrameBadgeEditor extends LitElement {
     if (this._yaml === undefined) return;
     let badge: unknown;
     try {
-      badge = load(this._yaml);
+      badge = parseYaml(this._yaml);
     } catch (e) {
-      const reason = (e as { reason?: string }).reason;
-      this._error = `That isn\u2019t valid YAML${reason ? ` (${reason})` : ''}`;
+      this._error = yamlError(e);
       return;
     }
     if (typeof badge === 'string' && /^\w+\.\w+$/.test(badge)) badge = { entity: badge };
@@ -185,7 +184,7 @@ export class LuxFrameBadgeEditor extends LitElement {
         aria-label="Badge YAML"
         spellcheck="false"
         autocapitalize="off"
-        .value=${this._yaml ?? dump(badge, { lineWidth: -1 })}
+        .value=${this._yaml ?? toYaml(badge)}
         @input=${(e: Event) => {
           this._yaml = (e.target as HTMLTextAreaElement).value;
           this._error = undefined;

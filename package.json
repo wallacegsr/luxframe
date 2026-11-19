@@ -1,6 +1,6 @@
 {
   "name": "luxframe",
-  "version": "0.17.5",
+  "version": "0.17.6",
   "description": "A calm, swipeable wall-tablet dashboard for Home Assistant.",
   "type": "module",
   "private": true,
@@ -11,12 +11,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "js-yaml": "^4.3.2",
+    "js-yaml": "^5.5.0",
     "lit": "^3.3.3"
   },
   "devDependencies": {
-    "@types/js-yaml": "^4.0.9",
     "typescript": "^7.0.2",
-    "vite": "^8.3.6"
+    "vite": "^8.3.8"
   }
 }
