@@ -6,6 +6,18 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.17.8] - 2026-11-22
+
+### Fixed
+
+- A card tile could freeze the whole page, which the browser or Kiosk
+  Satellite then reloaded over and over. It happened when a card set to
+  stretch had something spilling a few pixels past its own edge, at a tile
+  size where that made it just too tall: the tile shrank it, found it fit,
+  let it fill again, and repeated without end. Such a card now stays shrunk
+  until its tile changes size, and it's shrunk enough to fit what spills
+  over too.
+
 ## [0.17.7] - 2026-11-19
 
 ### Changed
@@ -743,7 +755,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.7...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.8...HEAD
+[0.17.8]: https://github.com/wallacegsr/luxframe/compare/v0.17.7...v0.17.8
 [0.17.7]: https://github.com/wallacegsr/luxframe/compare/v0.17.6...v0.17.7
 [0.17.6]: https://github.com/wallacegsr/luxframe/compare/v0.17.5...v0.17.6
 [0.17.5]: https://github.com/wallacegsr/luxframe/compare/v0.17.4...v0.17.5

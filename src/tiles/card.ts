@@ -105,6 +105,12 @@ export class LuxFrameCardTile extends LitElement {
   private _observed?: CardElement;
   /** The tile size (width x height) a stretched card was shrunk in. */
   private _shrunkIn?: string;
+  /**
+   * The tile size a shrunk card was last let fill again in. Shrunk a second
+   * time there, it stays shrunk: a card that fits one way and not the other
+   * would otherwise switch back and forth without end, freezing the page.
+   */
+  private _refilledIn?: string;
   /** The tile's shape (height ÷ width) last given to a picture card. */
   private _shape?: number;
 
@@ -204,10 +210,12 @@ export class LuxFrameCardTile extends LitElement {
     }
     if (element.style.width !== `${width}px`) element.style.width = `${width}px`;
     if (width && height) this._shapePicture(element, height / width);
-    // The card's own height at that width; a transform doesn't change it.
-    const natural = element.offsetHeight;
+    // The card's own height at that width, counting anything that spills past
+    // its box, as when it was found too tall; a transform doesn't change it.
+    const natural = Math.max(element.offsetHeight, element.scrollHeight);
     if (!width || !height || !natural) return;
-    if (this._fit === 'stretch' && natural <= height) {
+    if (this._fit === 'stretch' && natural <= height && this._refilledIn !== this._shrunkIn) {
+      this._refilledIn = this._shrunkIn;
       this._unplace(element);
       this._shrunk = false;
       return;
