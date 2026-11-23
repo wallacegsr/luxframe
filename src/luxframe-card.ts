@@ -148,6 +148,7 @@ export class LuxFrameCard extends LitElement {
     _index: { state: true },
     _kioskDark: { state: true },
     _hideHeader: { state: true },
+    _top: { state: true },
     _detail: { state: true },
     _editing: { state: true },
     _draft: { state: true },
@@ -169,6 +170,12 @@ export class LuxFrameCard extends LitElement {
   declare _index: number;
   declare _kioskDark?: boolean;
   declare _hideHeader: boolean;
+  /**
+   * How far down the screen the card starts: Home Assistant's header, and
+   * anything else above it. Unknown until it's drawn, or when the card is
+   * further down a dashboard than half the screen.
+   */
+  declare _top?: number;
   /** The entity whose detail view is open over the pages. */
   /** What the detail sheet shows: an entity's controls, or a widget's fuller view. */
   declare _detail?: { entityId?: string; view?: DetailView };
@@ -318,6 +325,7 @@ export class LuxFrameCard extends LitElement {
     this.addEventListener('luxframe-goto', this._onGoto);
     this.addEventListener('luxframe-badge-edit', this._onBadgeEdit);
     this.addEventListener('luxframe-badge-add', this._onBadgeAdd);
+    window.addEventListener('resize', this._onWindowResize);
     detectFlat((slow) => (this._slow = slow));
     // A while after the tablet loads, then now and then; HACS updates come rarely.
     this._updateTimer = window.setTimeout(function tick(this: LuxFrameCard) {
@@ -339,6 +347,7 @@ export class LuxFrameCard extends LitElement {
     this.removeEventListener('luxframe-goto', this._onGoto);
     this.removeEventListener('luxframe-badge-edit', this._onBadgeEdit);
     this.removeEventListener('luxframe-badge-add', this._onBadgeAdd);
+    window.removeEventListener('resize', this._onWindowResize);
     window.clearTimeout(this._toastTimer);
     this._unsubs.forEach((off) => off());
     this._unsubs = [];
@@ -349,11 +358,31 @@ export class LuxFrameCard extends LitElement {
 
   protected firstUpdated(): void {
     // Keep the current page in place when the tablet rotates.
-    this._resize = new ResizeObserver(() => this.goTo(this._index, false));
+    this._resize = new ResizeObserver(() => {
+      this._measureTop();
+      this.goTo(this._index, false);
+    });
     this._resize.observe(this._track);
   }
 
+  private _onWindowResize = () => this._measureTop();
+
+  /**
+   * Where the card starts on the screen, so the frame ends at the bottom of
+   * it. Home Assistant's `--header-height` doesn't always reach the card, and
+   * leaves out anything else above it, which put the last row and the page
+   * dots below the screen on a phone that shows the header.
+   */
+  private _measureTop(): void {
+    const top = Math.round(this.getBoundingClientRect().top + window.scrollY);
+    const known = top >= 0 && top < window.innerHeight / 2 ? top : undefined;
+    if (known !== this._top) this._top = known;
+  }
+
   protected updated(changed: PropertyValues): void {
+    // The header can come or go (Kiosk Satellite's kiosk mode) without the
+    // card changing size, so check where it starts as Home Assistant updates.
+    this._measureTop();
     this.toggleAttribute('dark', this._isDark);
     this.toggleAttribute('ha-theme', this._shown?.theme === 'ha');
     const style = this._shown?.style ?? 'auto';
@@ -1256,7 +1285,12 @@ export class LuxFrameCard extends LitElement {
     const config = this._shown;
     if (!config) return nothing;
     const height =
-      config.height ?? (this._hideHeader ? '100dvh' : 'calc(100dvh - var(--header-height, 0px))');
+      config.height ??
+      (this._top !== undefined
+        ? `calc(100dvh - ${this._top}px)`
+        : this._hideHeader
+          ? '100dvh'
+          : 'calc(100dvh - var(--header-height, 0px))');
     const visible = this._visible;
     const scale = frameScale(config.scale);
     const alerts = this._editing ? [] : activeAlerts(this.hass, config.alerts).filter((a) => !this._dismissed.has(a.key));

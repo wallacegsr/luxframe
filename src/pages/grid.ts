@@ -92,6 +92,8 @@ export class LuxFrameGrid extends LitElement {
   private _portrait = window.matchMedia('(orientation: portrait)');
   private _onRotate = () => this.requestUpdate();
   private _hold?: { x: number; y: number; timer: number };
+  /** Watches the cells' size, to scroll them when their rows run past it. */
+  private _sizer = new ResizeObserver(() => this._checkScroll());
 
   constructor() {
     super();
@@ -112,6 +114,22 @@ export class LuxFrameGrid extends LitElement {
     this._portrait.removeEventListener('change', this._onRotate);
     this.removeEventListener('luxframe-hold', this._claimHold);
     this._cancelHold();
+    this._sizer.disconnect();
+  }
+
+  protected firstUpdated(): void {
+    const grid = this.renderRoot.querySelector('.cells');
+    if (grid) this._sizer.observe(grid);
+  }
+
+  /**
+   * Rows that run past the bottom (more of them than fit, or rows held at
+   * their smallest on a short screen) scroll within the cells, which end
+   * above the page dots, so the last row can be scrolled clear of them.
+   */
+  private _checkScroll(): void {
+    const grid = this.renderRoot.querySelector('.cells');
+    if (grid) this.toggleAttribute('scrolls', grid.scrollHeight > grid.clientHeight + 1);
   }
 
   private _claimHold = (e: Event): void => {
@@ -304,13 +322,14 @@ export class LuxFrameGrid extends LitElement {
     const drag = this._drag?.active ? this._drag : undefined;
     const grid = this.renderRoot.querySelector('.cells') as HTMLElement | null;
     if (!grid) return;
+    this._checkScroll();
     const box = grid.getBoundingClientRect();
     const zoom = zoomOf(grid);
     for (const cell of grid.querySelectorAll<HTMLElement>('.cell[data-index]')) {
       if (drag && cell.classList.contains('dragging')) {
         // Keep the lifted tile under the finger, wherever its slot now is.
         const x = (drag.x - drag.grabX - box.left) / zoom - cell.offsetLeft;
-        const y = (drag.y - drag.grabY - box.top) / zoom - cell.offsetTop;
+        const y = (drag.y - drag.grabY - box.top) / zoom + grid.scrollTop - cell.offsetTop;
         cell.style.transform = `translate(${x}px, ${y}px) scale(1.04)`;
       } else if (cell.style.transform) {
         cell.style.removeProperty('transform');
@@ -471,9 +490,21 @@ export class LuxFrameGrid extends LitElement {
         min-height: 0;
         display: grid;
         grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
-        grid-auto-rows: calc((100% - (var(--rows) - 1) * var(--lf-gap)) / var(--rows));
+        /* Rows share the screen, but never get shorter than a tile can be read
+           at: a short screen (a phone on its side) scrolls instead. */
+        grid-auto-rows: max(120px, calc((100% - (var(--rows) - 1) * var(--lf-gap)) / var(--rows)));
         grid-auto-flow: row dense;
         gap: var(--lf-gap);
+      }
+
+      /* Scrolling, the cells keep room around them for glows and the edit
+         handles, which their edges would otherwise cut off. */
+      :host([scrolls]) .cells {
+        overflow-y: auto;
+        overscroll-behavior-y: contain;
+        scrollbar-width: none;
+        padding: 10px;
+        margin: -10px;
       }
 
       /* Hidden by its visibility conditions right now; shown while editing. */

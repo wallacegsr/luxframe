@@ -436,6 +436,8 @@ action, or an icon: change it and tap **Apply**.
 
 A grid page is `rows` × `columns` cells, and every row is the same height, so a
 page of tiles fills the screen edge to edge. Tiles past the last row scroll.
+Rows are never shorter than 120px, so on a short screen (a phone on its side)
+the tiles stay readable and the page scrolls.
 When the tablet stands upright, the grid uses `portrait_rows` instead, so
 tiles stay close to square. Tiles pack in order and fill gaps where they can.
 

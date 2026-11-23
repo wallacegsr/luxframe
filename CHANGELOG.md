@@ -6,6 +6,25 @@ All notable changes to LuxFrame are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.17.9] - 2026-11-22
+
+### Changed
+
+- Grid rows are never shorter than 120px. On a short screen, such as a phone
+  on its side, the tiles stay readable and the page scrolls instead of
+  shrinking every tile to fit. A tablet's rows are taller than that, so it's
+  unchanged.
+- A grid page with more rows than fit scrolls its tiles under the title and
+  badges, and stops with the last row above the page dots rather than
+  behind them.
+
+### Fixed
+
+- LuxFrame ends at the bottom of the screen when Home Assistant's header is
+  showing. It measures where it starts rather than relying on the header's
+  height reaching it, which on some screens (a phone in landscape, say) left
+  the last row of tiles and the page dots below the screen.
+
 ## [0.17.8] - 2026-11-22
 
 ### Fixed
@@ -755,7 +774,8 @@ All notable changes to LuxFrame are recorded here. The format follows
 - The editor adds the new tiles (Widgets and Rooms) and pages (Weather,
   Calendar, Cameras, Photos, Night, Clock).
 
-[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.8...HEAD
+[Unreleased]: https://github.com/wallacegsr/luxframe/compare/v0.17.9...HEAD
+[0.17.9]: https://github.com/wallacegsr/luxframe/compare/v0.17.8...v0.17.9
 [0.17.8]: https://github.com/wallacegsr/luxframe/compare/v0.17.7...v0.17.8
 [0.17.7]: https://github.com/wallacegsr/luxframe/compare/v0.17.6...v0.17.7
 [0.17.6]: https://github.com/wallacegsr/luxframe/compare/v0.17.5...v0.17.6
